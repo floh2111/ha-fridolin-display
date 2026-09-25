@@ -439,7 +439,7 @@ script:
           else lv_obj_clear_state(id(btn_heizen), LV_STATE_CHECKED);
 
 ### ------------------------------------------------------------------
-### LVGL-Oberfläche: 4 Seiten, per Wischgeste erreichbar
+### LVGL-Oberfläche: 4 Seiten als Wisch-Karussell (tileview)
 ### Übersicht -> Licht -> Heizung -> Nivellierung
 ### ------------------------------------------------------------------
 lvgl:
@@ -460,386 +460,403 @@ lvgl:
       text_color: 0xFFFFFF
 
   pages:
-    ### Seite 1: Übersicht mit Wetter
-    - id: page_uebersicht
+    - id: seiten
       bg_color: 0x101820
       widgets:
-        - label:
-            text: "Fridolin"
-            text_font: montserrat_28
-            align: TOP_MID
-            y: 12
-        - label:
-            id: lbl_wetter_ort
-            text: "Übersicht"
-            text_font: montserrat_14
-            align: TOP_MID
-            y: 44
+        ### Wisch-Karussell: nach links/rechts wischen wechselt die Seite
+        - tileview:
+            id: tv_seiten
+            scrollbar_mode: "OFF"
+            bg_color: 0x101820
+            tiles:
+              ### Seite 1: Übersicht mit Wetter
+              - id: tile_uebersicht
+                row: 0
+                column: 0
+                dir: HOR
+                widgets:
+                  - label:
+                      text: "Fridolin"
+                      text_font: montserrat_28
+                      align: TOP_MID
+                      y: 12
+                  - label:
+                      id: lbl_wetter_ort
+                      text: "Übersicht"
+                      text_font: montserrat_14
+                      align: TOP_MID
+                      y: 44
 
-        - label:
-            id: lbl_wetter_zustand
-            text: "—"
-            align: TOP_MID
-            y: 74
-        - label:
-            id: lbl_wetter_temp
-            text: "--.- °C"
-            text_font: montserrat_40
-            align: TOP_MID
-            y: 100
+                  - label:
+                      id: lbl_wetter_zustand
+                      text: "—"
+                      align: TOP_MID
+                      y: 74
+                  - label:
+                      id: lbl_wetter_temp
+                      text: "--.- °C"
+                      text_font: montserrat_40
+                      align: TOP_MID
+                      y: 100
 
-        ### Vorschau für die nächsten Stunden, vier Slots nebeneinander
-        - obj:
-            align: TOP_MID
-            y: 170
-            width: 620
-            height: 76
-            bg_opa: TRANSP
-            border_opa: TRANSP
-            layout:
-              type: FLEX
-              flex_flow: ROW
-              flex_align_main: SPACE_EVENLY
-              flex_align_cross: CENTER
-            widgets:
-              - obj:
-                  width: 130
-                  height: 76
-                  bg_opa: TRANSP
-                  border_opa: TRANSP
-                  layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER }
-                  widgets:
-                    - label: { id: lbl_h0_zeit, text: "--:--", text_font: montserrat_14 }
-                    - label: { id: lbl_h0_temp, text: "--°", text_font: montserrat_20 }
-              - obj:
-                  width: 130
-                  height: 76
-                  bg_opa: TRANSP
-                  border_opa: TRANSP
-                  layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER }
-                  widgets:
-                    - label: { id: lbl_h1_zeit, text: "--:--", text_font: montserrat_14 }
-                    - label: { id: lbl_h1_temp, text: "--°", text_font: montserrat_20 }
-              - obj:
-                  width: 130
-                  height: 76
-                  bg_opa: TRANSP
-                  border_opa: TRANSP
-                  layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER }
-                  widgets:
-                    - label: { id: lbl_h2_zeit, text: "--:--", text_font: montserrat_14 }
-                    - label: { id: lbl_h2_temp, text: "--°", text_font: montserrat_20 }
-              - obj:
-                  width: 130
-                  height: 76
-                  bg_opa: TRANSP
-                  border_opa: TRANSP
-                  layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER }
-                  widgets:
-                    - label: { id: lbl_h3_zeit, text: "--:--", text_font: montserrat_14 }
-                    - label: { id: lbl_h3_temp, text: "--°", text_font: montserrat_20 }
+                  ### Vorschau für die nächsten Stunden, vier Slots nebeneinander
+                  - obj:
+                      align: TOP_MID
+                      y: 170
+                      width: 620
+                      height: 76
+                      bg_opa: TRANSP
+                      border_opa: TRANSP
+                      layout:
+                        type: FLEX
+                        flex_flow: ROW
+                        flex_align_main: SPACE_EVENLY
+                        flex_align_cross: CENTER
+                      widgets:
+                        - obj:
+                            width: 130
+                            height: 76
+                            bg_opa: TRANSP
+                            border_opa: TRANSP
+                            layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER }
+                            widgets:
+                              - label: { id: lbl_h0_zeit, text: "--:--", text_font: montserrat_14 }
+                              - label: { id: lbl_h0_temp, text: "--°", text_font: montserrat_20 }
+                        - obj:
+                            width: 130
+                            height: 76
+                            bg_opa: TRANSP
+                            border_opa: TRANSP
+                            layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER }
+                            widgets:
+                              - label: { id: lbl_h1_zeit, text: "--:--", text_font: montserrat_14 }
+                              - label: { id: lbl_h1_temp, text: "--°", text_font: montserrat_20 }
+                        - obj:
+                            width: 130
+                            height: 76
+                            bg_opa: TRANSP
+                            border_opa: TRANSP
+                            layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER }
+                            widgets:
+                              - label: { id: lbl_h2_zeit, text: "--:--", text_font: montserrat_14 }
+                              - label: { id: lbl_h2_temp, text: "--°", text_font: montserrat_20 }
+                        - obj:
+                            width: 130
+                            height: 76
+                            bg_opa: TRANSP
+                            border_opa: TRANSP
+                            layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER }
+                            widgets:
+                              - label: { id: lbl_h3_zeit, text: "--:--", text_font: montserrat_14 }
+                              - label: { id: lbl_h3_temp, text: "--°", text_font: montserrat_20 }
 
-        ### Kurzer Ausblick auf morgen
-        - label:
-            id: lbl_morgen_range
-            text: "Morgen: --° – --°"
-            text_font: montserrat_20
-            align: TOP_MID
-            y: 262
-        - label:
-            id: lbl_morgen_zustand
-            text: "—"
-            text_font: montserrat_14
-            align: TOP_MID
-            y: 292
+                  ### Kurzer Ausblick auf morgen
+                  - label:
+                      id: lbl_morgen_range
+                      text: "Morgen: --° – --°"
+                      text_font: montserrat_20
+                      align: TOP_MID
+                      y: 262
+                  - label:
+                      id: lbl_morgen_zustand
+                      text: "—"
+                      text_font: montserrat_14
+                      align: TOP_MID
+                      y: 292
 
-        - label:
-            text: "Nach links wischen: Licht"
-            align: BOTTOM_MID
-            y: -12
-            text_font: montserrat_14
+                  - label:
+                      text: "Nach links wischen: Licht"
+                      align: BOTTOM_MID
+                      y: -12
+                      text_font: montserrat_14
 
-        ### Kleiner Button, öffnet die Einstellungsseite als Overlay
-        ### (kein Bestandteil der Wisch-Reihenfolge)
-        - button:
-            id: btn_einstellungen_oeffnen
-            align: TOP_RIGHT
-            x: -12
-            y: 10
-            width: 40
-            height: 40
-            widgets:
-              - label:
-                  text: "⚙"
-                  align: CENTER
-            on_click:
-              - lvgl.widget.update:
-                  id: overlay_einstellungen
-                  hidden: false
+                  ### Kleiner Button, öffnet die Einstellungsseite als Overlay
+                  ### (kein Bestandteil der Wisch-Reihenfolge)
+                  - button:
+                      id: btn_einstellungen_oeffnen
+                      align: TOP_RIGHT
+                      x: -12
+                      y: 10
+                      width: 40
+                      height: 40
+                      widgets:
+                        - label:
+                            text: "⚙"
+                            align: CENTER
+                      on_click:
+                        - lvgl.widget.update:
+                            id: overlay_einstellungen
+                            hidden: false
 
-    ### Seite 2: Licht (bis zu 4 Lichter, nicht belegte Slots sind versteckt)
-    - id: page_licht
-      bg_color: 0x101820
-      widgets:
-        - label:
-            text: "Licht"
-            text_font: montserrat_28
-            align: TOP_MID
-            y: 16
-        - label:
-            id: lbl_keine_lichter
-            text: "Keine Lichter eingerichtet"
-            align: CENTER
-        - obj:
-            align: CENTER
-            width: 720
-            height: 200
-            bg_opa: TRANSP
-            border_opa: TRANSP
-            layout:
-              type: FLEX
-              flex_flow: ROW
-              flex_align_main: SPACE_EVENLY
-              flex_align_cross: CENTER
-            widgets:
-              - button:
-                  id: btn_licht_1
-                  hidden: true
-                  checkable: true
-                  width: 160
-                  height: 160
-                  widgets:
-                    - label:
-                        text: "Licht 1"
-                        align: CENTER
-                  on_click:
-                    - homeassistant.action:
-                        action: light.toggle
-                        data:
-                          entity_id: light.fridolin_licht_1
-              - button:
-                  id: btn_licht_2
-                  hidden: true
-                  checkable: true
-                  width: 160
-                  height: 160
-                  widgets:
-                    - label:
-                        text: "Licht 2"
-                        align: CENTER
-                  on_click:
-                    - homeassistant.action:
-                        action: light.toggle
-                        data:
-                          entity_id: light.fridolin_licht_2
-              - button:
-                  id: btn_licht_3
-                  hidden: true
-                  checkable: true
-                  width: 160
-                  height: 160
-                  widgets:
-                    - label:
-                        text: "Licht 3"
-                        align: CENTER
-                  on_click:
-                    - homeassistant.action:
-                        action: light.toggle
-                        data:
-                          entity_id: light.fridolin_licht_3
-              - button:
-                  id: btn_licht_4
-                  hidden: true
-                  checkable: true
-                  width: 160
-                  height: 160
-                  widgets:
-                    - label:
-                        text: "Licht 4"
-                        align: CENTER
-                  on_click:
-                    - homeassistant.action:
-                        action: light.toggle
-                        data:
-                          entity_id: light.fridolin_licht_4
+              ### Seite 2: Licht (bis zu 4 Lichter, nicht belegte Slots sind versteckt)
+              - id: tile_licht
+                row: 0
+                column: 1
+                dir: HOR
+                widgets:
+                  - label:
+                      text: "Licht"
+                      text_font: montserrat_28
+                      align: TOP_MID
+                      y: 16
+                  - label:
+                      id: lbl_keine_lichter
+                      text: "Keine Lichter eingerichtet"
+                      align: CENTER
+                  - obj:
+                      align: CENTER
+                      width: 720
+                      height: 200
+                      bg_opa: TRANSP
+                      border_opa: TRANSP
+                      layout:
+                        type: FLEX
+                        flex_flow: ROW
+                        flex_align_main: SPACE_EVENLY
+                        flex_align_cross: CENTER
+                      widgets:
+                        - button:
+                            id: btn_licht_1
+                            hidden: true
+                            checkable: true
+                            width: 160
+                            height: 160
+                            widgets:
+                              - label:
+                                  text: "Licht 1"
+                                  align: CENTER
+                            on_click:
+                              - homeassistant.action:
+                                  action: light.toggle
+                                  data:
+                                    entity_id: light.fridolin_licht_1
+                        - button:
+                            id: btn_licht_2
+                            hidden: true
+                            checkable: true
+                            width: 160
+                            height: 160
+                            widgets:
+                              - label:
+                                  text: "Licht 2"
+                                  align: CENTER
+                            on_click:
+                              - homeassistant.action:
+                                  action: light.toggle
+                                  data:
+                                    entity_id: light.fridolin_licht_2
+                        - button:
+                            id: btn_licht_3
+                            hidden: true
+                            checkable: true
+                            width: 160
+                            height: 160
+                            widgets:
+                              - label:
+                                  text: "Licht 3"
+                                  align: CENTER
+                            on_click:
+                              - homeassistant.action:
+                                  action: light.toggle
+                                  data:
+                                    entity_id: light.fridolin_licht_3
+                        - button:
+                            id: btn_licht_4
+                            hidden: true
+                            checkable: true
+                            width: 160
+                            height: 160
+                            widgets:
+                              - label:
+                                  text: "Licht 4"
+                                  align: CENTER
+                            on_click:
+                              - homeassistant.action:
+                                  action: light.toggle
+                                  data:
+                                    entity_id: light.fridolin_licht_4
 
-    ### Seite 3: Heizung (ohne eingerichtete Heizung nur ein Hinweistext)
-    - id: page_heizung
-      bg_color: 0x101820
-      widgets:
-        - label:
-            text: "Heizung"
-            text_font: montserrat_28
-            align: TOP_MID
-            y: 16
-        - label:
-            id: lbl_keine_heizung
-            text: "Keine Heizung eingerichtet"
-            align: CENTER
-        - label:
-            id: lbl_zieltemperatur
-            hidden: true
-            text: "21.0 °C"
-            text_font: montserrat_40
-            align: CENTER
-            y: -60
-        - obj:
-            id: row_heizung_temp
-            hidden: true
-            align: CENTER
-            y: 20
-            width: 300
-            height: 60
-            bg_opa: TRANSP
-            border_opa: TRANSP
-            layout:
-              type: FLEX
-              flex_flow: ROW
-              flex_align_main: SPACE_EVENLY
-              flex_align_cross: CENTER
-            widgets:
-              - button:
-                  width: 80
-                  height: 60
-                  widgets:
-                    - label:
-                        text: "-"
-                        text_font: montserrat_28
-                  on_click:
-                    - homeassistant.action:
-                        action: climate.set_temperature
-                        data:
-                          entity_id: climate.fridolin_heizung
-                          temperature: !lambda return id(ha_zieltemperatur).state - 0.5;
-              - button:
-                  width: 80
-                  height: 60
-                  widgets:
-                    - label:
-                        text: "+"
-                        text_font: montserrat_28
-                  on_click:
-                    - homeassistant.action:
-                        action: climate.set_temperature
-                        data:
-                          entity_id: climate.fridolin_heizung
-                          temperature: !lambda return id(ha_zieltemperatur).state + 0.5;
-        - button:
-            id: btn_heizen
-            hidden: true
-            checkable: true
-            align: BOTTOM_MID
-            y: -40
-            width: 220
-            height: 70
-            widgets:
-              - label:
-                  text: "Heizen"
-                  align: CENTER
-            on_click:
-              ### Umschalten zwischen "heat" und "off", je nachdem was gerade aktiv ist
-              - if:
-                  condition:
-                    lambda: 'return id(ha_heizung_modus).state == "heat";'
-                  then:
-                    - homeassistant.action:
-                        action: climate.set_hvac_mode
-                        data:
-                          entity_id: climate.fridolin_heizung
-                          hvac_mode: "off"
-                  else:
-                    - homeassistant.action:
-                        action: climate.set_hvac_mode
-                        data:
-                          entity_id: climate.fridolin_heizung
-                          hvac_mode: "heat"
+              ### Seite 3: Heizung (ohne eingerichtete Heizung nur ein Hinweistext)
+              - id: tile_heizung
+                row: 0
+                column: 2
+                dir: HOR
+                widgets:
+                  - label:
+                      text: "Heizung"
+                      text_font: montserrat_28
+                      align: TOP_MID
+                      y: 16
+                  - label:
+                      id: lbl_keine_heizung
+                      text: "Keine Heizung eingerichtet"
+                      align: CENTER
+                  - label:
+                      id: lbl_zieltemperatur
+                      hidden: true
+                      text: "21.0 °C"
+                      text_font: montserrat_40
+                      align: CENTER
+                      y: -60
+                  - obj:
+                      id: row_heizung_temp
+                      hidden: true
+                      align: CENTER
+                      y: 20
+                      width: 300
+                      height: 60
+                      bg_opa: TRANSP
+                      border_opa: TRANSP
+                      layout:
+                        type: FLEX
+                        flex_flow: ROW
+                        flex_align_main: SPACE_EVENLY
+                        flex_align_cross: CENTER
+                      widgets:
+                        - button:
+                            width: 80
+                            height: 60
+                            widgets:
+                              - label:
+                                  text: "-"
+                                  text_font: montserrat_28
+                            on_click:
+                              - homeassistant.action:
+                                  action: climate.set_temperature
+                                  data:
+                                    entity_id: climate.fridolin_heizung
+                                    temperature: !lambda return id(ha_zieltemperatur).state - 0.5;
+                        - button:
+                            width: 80
+                            height: 60
+                            widgets:
+                              - label:
+                                  text: "+"
+                                  text_font: montserrat_28
+                            on_click:
+                              - homeassistant.action:
+                                  action: climate.set_temperature
+                                  data:
+                                    entity_id: climate.fridolin_heizung
+                                    temperature: !lambda return id(ha_zieltemperatur).state + 0.5;
+                  - button:
+                      id: btn_heizen
+                      hidden: true
+                      checkable: true
+                      align: BOTTOM_MID
+                      y: -40
+                      width: 220
+                      height: 70
+                      widgets:
+                        - label:
+                            text: "Heizen"
+                            align: CENTER
+                      on_click:
+                        ### Umschalten zwischen "heat" und "off", je nachdem was gerade aktiv ist
+                        - if:
+                            condition:
+                              lambda: 'return id(ha_heizung_modus).state == "heat";'
+                            then:
+                              - homeassistant.action:
+                                  action: climate.set_hvac_mode
+                                  data:
+                                    entity_id: climate.fridolin_heizung
+                                    hvac_mode: "off"
+                            else:
+                              - homeassistant.action:
+                                  action: climate.set_hvac_mode
+                                  data:
+                                    entity_id: climate.fridolin_heizung
+                                    hvac_mode: "heat"
 
-    ### Seite 4: Nivellierung (zwei "Wasserwaagen")
-    - id: page_nivellierung
-      bg_color: 0x101820
-      widgets:
-        - label:
-            text: "Nivellierung"
-            text_font: montserrat_28
-            align: TOP_MID
-            y: 16
-        - obj:
-            align: CENTER
-            width: 760
-            height: 320
-            bg_opa: TRANSP
-            border_opa: TRANSP
-            layout:
-              type: FLEX
-              flex_flow: ROW
-              flex_align_main: SPACE_EVENLY
-              flex_align_cross: CENTER
-            widgets:
-              - obj:
-                  width: 340
-                  height: 300
-                  bg_opa: TRANSP
-                  border_opa: TRANSP
-                  layout:
-                    type: FLEX
-                    flex_flow: COLUMN
-                    flex_align_main: CENTER
-                    flex_align_cross: CENTER
-                  widgets:
-                    - label:
-                        text: "Links / Rechts"
-                    - arc:
-                        id: arc_lr
-                        width: 220
-                        height: 220
-                        min_value: -45
-                        max_value: 45
-                        value: 0
-                        start_angle: 135
-                        end_angle: 45
-                        adjustable: false
-                    - label:
-                        id: lbl_neigung_lr
-                        text: "0.0°"
-                        text_font: montserrat_28
-              - obj:
-                  width: 340
-                  height: 300
-                  bg_opa: TRANSP
-                  border_opa: TRANSP
-                  layout:
-                    type: FLEX
-                    flex_flow: COLUMN
-                    flex_align_main: CENTER
-                    flex_align_cross: CENTER
-                  widgets:
-                    - label:
-                        text: "Vorne / Hinten"
-                    - arc:
-                        id: arc_vh
-                        width: 220
-                        height: 220
-                        min_value: -45
-                        max_value: 45
-                        value: 0
-                        start_angle: 135
-                        end_angle: 45
-                        adjustable: false
-                    - label:
-                        id: lbl_neigung_vh
-                        text: "0.0°"
-                        text_font: montserrat_28
-        - button:
-            align: BOTTOM_MID
-            y: -8
-            width: 200
-            height: 50
-            widgets:
-              - label:
-                  text: "Nullen"
-                  align: CENTER
-            on_click:
-              - script.execute: neigung_nullen
+              ### Seite 4: Nivellierung (zwei "Wasserwaagen")
+              - id: tile_nivellierung
+                row: 0
+                column: 3
+                dir: HOR
+                widgets:
+                  - label:
+                      text: "Nivellierung"
+                      text_font: montserrat_28
+                      align: TOP_MID
+                      y: 16
+                  - obj:
+                      align: CENTER
+                      width: 760
+                      height: 320
+                      bg_opa: TRANSP
+                      border_opa: TRANSP
+                      layout:
+                        type: FLEX
+                        flex_flow: ROW
+                        flex_align_main: SPACE_EVENLY
+                        flex_align_cross: CENTER
+                      widgets:
+                        - obj:
+                            width: 340
+                            height: 300
+                            bg_opa: TRANSP
+                            border_opa: TRANSP
+                            layout:
+                              type: FLEX
+                              flex_flow: COLUMN
+                              flex_align_main: CENTER
+                              flex_align_cross: CENTER
+                            widgets:
+                              - label:
+                                  text: "Links / Rechts"
+                              - arc:
+                                  id: arc_lr
+                                  width: 220
+                                  height: 220
+                                  min_value: -45
+                                  max_value: 45
+                                  value: 0
+                                  start_angle: 135
+                                  end_angle: 45
+                                  adjustable: false
+                              - label:
+                                  id: lbl_neigung_lr
+                                  text: "0.0°"
+                                  text_font: montserrat_28
+                        - obj:
+                            width: 340
+                            height: 300
+                            bg_opa: TRANSP
+                            border_opa: TRANSP
+                            layout:
+                              type: FLEX
+                              flex_flow: COLUMN
+                              flex_align_main: CENTER
+                              flex_align_cross: CENTER
+                            widgets:
+                              - label:
+                                  text: "Vorne / Hinten"
+                              - arc:
+                                  id: arc_vh
+                                  width: 220
+                                  height: 220
+                                  min_value: -45
+                                  max_value: 45
+                                  value: 0
+                                  start_angle: 135
+                                  end_angle: 45
+                                  adjustable: false
+                              - label:
+                                  id: lbl_neigung_vh
+                                  text: "0.0°"
+                                  text_font: montserrat_28
+                  - button:
+                      align: BOTTOM_MID
+                      y: -8
+                      width: 200
+                      height: 50
+                      widgets:
+                        - label:
+                            text: "Nullen"
+                            align: CENTER
+                      on_click:
+                        - script.execute: neigung_nullen
 
   ### ------------------------------------------------------------------
   ### Einstellungsseite: kein eigener Wisch-Seite, sondern ein Overlay

@@ -94,7 +94,68 @@ button:
     on_press:
       - script.execute: neigung_nullen
 
+### ------------------------------------------------------------------
+### Kühlbox (Alpicool-/Plugin-Festivals-Modelle) per Bluetooth (BLE)
+### Externe Komponente von neftaly/esphome-alpicool, fest auf einen
+### geprüften Commit gepinnt (kein automatisches Nachladen neuer
+### Versionen). Die MAC-Adresse der Kühlbox steht in den ESPHome-Secrets
+### (fridolin_kuehlbox_mac). Die Hersteller-App auf dem Handy vorher
+### trennen, sonst ist die Kühlbox besetzt.
+### ------------------------------------------------------------------
+external_components:
+  - source:
+      type: git
+      url: https://github.com/neftaly/esphome-alpicool
+      ref: fe1eb1630ab5a61db9ad7ed7cd6975e071411431
+
+esp32_ble_tracker:
+  scan_parameters:
+    interval: 110ms
+    window: 110ms
+    active: true
+
+ble_client:
+  - mac_address: !secret fridolin_kuehlbox_mac
+    id: alpicool_fridge
+
+alpicool_ble:
+  ble_client_id: alpicool_fridge
+  id: fridge
+
+climate:
+  - platform: alpicool_ble
+    alpicool_ble_id: fridge
+    name: "Kühlbox Thermostat"
+
+select:
+  - platform: alpicool_ble
+    alpicool_ble_id: fridge
+    run_mode:
+      name: "Kühlbox Modus"
+    battery_saver:
+      name: "Kühlbox Batterieschutz"
+
+switch:
+  - platform: alpicool_ble
+    alpicool_ble_id: fridge
+    power:
+      name: "Kühlbox Power"
+    controls_lock:
+      name: "Kühlbox Tastensperre"
+
 sensor:
+  ### Kühlbox-Werte
+  - platform: alpicool_ble
+    alpicool_ble_id: fridge
+    current_temperature:
+      name: "Kühlbox Temperatur"
+    target_temperature:
+      name: "Kühlbox Zieltemperatur"
+    battery_voltage:
+      name: "Kühlbox Spannung"
+    battery_percent:
+      name: "Kühlbox Batterie"
+
   - platform: mpu6050
     address: 0x68
     i2c_id: bus_a
@@ -138,6 +199,14 @@ sensor:
 ### ob die Verbindung zur "Fridolin Display"-Integration klappt.
 ### ------------------------------------------------------------------
 binary_sensor:
+  ### Kühlbox: Kompressor / Sperre
+  - platform: alpicool_ble
+    alpicool_ble_id: fridge
+    powered_on:
+      name: "Kühlbox Kompressor Status"
+    controls_locked:
+      name: "Kühlbox Sperre Status"
+
   - platform: homeassistant
     id: test_licht_1
     entity_id: light.fridolin_licht_1
