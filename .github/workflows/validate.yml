@@ -27,7 +27,20 @@ jobs:
         run: pip install esphome
 
       - name: Konfiguration validieren
-        run: esphome config esphome/wohnwagen-display.yaml
+        shell: bash
+        run: |
+          esphome config esphome/wohnwagen-display.yaml 2>&1 | tee esphome_output.txt
+          code=${PIPESTATUS[0]}
+          if [ "$code" -ne 0 ]; then
+            # Als ::error::-Annotationen ausgeben, damit die eigentliche
+            # Fehlermeldung auch über die GitHub-API sichtbar ist, nicht
+            # nur im Log-Volltext
+            while IFS= read -r line; do
+              esc=$(printf '%s' "$line" | sed 's/%/%25/g; s/\r/%0D/g')
+              echo "::error::${esc}"
+            done < <(tail -n 40 esphome_output.txt)
+            exit "$code"
+          fi
 
   ha-integration:
     name: Home-Assistant-Integration prüfen
