@@ -24,6 +24,26 @@ esphome:
   name: ${name}
   friendly_name: ${friendly_name}
 
+globals:
+  ### Kalibrierung Neigungssensor: Nullpunkt-Offsets (bleiben nach Neustart
+  ### erhalten) und zuletzt berechnete Rohwinkel
+  - id: g_offset_lr
+    type: float
+    restore_value: true
+    initial_value: '0'
+  - id: g_offset_vh
+    type: float
+    restore_value: true
+    initial_value: '0'
+  - id: g_roh_lr
+    type: float
+    restore_value: false
+    initial_value: '0'
+  - id: g_roh_vh
+    type: float
+    restore_value: false
+    initial_value: '0'
+
 ### Passendes esp32:-Board für deinen Test-ESP32 eintragen. "esp32dev"
 ### passt auf die meisten gängigen "nackten" ESP32-Devboards (NodeMCU-32S,
 ### DOIT ESP32 DevKit v1, etc.). Falls dein Board ein anderes ist, hier
@@ -56,6 +76,24 @@ i2c:
   scan: true
   id: bus_a
 
+script:
+  ### Aktuelle Lage als Nullpunkt speichern (Wohnwagen steht gerade
+  ### waagerecht -> Knopf drücken -> beide Winkel zeigen 0°)
+  - id: neigung_nullen
+    then:
+      - lambda: |-
+          id(g_offset_lr) = id(g_roh_lr);
+          id(g_offset_vh) = id(g_roh_vh);
+      - component.update: neigung_links_rechts
+      - component.update: neigung_vorne_hinten
+
+### Nullt die Neigungsanzeige auf die aktuelle Lage (auch aus Home Assistant bedienbar)
+button:
+  - platform: template
+    name: Neigung nullen
+    on_press:
+      - script.execute: neigung_nullen
+
 sensor:
   - platform: mpu6050
     address: 0x68
@@ -74,7 +112,9 @@ sensor:
     unit_of_measurement: "°"
     update_interval: 1s
     lambda: |-
-      return atan2(id(accel_y).state, id(accel_z).state) * 180.0 / PI;
+      float roh = atan2(id(accel_y).state, id(accel_z).state) * 180.0 / PI;
+      id(g_roh_lr) = roh;
+      return roh - id(g_offset_lr);
 
   - platform: template
     id: neigung_vorne_hinten
@@ -82,7 +122,9 @@ sensor:
     unit_of_measurement: "°"
     update_interval: 1s
     lambda: |-
-      return atan2(-id(accel_x).state, sqrt(id(accel_y).state * id(accel_y).state + id(accel_z).state * id(accel_z).state)) * 180.0 / PI;
+      float roh = atan2(-id(accel_x).state, sqrt(id(accel_y).state * id(accel_y).state + id(accel_z).state * id(accel_z).state)) * 180.0 / PI;
+      id(g_roh_vh) = roh;
+      return roh - id(g_offset_vh);
 
   ### Zusätzlich zwei Werte aus der Integration mitlesen, rein zur
   ### Kontrolle: kommen von dort überhaupt Zahlen an?

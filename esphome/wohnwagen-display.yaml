@@ -18,6 +18,24 @@ psram:
 ### Merkt sich Min-/Max-Temperatur für morgen, damit der kombinierte
 ### Übersichts-Text unabhängig von der Update-Reihenfolge stimmt
 globals:
+  ### Kalibrierung Neigungssensor: Nullpunkt-Offsets (bleiben nach Neustart
+  ### erhalten) und zuletzt berechnete Rohwinkel
+  - id: g_offset_lr
+    type: float
+    restore_value: true
+    initial_value: '0'
+  - id: g_offset_vh
+    type: float
+    restore_value: true
+    initial_value: '0'
+  - id: g_roh_lr
+    type: float
+    restore_value: false
+    initial_value: '0'
+  - id: g_roh_vh
+    type: float
+    restore_value: false
+    initial_value: '0'
   - id: g_morgen_min
     type: float
     restore_value: false
@@ -320,7 +338,9 @@ sensor:
     unit_of_measurement: "°"
     update_interval: 200ms
     lambda: |-
-      return atan2(id(accel_y).state, id(accel_z).state) * 180.0 / PI;
+      float roh = atan2(id(accel_y).state, id(accel_z).state) * 180.0 / PI;
+      id(g_roh_lr) = roh;
+      return roh - id(g_offset_lr);
     on_value:
       - lvgl.label.update:
           id: lbl_neigung_lr
@@ -338,7 +358,9 @@ sensor:
     unit_of_measurement: "°"
     update_interval: 200ms
     lambda: |-
-      return atan2(-id(accel_x).state, sqrt(id(accel_y).state * id(accel_y).state + id(accel_z).state * id(accel_z).state)) * 180.0 / PI;
+      float roh = atan2(-id(accel_x).state, sqrt(id(accel_y).state * id(accel_y).state + id(accel_z).state * id(accel_z).state)) * 180.0 / PI;
+      id(g_roh_vh) = roh;
+      return roh - id(g_offset_vh);
     on_value:
       - lvgl.label.update:
           id: lbl_neigung_vh
@@ -349,11 +371,28 @@ sensor:
           id: arc_vh
           value: !lambda return (int) x;
 
+### Nullt die Neigungsanzeige auf die aktuelle Lage (auch aus Home Assistant bedienbar)
+button:
+  - platform: template
+    name: Neigung nullen
+    on_press:
+      - script.execute: neigung_nullen
+
 ### ------------------------------------------------------------------
 ### Nicht belegte Slots ausblenden: Lichter ohne Zustand aus Home Assistant
 ### und eine nicht eingerichtete Heizung werden auf dem Display versteckt
 ### ------------------------------------------------------------------
 script:
+  ### Aktuelle Lage als Nullpunkt speichern (Wohnwagen steht gerade
+  ### waagerecht -> Knopf drücken -> beide Winkel zeigen 0°)
+  - id: neigung_nullen
+    then:
+      - lambda: |-
+          id(g_offset_lr) = id(g_roh_lr);
+          id(g_offset_vh) = id(g_roh_vh);
+      - component.update: neigung_links_rechts
+      - component.update: neigung_vorne_hinten
+
   - id: sync_lichter
     then:
       - lambda: |-
@@ -780,6 +819,17 @@ lvgl:
                         id: lbl_neigung_vh
                         text: "0.0°"
                         text_font: montserrat_28
+        - button:
+            align: BOTTOM_MID
+            y: -8
+            width: 200
+            height: 50
+            widgets:
+              - label:
+                  text: "Nullen"
+                  align: CENTER
+            on_click:
+              - script.execute: neigung_nullen
 
   ### ------------------------------------------------------------------
   ### Einstellungsseite: kein eigener Wisch-Seite, sondern ein Overlay
