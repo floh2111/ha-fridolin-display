@@ -45,15 +45,15 @@ logger:
 
 api:
   encryption:
-    key: !secret api_key
+    key: !secret fridolin_api_key
 
 ota:
   - platform: esphome
-    password: !secret ota_password
+    password: !secret fridolin_ota_password
 
 wifi:
-  ssid: !secret wifi_ssid
-  password: !secret wifi_password
+  ssid: !secret fridolin_wifi_ssid
+  password: !secret fridolin_wifi_password
   power_save_mode: none
 
 time:
