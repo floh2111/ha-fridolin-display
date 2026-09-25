@@ -136,40 +136,42 @@ switch:
 ### Platzhalter/Dummy-Namen - einfach gegen deine echten ersetzen.
 ### ------------------------------------------------------------------
 
-### Aktueller Zustand von Home Assistant -> spiegelt sich auf den Buttons
-binary_sensor:
-  - platform: homeassistant
-    id: ha_licht_1
-    entity_id: light.fridolin_licht_1
-    publish_initial_state: true
-    on_state:
-      - lvgl.widget.update:
-          id: btn_licht_1
-          state:
-            checked: !lambda return x;
-
-  - platform: homeassistant
-    id: ha_licht_2
-    entity_id: light.fridolin_licht_2
-    publish_initial_state: true
-    on_state:
-      - lvgl.widget.update:
-          id: btn_licht_2
-          state:
-            checked: !lambda return x;
-
 ### Heizung: climate-Entität in Home Assistant. Der Zustand (state) einer
 ### climate-Entität IST der HVAC-Modus (z.B. "heat" oder "off"), darüber
 ### synchronisieren wir den Heizen-Button
 text_sensor:
+  ### Licht-Slots 1-4: Status als Text ("on", "off", "unavailable"). Ein
+  ### Slot, den du in der Integration leer lässt, existiert in Home Assistant
+  ### gar nicht -> es kommt nie ein Zustand an -> der Button bleibt versteckt.
+  - platform: homeassistant
+    id: ha_licht_1
+    entity_id: light.fridolin_licht_1
+    on_value:
+      - script.execute: sync_lichter
+
+  - platform: homeassistant
+    id: ha_licht_2
+    entity_id: light.fridolin_licht_2
+    on_value:
+      - script.execute: sync_lichter
+
+  - platform: homeassistant
+    id: ha_licht_3
+    entity_id: light.fridolin_licht_3
+    on_value:
+      - script.execute: sync_lichter
+
+  - platform: homeassistant
+    id: ha_licht_4
+    entity_id: light.fridolin_licht_4
+    on_value:
+      - script.execute: sync_lichter
+
   - platform: homeassistant
     id: ha_heizung_modus
     entity_id: climate.fridolin_heizung
     on_value:
-      - lvgl.widget.update:
-          id: btn_heizen
-          state:
-            checked: !lambda return x == "heat";
+      - script.execute: sync_heizung
 
   ### Wetterzustand: kommt aus der standortabhängigen REST-Abfrage in
   ### Home Assistant (siehe home-assistant-standort-wetter.yaml), nicht
@@ -348,6 +350,47 @@ sensor:
           value: !lambda return (int) x;
 
 ### ------------------------------------------------------------------
+### Nicht belegte Slots ausblenden: Lichter ohne Zustand aus Home Assistant
+### und eine nicht eingerichtete Heizung werden auf dem Display versteckt
+### ------------------------------------------------------------------
+script:
+  - id: sync_lichter
+    then:
+      - lambda: |-
+          lv_obj_t *btns[4] = {id(btn_licht_1), id(btn_licht_2), id(btn_licht_3), id(btn_licht_4)};
+          text_sensor::TextSensor *ts[4] = {id(ha_licht_1), id(ha_licht_2), id(ha_licht_3), id(ha_licht_4)};
+          int sichtbar = 0;
+          for (int i = 0; i < 4; i++) {
+            const std::string &s = ts[i]->state;
+            bool da = ts[i]->has_state() && !s.empty() && s != "unavailable" && s != "unknown";
+            if (da) {
+              lv_obj_clear_flag(btns[i], LV_OBJ_FLAG_HIDDEN);
+              sichtbar++;
+            } else {
+              lv_obj_add_flag(btns[i], LV_OBJ_FLAG_HIDDEN);
+            }
+            if (s == "on") lv_obj_add_state(btns[i], LV_STATE_CHECKED);
+            else lv_obj_clear_state(btns[i], LV_STATE_CHECKED);
+          }
+          if (sichtbar > 0) lv_obj_add_flag(id(lbl_keine_lichter), LV_OBJ_FLAG_HIDDEN);
+          else lv_obj_clear_flag(id(lbl_keine_lichter), LV_OBJ_FLAG_HIDDEN);
+
+  - id: sync_heizung
+    then:
+      - lambda: |-
+          const std::string &s = id(ha_heizung_modus).state;
+          bool da = id(ha_heizung_modus).has_state() && !s.empty() && s != "unavailable" && s != "unknown";
+          lv_obj_t *steuerung[3] = {id(lbl_zieltemperatur), id(row_heizung_temp), id(btn_heizen)};
+          for (lv_obj_t *o : steuerung) {
+            if (da) lv_obj_clear_flag(o, LV_OBJ_FLAG_HIDDEN);
+            else lv_obj_add_flag(o, LV_OBJ_FLAG_HIDDEN);
+          }
+          if (da) lv_obj_add_flag(id(lbl_keine_heizung), LV_OBJ_FLAG_HIDDEN);
+          else lv_obj_clear_flag(id(lbl_keine_heizung), LV_OBJ_FLAG_HIDDEN);
+          if (s == "heat") lv_obj_add_state(id(btn_heizen), LV_STATE_CHECKED);
+          else lv_obj_clear_state(id(btn_heizen), LV_STATE_CHECKED);
+
+### ------------------------------------------------------------------
 ### LVGL-Oberfläche: 4 Seiten, per Wischgeste erreichbar
 ### Übersicht -> Licht -> Heizung -> Nivellierung
 ### ------------------------------------------------------------------
@@ -485,7 +528,7 @@ lvgl:
                   id: overlay_einstellungen
                   hidden: false
 
-    ### Seite 2: Licht (zwei Dummy-Lichter)
+    ### Seite 2: Licht (bis zu 4 Lichter, nicht belegte Slots sind versteckt)
     - id: page_licht
       bg_color: 0x101820
       widgets:
@@ -494,9 +537,13 @@ lvgl:
             text_font: montserrat_28
             align: TOP_MID
             y: 16
+        - label:
+            id: lbl_keine_lichter
+            text: "Keine Lichter eingerichtet"
+            align: CENTER
         - obj:
             align: CENTER
-            width: 700
+            width: 720
             height: 200
             bg_opa: TRANSP
             border_opa: TRANSP
@@ -508,8 +555,9 @@ lvgl:
             widgets:
               - button:
                   id: btn_licht_1
+                  hidden: true
                   checkable: true
-                  width: 260
+                  width: 160
                   height: 160
                   widgets:
                     - label:
@@ -522,8 +570,9 @@ lvgl:
                           entity_id: light.fridolin_licht_1
               - button:
                   id: btn_licht_2
+                  hidden: true
                   checkable: true
-                  width: 260
+                  width: 160
                   height: 160
                   widgets:
                     - label:
@@ -534,8 +583,38 @@ lvgl:
                         action: light.toggle
                         data:
                           entity_id: light.fridolin_licht_2
+              - button:
+                  id: btn_licht_3
+                  hidden: true
+                  checkable: true
+                  width: 160
+                  height: 160
+                  widgets:
+                    - label:
+                        text: "Licht 3"
+                        align: CENTER
+                  on_click:
+                    - homeassistant.action:
+                        action: light.toggle
+                        data:
+                          entity_id: light.fridolin_licht_3
+              - button:
+                  id: btn_licht_4
+                  hidden: true
+                  checkable: true
+                  width: 160
+                  height: 160
+                  widgets:
+                    - label:
+                        text: "Licht 4"
+                        align: CENTER
+                  on_click:
+                    - homeassistant.action:
+                        action: light.toggle
+                        data:
+                          entity_id: light.fridolin_licht_4
 
-    ### Seite 3: Heizung (Dummy-Thermostat)
+    ### Seite 3: Heizung (ohne eingerichtete Heizung nur ein Hinweistext)
     - id: page_heizung
       bg_color: 0x101820
       widgets:
@@ -545,12 +624,19 @@ lvgl:
             align: TOP_MID
             y: 16
         - label:
+            id: lbl_keine_heizung
+            text: "Keine Heizung eingerichtet"
+            align: CENTER
+        - label:
             id: lbl_zieltemperatur
+            hidden: true
             text: "21.0 °C"
             text_font: montserrat_40
             align: CENTER
             y: -60
         - obj:
+            id: row_heizung_temp
+            hidden: true
             align: CENTER
             y: 20
             width: 300
@@ -591,6 +677,7 @@ lvgl:
                           temperature: !lambda return id(ha_zieltemperatur).state + 0.5;
         - button:
             id: btn_heizen
+            hidden: true
             checkable: true
             align: BOTTOM_MID
             y: -40
