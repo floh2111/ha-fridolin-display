@@ -73,8 +73,14 @@ def _entity_mapping_schema(defaults: dict[str, Any] | None = None) -> vol.Schema
     for index in range(1, MAX_LIGHT_SLOTS + 1):
         entity_key = CONF_LIGHT_SLOT_ENTITY.format(index=index)
         name_key = CONF_LIGHT_SLOT_NAME.format(index=index)
+        # Kein default="": Ein leerer String ist für den EntitySelector
+        # ungültig und würde den Dialog zwingen, alle Slots zu füllen.
+        # suggested_value füllt das Feld nur vor, ohne es zur Pflicht zu machen.
         schema_dict[
-            vol.Optional(entity_key, default=defaults.get(entity_key, ""))
+            vol.Optional(
+                entity_key,
+                description={"suggested_value": defaults.get(entity_key) or None},
+            )
         ] = selector.EntitySelector(selector.EntitySelectorConfig(domain="light"))
         schema_dict[
             vol.Optional(name_key, default=defaults.get(name_key, f"Licht {index}"))
@@ -82,7 +88,8 @@ def _entity_mapping_schema(defaults: dict[str, Any] | None = None) -> vol.Schema
 
     schema_dict[
         vol.Optional(
-            CONF_CLIMATE_TARGET, default=defaults.get(CONF_CLIMATE_TARGET, "")
+            CONF_CLIMATE_TARGET,
+            description={"suggested_value": defaults.get(CONF_CLIMATE_TARGET) or None},
         )
     ] = selector.EntitySelector(selector.EntitySelectorConfig(domain="climate"))
 
@@ -133,12 +140,11 @@ class FridolinDisplayOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> Any:
         if user_input is not None:
-            # Leere Strings statt "kein Licht zugewiesen" wieder sauber
-            # als leer speichern (EntitySelector liefert bei "nichts
-            # gewählt" None zurück, nicht "")
+            # Nicht ausgefüllte Felder fehlen im user_input komplett; da
+            # die Options ersetzt werden, gilt ein entfernter Eintrag als
+            # "nicht zugewiesen". Leere Werte sicherheitshalber verwerfen.
             cleaned = {
-                key: (value if value not in (None, "") else "")
-                for key, value in user_input.items()
+                key: value for key, value in user_input.items() if value not in (None, "")
             }
             return self.async_create_entry(title="", data=cleaned)
 
