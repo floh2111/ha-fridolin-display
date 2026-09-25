@@ -33,31 +33,35 @@ jobs:
           # Ohne "set +e" hier würde die Shell schon beim fehlschlagenden
           # esphome-Aufruf abbrechen, bevor die eigene Fehlerausgabe
           # unten überhaupt laufen kann.
-          set +e
-          esphome config esphome/wohnwagen-display.yaml 2>&1 | tee esphome_output.txt
-          code=${PIPESTATUS[0]}
-          set -e
-          if [ "$code" -ne 0 ]; then
-            # Als ::error::-Annotationen ausgeben, damit die eigentliche
-            # Fehlermeldung auch über die GitHub-API sichtbar ist, nicht
-            # nur im Log-Volltext
-            while IFS= read -r line; do
-              esc=$(printf '%s' "$line" | sed 's/%/%25/g; s/\r/%0D/g')
-              echo "::error::${esc}"
-            done < <(tail -n 40 esphome_output.txt)
+          overall_code=0
+          for f in esphome/wohnwagen-display.yaml esphome/test-esp32-ohne-display.yaml; do
+            echo "### Prüfe $f"
+            set +e
+            esphome config "$f" 2>&1 | tee esphome_output.txt
+            code=${PIPESTATUS[0]}
+            set -e
+            if [ "$code" -ne 0 ]; then
+              overall_code=1
+              # Als ::error::-Annotationen ausgeben, damit die eigentliche
+              # Fehlermeldung auch über die GitHub-API sichtbar ist, nicht
+              # nur im Log-Volltext
+              while IFS= read -r line; do
+                esc=$(printf '%s' "$line" | sed 's/%/%25/g; s/\r/%0D/g')
+                echo "::error file=$f::${esc}"
+              done < <(tail -n 40 esphome_output.txt)
 
-            # Zusätzlich in die Job-Summary schreiben, als Fallback
-            # falls die Annotationen aus irgendeinem Grund nicht
-            # sichtbar werden.
-            {
-              echo "### esphome config – Fehlerausgabe (letzte 40 Zeilen)"
-              echo '```'
-              tail -n 40 esphome_output.txt
-              echo '```'
-            } >> "$GITHUB_STEP_SUMMARY"
-
-            exit "$code"
-          fi
+              # Zusätzlich in die Job-Summary schreiben, als Fallback
+              # falls die Annotationen aus irgendeinem Grund nicht
+              # sichtbar werden.
+              {
+                echo "### $f – Fehlerausgabe (letzte 40 Zeilen)"
+                echo '```'
+                tail -n 40 esphome_output.txt
+                echo '```'
+              } >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done
+          exit "$overall_code"
 
   ha-integration:
     name: Home-Assistant-Integration prüfen

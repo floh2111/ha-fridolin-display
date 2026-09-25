@@ -17,6 +17,11 @@ zu müssen.
   WLAN-/API-Zugangsdaten. Kopieren nach `secrets.yaml` und mit echten
   Werten füllen (diese Datei ist in `.gitignore`, landet also nie im
   Repo).
+- **`esphome/test-esp32-ohne-display.yaml`** – schlanke Testkonfiguration
+  ohne Display/Touch, für einen "nackten" ESP32-Devkit mit angeschlossenem
+  GY-521. Prüft unabhängig vom Display, ob der Neigungssensor plausible
+  Werte liefert und ob die Verbindung zur Home-Assistant-Integration
+  (WLAN, verschlüsselte API, Licht-/Heizungs-/Wetterwerte) funktioniert.
 - **`custom_components/fridolin_display/`** – die Home-Assistant-Integration.
   Details und Installationsanleitung in deren eigener
   [README](custom_components/fridolin_display/README.md).

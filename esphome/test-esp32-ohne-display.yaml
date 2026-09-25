@@ -1,0 +1,113 @@
+### ------------------------------------------------------------------
+### Test-Konfiguration: nur zum Ausprobieren auf einem "nackten" ESP32,
+### OHNE das Waveshare-Display. Prüft zwei Dinge unabhängig voneinander:
+###
+###  1. Funktioniert der GY-521 (MPU6050) und liefert plausible
+###     Neigungswerte?
+###  2. Kommt der ESP32 per WLAN + verschlüsselter API mit Home Assistant
+###     zusammen, und liefert die "Fridolin Display"-Integration
+###     brauchbare Werte (Licht, Heizung, Wetter)?
+###
+### Diese Datei ist NICHT für den echten Einbau gedacht – sie enthält
+### kein Display, kein LVGL, keine Touch-Bedienung. Das eigentliche
+### Ziel ist wohnwagen-display.yaml.
+###
+### Verkabelung GY-521 -> ESP32 (Standard-I2C-Pins je nach Board, ggf.
+### anpassen): VCC -> 3V3, GND -> GND, SDA -> GPIO21, SCL -> GPIO22.
+### ------------------------------------------------------------------
+
+substitutions:
+  name: fridolin-test
+  friendly_name: Fridolin Test
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+
+### Passendes esp32:-Board für deinen Test-ESP32 eintragen. "esp32dev"
+### passt auf die meisten gängigen "nackten" ESP32-Devboards (NodeMCU-32S,
+### DOIT ESP32 DevKit v1, etc.). Falls dein Board ein anderes ist, hier
+### den Namen aus https://esphome.io/components/esp32.html eintragen.
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+logger:
+
+api:
+  encryption:
+    key: !secret api_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+### ------------------------------------------------------------------
+### GY-521 / MPU6050 am I2C-Bus. Pins ggf. an deine Verkabelung anpassen.
+### ------------------------------------------------------------------
+i2c:
+  sda: GPIO21
+  scl: GPIO22
+  scan: true
+  id: bus_a
+
+sensor:
+  - platform: mpu6050
+    address: 0x68
+    i2c_id: bus_a
+    update_interval: 1s
+    accel_x:
+      id: accel_x
+    accel_y:
+      id: accel_y
+    accel_z:
+      id: accel_z
+
+  - platform: template
+    id: neigung_links_rechts
+    name: Neigung links/rechts
+    unit_of_measurement: "°"
+    update_interval: 1s
+    lambda: |-
+      return atan2(id(accel_y).state, id(accel_z).state) * 180.0 / PI;
+
+  - platform: template
+    id: neigung_vorne_hinten
+    name: Neigung vorne/hinten
+    unit_of_measurement: "°"
+    update_interval: 1s
+    lambda: |-
+      return atan2(-id(accel_x).state, sqrt(id(accel_y).state * id(accel_y).state + id(accel_z).state * id(accel_z).state)) * 180.0 / PI;
+
+  ### Zusätzlich zwei Werte aus der Integration mitlesen, rein zur
+  ### Kontrolle: kommen von dort überhaupt Zahlen an?
+  - platform: homeassistant
+    id: test_wetter_temperatur
+    entity_id: sensor.fridolin_wetter_temperatur
+    name: Test Wetter Temperatur
+
+### ------------------------------------------------------------------
+### Ein paar Werte aus der Integration mitlesen, rein zur Kontrolle,
+### ob die Verbindung zur "Fridolin Display"-Integration klappt.
+### ------------------------------------------------------------------
+binary_sensor:
+  - platform: homeassistant
+    id: test_licht_1
+    entity_id: light.fridolin_licht_1
+    name: Test Licht 1 Status
+
+text_sensor:
+  - platform: homeassistant
+    id: test_heizung_modus
+    entity_id: climate.fridolin_heizung
+    name: Test Heizung Modus
+
+  - platform: homeassistant
+    id: test_wetter_zustand
+    entity_id: sensor.fridolin_wetter_zustand
+    name: Test Wetter Zustand
