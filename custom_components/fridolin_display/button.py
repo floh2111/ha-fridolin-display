@@ -65,8 +65,9 @@ class FridolinStandortUebernehmenButton(ButtonEntity):
                 f"{tracker_entity_id} liefert aktuell keine Koordinaten"
             )
 
-        self._coordinator.set_location(latitude, longitude)
-        self._coordinator.last_location_update = (
-            f"Übernommen: {datetime.now().strftime('%d.%m. %H:%M')}"
+        await self._coordinator.async_set_location(
+            latitude,
+            longitude,
+            f"Übernommen: {datetime.now().strftime('%d.%m. %H:%M')}",
         )
         await self._coordinator.async_request_refresh()

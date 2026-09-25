@@ -202,6 +202,15 @@ text_sensor:
           id: lbl_wetter_zustand
           text: !lambda return x;
 
+  ### Ort der Wetterstation (laut OpenWeatherMap) als Untertitel der Übersicht
+  - platform: homeassistant
+    id: wetter_ort
+    entity_id: sensor.fridolin_wetter_ort
+    on_value:
+      - lvgl.label.update:
+          id: lbl_wetter_ort
+          text: !lambda return x;
+
   ### Zeitpunkt der letzten Standortübernahme, nur zur Anzeige auf der
   ### Einstellungsseite (Helfer wird von einem HA-Skript gesetzt)
   - platform: homeassistant
@@ -461,6 +470,7 @@ lvgl:
             align: TOP_MID
             y: 12
         - label:
+            id: lbl_wetter_ort
             text: "Übersicht"
             text_font: montserrat_14
             align: TOP_MID

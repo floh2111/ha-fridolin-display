@@ -17,6 +17,7 @@ import async_timeout
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import (
@@ -26,6 +27,9 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+STORAGE_VERSION = 1
+STORAGE_KEY = "fridolin_display.standort"
 
 
 class FridolinWeatherCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -52,11 +56,31 @@ class FridolinWeatherCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.latitude: float = hass.config.latitude
         self.longitude: float = hass.config.longitude
         self.last_location_update: str | None = None
+        # Übernommener Standort überlebt Neustarts von Home Assistant
+        self._store: Store[dict[str, Any]] = Store(hass, STORAGE_VERSION, STORAGE_KEY)
 
-    def set_location(self, latitude: float, longitude: float) -> None:
-        """Wird vom Button 'Standort übernehmen' aufgerufen."""
+    async def async_load_location(self) -> None:
+        """Gespeicherten Standort laden (vor dem ersten Wetterabruf aufrufen)."""
+        saved = await self._store.async_load()
+        if not saved:
+            return
+        try:
+            self.latitude = float(saved["latitude"])
+            self.longitude = float(saved["longitude"])
+        except (KeyError, TypeError, ValueError):
+            return
+        self.last_location_update = saved.get("last_update")
+
+    async def async_set_location(
+        self, latitude: float, longitude: float, last_update: str
+    ) -> None:
+        """Wird vom Button 'Standort übernehmen' aufgerufen und speichert dauerhaft."""
         self.latitude = latitude
         self.longitude = longitude
+        self.last_location_update = last_update
+        await self._store.async_save(
+            {"latitude": latitude, "longitude": longitude, "last_update": last_update}
+        )
 
     async def _async_update_data(self) -> dict[str, Any]:
         session = async_get_clientsession(self.hass)
@@ -101,7 +125,13 @@ class FridolinWeatherCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         tomorrow = self._extract_tomorrow(forecast_list)
 
+        # Ort der Wetterstation laut OpenWeatherMap (z.B. "Freiburg im Breisgau, DE")
+        place = current.get("name") or ""
+        country = current.get("sys", {}).get("country") or ""
+        location = ", ".join(part for part in (place, country) if part) or "—"
+
         return {
+            "location": location,
             "condition": current.get("weather", [{}])[0].get("description", "—"),
             "temperature": current.get("main", {}).get("temp"),
             "hours": hours,

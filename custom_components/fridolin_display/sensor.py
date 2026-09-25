@@ -29,6 +29,7 @@ async def async_setup_entry(
     entities: list[SensorEntity] = [
         FridolinWetterZustandSensor(entry, coordinator),
         FridolinWetterTemperaturSensor(entry, coordinator),
+        FridolinWetterOrtSensor(entry, coordinator),
         FridolinMorgenMinSensor(entry, coordinator),
         FridolinMorgenMaxSensor(entry, coordinator),
         FridolinMorgenZustandSensor(entry, coordinator),
@@ -81,6 +82,21 @@ class FridolinWetterTemperaturSensor(_FridolinBaseSensor):
     @property
     def native_value(self) -> Any:
         return self.coordinator.data.get("temperature") if self.coordinator.data else None
+
+
+class FridolinWetterOrtSensor(_FridolinBaseSensor):
+    """Ort, für den OpenWeatherMap gerade das Wetter liefert."""
+
+    _attr_name = "Fridolin Wetter Ort"
+
+    def __init__(self, entry: ConfigEntry, coordinator: FridolinWeatherCoordinator) -> None:
+        super().__init__(entry, coordinator)
+        self._attr_unique_id = f"{entry.entry_id}_wetter_ort"
+        self.entity_id = "sensor.fridolin_wetter_ort"
+
+    @property
+    def native_value(self) -> Any:
+        return self.coordinator.data.get("location") if self.coordinator.data else None
 
 
 class FridolinMorgenMinSensor(_FridolinBaseSensor):

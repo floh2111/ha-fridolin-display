@@ -150,6 +150,11 @@ text_sensor:
     name: Test Heizung Modus
 
   - platform: homeassistant
+    id: test_wetter_ort
+    entity_id: sensor.fridolin_wetter_ort
+    name: Test Wetter Ort
+
+  - platform: homeassistant
     id: test_wetter_zustand
     entity_id: sensor.fridolin_wetter_zustand
     name: Test Wetter Zustand
