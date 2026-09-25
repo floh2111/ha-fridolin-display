@@ -1,0 +1,55 @@
+name: Validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  esphome-config:
+    name: ESPHome-Konfiguration prüfen
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Platzhalter-Secrets bereitstellen
+        # esphome config braucht eine secrets.yaml neben der YAML-Datei,
+        # damit !secret-Verweise aufgelöst werden können. Für die reine
+        # Syntax-/Struktur-Prüfung reichen die Beispielwerte.
+        run: cp esphome/secrets.yaml.example esphome/secrets.yaml
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: ESPHome installieren
+        run: pip install esphome
+
+      - name: Konfiguration validieren
+        run: esphome config esphome/wohnwagen-display.yaml
+
+  ha-integration:
+    name: Home-Assistant-Integration prüfen
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Python-Syntax prüfen
+        run: python -m py_compile custom_components/fridolin_display/*.py
+
+      - name: JSON-Dateien prüfen
+        run: |
+          python -c "
+          import json, glob
+          for f in glob.glob('custom_components/fridolin_display/**/*.json', recursive=True):
+              json.load(open(f))
+              print(f, 'OK')
+          "
+
+      - name: hassfest (offizielle HA-Integrations-Prüfung)
+        uses: home-assistant/actions/hassfest@master
