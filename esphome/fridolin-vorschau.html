@@ -1,0 +1,693 @@
+<title>Fridolin Vorschau</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+  :root {
+    --bg: #eef1f4;
+    --ink: #1b2430;
+    --muted: #5b6675;
+    --card: #ffffff;
+    --border: #d7dde4;
+    --accent: #d9724c;
+
+    --dev-bg: #101820;
+    --dev-panel: #17212c;
+    --dev-btn: #2b3a55;
+    --dev-btn-active: #f53b3b;
+    --dev-text: #f5f7fa;
+    --dev-muted: #8a97ac;
+    --dev-bezel: #05070a;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1216;
+      --ink: #eef1f4;
+      --muted: #9aa4b2;
+      --card: #171b21;
+      --border: #2a2f37;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1216;
+    --ink: #eef1f4;
+    --muted: #9aa4b2;
+    --card: #171b21;
+    --border: #2a2f37;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Barlow Semi Condensed", -apple-system, "Segoe UI", sans-serif;
+    padding-inline: 16px;
+    padding-block: 28px 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 22px;
+  }
+
+  .intro {
+    max-width: 640px;
+    text-align: center;
+  }
+  .intro h1 {
+    font-size: clamp(22px, 4vw, 30px);
+    margin: 0 0 6px;
+    letter-spacing: 0.3px;
+    text-wrap: balance;
+  }
+  .intro p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .tag {
+    display: inline-block;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 999px;
+    padding: 3px 10px;
+    margin-bottom: 10px;
+  }
+
+  /* ---- Device frame: fixed 800x480 aspect, like the real 7" panel ---- */
+  .device-wrap {
+    width: 100%;
+    max-width: 860px;
+  }
+  .bezel {
+    background: var(--dev-bezel);
+    border-radius: 26px;
+    padding: 18px 18px 26px;
+    box-shadow: 0 30px 60px -20px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.04);
+  }
+  .screen {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 800 / 480;
+    background: var(--dev-bg);
+    border-radius: 8px;
+    overflow: hidden;
+    touch-action: pan-y;
+    font-family: "Barlow Semi Condensed", sans-serif;
+    color: var(--dev-text);
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .cam-dot {
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    translate: -50% 0;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #1a2530;
+    z-index: 5;
+  }
+
+  .track {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    width: 400%;
+    height: 100%;
+    transition: transform 320ms cubic-bezier(.22,.8,.28,1);
+    will-change: transform;
+  }
+  .page {
+    width: 25%;
+    height: 100%;
+    flex-shrink: 0;
+    position: relative;
+    padding: 22px 30px 0;
+  }
+
+  .page-title {
+    font-size: 15px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--dev-muted);
+    text-align: center;
+    margin: 0;
+  }
+
+  /* --- Page 1: Übersicht --- */
+  .fridolin-name {
+    text-align: center;
+    font-size: 34px;
+    font-weight: 700;
+    margin: 2px 0 0;
+    letter-spacing: 0.5px;
+  }
+  .weather-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    margin-top: 18px;
+  }
+  .weather-icon { font-size: 46px; line-height: 1; }
+  .weather-temp {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 42px;
+    font-variant-numeric: tabular-nums;
+  }
+  .weather-cond { color: var(--dev-muted); font-size: 15px; margin-top: 2px; }
+  .forecast-row {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+    padding: 0 6px;
+  }
+  .forecast-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--dev-muted);
+  }
+  .forecast-item .ic { font-size: 20px; }
+  .forecast-item .val { color: var(--dev-text); font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; }
+  .tomorrow {
+    text-align: center;
+    margin-top: 16px;
+    font-size: 13px;
+    color: var(--dev-muted);
+  }
+  .tomorrow b { color: var(--dev-text); font-weight: 600; }
+
+  /* --- Page 2: Licht --- */
+  .light-grid {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    margin-top: 34px;
+  }
+  .light-card {
+    width: 190px;
+    height: 150px;
+    border-radius: 16px;
+    background: var(--dev-btn);
+    border: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: background 150ms ease, transform 80ms ease;
+  }
+  .light-card:active { transform: scale(0.97); }
+  .light-card.on {
+    background: linear-gradient(180deg, #f6c453, #e8a93a);
+    color: #2a1c05;
+  }
+  .light-card .bulb { font-size: 34px; }
+  .light-card .label { font-size: 15px; font-weight: 600; }
+
+  /* --- Page 3: Heizung --- */
+  .target-temp {
+    text-align: center;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 44px;
+    font-variant-numeric: tabular-nums;
+    margin-top: 26px;
+  }
+  .target-label { text-align: center; color: var(--dev-muted); font-size: 12px; margin-top: -4px; letter-spacing: 0.08em; text-transform: uppercase; }
+  .temp-controls {
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+    margin-top: 16px;
+  }
+  .temp-btn {
+    width: 54px;
+    height: 48px;
+    border-radius: 10px;
+    background: var(--dev-btn);
+    color: var(--dev-text);
+    font-size: 22px;
+    border: none;
+    cursor: pointer;
+  }
+  .temp-btn:active { transform: scale(0.94); }
+  .heat-toggle {
+    display: block;
+    margin: 22px auto 0;
+    width: 180px;
+    height: 52px;
+    border-radius: 12px;
+    background: var(--dev-btn);
+    color: var(--dev-text);
+    border: none;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+  }
+  .heat-toggle.on { background: var(--dev-btn-active); }
+
+  /* --- Page 4: Nivellierung --- */
+  .level-row {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 20px;
+    gap: 10px;
+  }
+  .level-col { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 46%; }
+  .level-label { font-size: 12px; color: var(--dev-muted); letter-spacing: 0.06em; text-transform: uppercase; }
+  .level-track {
+    position: relative;
+    width: 100%;
+    height: 34px;
+    background: var(--dev-panel);
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.06);
+    cursor: grab;
+    touch-action: none;
+  }
+  .level-track::before {
+    content: "";
+    position: absolute;
+    left: 50%; top: 4px; bottom: 4px;
+    width: 2px;
+    background: rgba(255,255,255,0.18);
+    translate: -50% 0;
+  }
+  .bubble {
+    position: absolute;
+    top: 3px;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: #4bdc7f;
+    left: 50%;
+    translate: -50% 0;
+    transition: background 120ms ease;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  }
+  .bubble.warn { background: #f6c453; }
+  .bubble.bad { background: #f53b3b; }
+  .level-value {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 18px;
+    font-variant-numeric: tabular-nums;
+  }
+  .level-hint { font-size: 11px; color: var(--dev-muted); text-align: center; margin-top: 10px; }
+
+  /* nav dots */
+  .dots {
+    position: absolute;
+    bottom: 8px;
+    left: 0; right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    z-index: 4;
+  }
+  .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.25);
+    cursor: pointer;
+  }
+  .dot.active { background: var(--dev-text); }
+
+  .arrow {
+    position: absolute;
+    top: 50%;
+    translate: 0 -50%;
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+    color: var(--dev-text);
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    z-index: 4;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .arrow.prev { left: 8px; }
+  .arrow.next { right: 8px; }
+  @media (hover: none) {
+    .arrow { display: none; }
+  }
+
+  .caption {
+    max-width: 640px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+
+  /* --- Einstellungen-Button + Overlay (kein Seiten-Swipe, wie im echten Gerät) --- */
+  .gear-btn {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    color: var(--dev-text);
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    z-index: 6;
+  }
+  .settings-overlay {
+    position: absolute;
+    inset: 0;
+    background: var(--dev-bg);
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 22px 30px 0;
+    transform: translateY(100%);
+    transition: transform 260ms ease;
+  }
+  .settings-overlay.open { transform: translateY(0); }
+  .settings-overlay .page-title { margin-bottom: 8px; }
+  .settings-copy {
+    text-align: center;
+    font-size: 13px;
+    color: var(--dev-muted);
+    line-height: 1.5;
+    margin-top: 30px;
+    max-width: 460px;
+  }
+  .settings-btn {
+    margin-top: 24px;
+    width: 300px;
+    height: 62px;
+    border-radius: 12px;
+    background: var(--dev-btn);
+    color: var(--dev-text);
+    border: none;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .settings-btn:active { transform: scale(0.97); }
+  .settings-status {
+    margin-top: 18px;
+    font-size: 13px;
+    color: var(--dev-muted);
+  }
+  .settings-back {
+    position: absolute;
+    bottom: 16px;
+    width: 150px;
+    height: 48px;
+    border-radius: 10px;
+    background: var(--dev-btn);
+    color: var(--dev-text);
+    border: none;
+    font-size: 14px;
+    cursor: pointer;
+  }
+</style>
+
+<div class="intro">
+  <span class="tag">Vorschau, kein Gerät</span>
+  <h1>Fridolin — Touch-Oberfläche</h1>
+  <p>Näherung der vier ESPHome/LVGL-Seiten im 800×480-Format eures Waveshare-Displays. Wischen, ziehen oder die Pfeile nutzen; Werte sind zum Ausprobieren simuliert.</p>
+</div>
+
+<div class="device-wrap">
+  <div class="bezel">
+    <div class="screen" id="screen">
+      <div class="cam-dot"></div>
+      <button class="arrow prev" id="prevBtn" aria-label="Vorherige Seite">‹</button>
+      <button class="arrow next" id="nextBtn" aria-label="Nächste Seite">›</button>
+
+      <div class="track" id="track">
+        <!-- Seite 1: Übersicht -->
+        <div class="page">
+          <button class="gear-btn" id="gearBtn" aria-label="Einstellungen öffnen">⚙</button>
+          <p class="fridolin-name">Fridolin</p>
+          <p class="page-title" style="margin-top:-2px;">Übersicht</p>
+          <div class="weather-row">
+            <div class="weather-icon">⛅</div>
+            <div>
+              <div class="weather-temp">18.4°C</div>
+              <div class="weather-cond">Leicht bewölkt</div>
+            </div>
+          </div>
+          <div class="forecast-row">
+            <div class="forecast-item"><span>14:00</span><span class="val">19°</span></div>
+            <div class="forecast-item"><span>17:00</span><span class="val">17°</span></div>
+            <div class="forecast-item"><span>20:00</span><span class="val">15°</span></div>
+            <div class="forecast-item"><span>23:00</span><span class="val">13°</span></div>
+          </div>
+          <div class="tomorrow">Morgen: <b>13° – 20°</b><br>wechselnd bewölkt</div>
+        </div>
+
+        <!-- Seite 2: Licht -->
+        <div class="page">
+          <p class="page-title">Licht</p>
+          <div class="light-grid">
+            <div class="light-card" data-light="1">
+              <div class="bulb">💡</div>
+              <div class="label">Licht 1</div>
+            </div>
+            <div class="light-card" data-light="2">
+              <div class="bulb">💡</div>
+              <div class="label">Licht 2</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Seite 3: Heizung -->
+        <div class="page">
+          <p class="page-title">Heizung</p>
+          <div class="target-temp" id="targetTemp">21.0°C</div>
+          <div class="target-label">Zieltemperatur</div>
+          <div class="temp-controls">
+            <button class="temp-btn" id="tempDown">−</button>
+            <button class="temp-btn" id="tempUp">+</button>
+          </div>
+          <button class="heat-toggle" id="heatToggle">Heizen: Aus</button>
+        </div>
+
+        <!-- Seite 4: Nivellierung -->
+        <div class="page">
+          <p class="page-title">Nivellierung</p>
+          <div class="level-row">
+            <div class="level-col">
+              <div class="level-label">Links / Rechts</div>
+              <div class="level-track" id="trackLR"><div class="bubble" id="bubbleLR"></div></div>
+              <div class="level-value" id="valLR">0.0°</div>
+            </div>
+            <div class="level-col">
+              <div class="level-label">Vorne / Hinten</div>
+              <div class="level-track" id="trackVH"><div class="bubble" id="bubbleVH"></div></div>
+              <div class="level-value" id="valVH">0.0°</div>
+            </div>
+          </div>
+          <div class="level-hint">Zum Testen an den Reglern ziehen — am echten Gerät kommen die Werte vom GY-521-Sensor.</div>
+        </div>
+      </div>
+
+      <!-- Einstellungen: eigenes Overlay über dem ganzen Screen, kein Bestandteil des Swipes -->
+      <div class="settings-overlay" id="settingsOverlay">
+        <p class="page-title">Einstellungen</p>
+        <p class="settings-copy">Fridolins aktuellen Standort für die Wetteranzeige übernehmen:</p>
+        <button class="settings-btn" id="standortBtn">Standort übernehmen</button>
+        <div class="settings-status" id="standortStatus">Noch kein Standort übernommen</div>
+        <button class="settings-back" id="settingsBack">Zurück</button>
+      </div>
+
+      <div class="dots">
+        <div class="dot active" data-page="0"></div>
+        <div class="dot" data-page="1"></div>
+        <div class="dot" data-page="2"></div>
+        <div class="dot" data-page="3"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="caption">Diese Seite ist eine optische Näherung zum Ausprobieren von Layout und Bedienung — keine 1:1-Simulation des ESPHome/LVGL-Renderings. Farben, Schrift und genaues Timing können auf dem echten Display leicht abweichen.</p>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------- Seiten-Swipe ----------
+  var track = document.getElementById("track");
+  var screen = document.getElementById("screen");
+  var dots = Array.prototype.slice.call(document.querySelectorAll(".dot"));
+  var pageCount = 4;
+  var current = 0;
+  var dragging = false;
+  var startX = 0;
+  var startTranslate = 0;
+  var currentTranslatePercent = 0;
+
+  function setPage(i, animate) {
+    current = Math.max(0, Math.min(pageCount - 1, i));
+    track.style.transition = animate === false ? "none" : "";
+    track.style.transform = "translateX(-" + (current * 25) + "%)";
+    dots.forEach(function (d, idx) {
+      d.classList.toggle("active", idx === current);
+    });
+  }
+
+  document.getElementById("prevBtn").addEventListener("click", function () { setPage(current - 1); });
+  document.getElementById("nextBtn").addEventListener("click", function () { setPage(current + 1); });
+  dots.forEach(function (d) {
+    d.addEventListener("click", function () { setPage(parseInt(d.dataset.page, 10)); });
+  });
+
+  screen.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowLeft") setPage(current - 1);
+    if (e.key === "ArrowRight") setPage(current + 1);
+  });
+  screen.tabIndex = 0;
+
+  function onPointerDown(e) {
+    // ignore drags starting on interactive controls so taps still work
+    if (e.target.closest(".light-card, .temp-btn, .heat-toggle, .level-track, .arrow, .dot")) return;
+    dragging = true;
+    startX = (e.touches ? e.touches[0].clientX : e.clientX);
+    startTranslate = -current * 25;
+    track.style.transition = "none";
+  }
+  function onPointerMove(e) {
+    if (!dragging) return;
+    var x = (e.touches ? e.touches[0].clientX : e.clientX);
+    var dx = x - startX;
+    var widthPx = screen.getBoundingClientRect().width;
+    var deltaPercent = (dx / widthPx) * 100;
+    currentTranslatePercent = startTranslate + deltaPercent;
+    track.style.transform = "translateX(" + currentTranslatePercent + "%)";
+  }
+  function onPointerUp() {
+    if (!dragging) return;
+    dragging = false;
+    track.style.transition = "";
+    var target = Math.round(-currentTranslatePercent / 25);
+    setPage(target);
+  }
+  screen.addEventListener("mousedown", onPointerDown);
+  window.addEventListener("mousemove", onPointerMove);
+  window.addEventListener("mouseup", onPointerUp);
+  screen.addEventListener("touchstart", onPointerDown, { passive: true });
+  screen.addEventListener("touchmove", onPointerMove, { passive: true });
+  screen.addEventListener("touchend", onPointerUp);
+
+  // ---------- Seite 2: Licht ----------
+  var lightState = { 1: false, 2: false };
+  document.querySelectorAll(".light-card").forEach(function (card) {
+    card.addEventListener("click", function () {
+      var id = card.dataset.light;
+      lightState[id] = !lightState[id];
+      card.classList.toggle("on", lightState[id]);
+    });
+  });
+
+  // ---------- Seite 3: Heizung ----------
+  var targetTemp = 21.0;
+  var heating = false;
+  var tempEl = document.getElementById("targetTemp");
+  var heatBtn = document.getElementById("heatToggle");
+
+  function renderTemp() {
+    tempEl.textContent = targetTemp.toFixed(1) + "°C";
+  }
+  document.getElementById("tempDown").addEventListener("click", function () {
+    targetTemp = Math.max(10, targetTemp - 0.5);
+    renderTemp();
+  });
+  document.getElementById("tempUp").addEventListener("click", function () {
+    targetTemp = Math.min(30, targetTemp + 0.5);
+    renderTemp();
+  });
+  heatBtn.addEventListener("click", function () {
+    heating = !heating;
+    heatBtn.classList.toggle("on", heating);
+    heatBtn.textContent = "Heizen: " + (heating ? "An" : "Aus");
+  });
+  renderTemp();
+
+  // ---------- Seite 4: Nivellierung (simulierte Wasserwaagen) ----------
+  function setupLevel(trackId, bubbleId, valueId) {
+    var trackEl = document.getElementById(trackId);
+    var bubbleEl = document.getElementById(bubbleId);
+    var valueEl = document.getElementById(valueId);
+    var angle = 0; // -45..45
+
+    function render() {
+      var w = trackEl.getBoundingClientRect().width;
+      var usable = w - 28; // bubble diameter
+      var pos = ((angle + 45) / 90) * usable;
+      bubbleEl.style.left = pos + "px";
+      bubbleEl.style.translate = "0 0";
+      valueEl.textContent = angle.toFixed(1) + "°";
+      var abs = Math.abs(angle);
+      bubbleEl.classList.toggle("warn", abs > 5 && abs <= 15);
+      bubbleEl.classList.toggle("bad", abs > 15);
+    }
+
+    var draggingLevel = false;
+    function angleFromClientX(clientX) {
+      var rect = trackEl.getBoundingClientRect();
+      var ratio = (clientX - rect.left) / rect.width;
+      ratio = Math.max(0, Math.min(1, ratio));
+      return (ratio * 90) - 45;
+    }
+    function down(e) {
+      draggingLevel = true;
+      var x = e.touches ? e.touches[0].clientX : e.clientX;
+      angle = angleFromClientX(x);
+      render();
+    }
+    function move(e) {
+      if (!draggingLevel) return;
+      var x = e.touches ? e.touches[0].clientX : e.clientX;
+      angle = angleFromClientX(x);
+      render();
+    }
+    function up() { draggingLevel = false; }
+
+    trackEl.addEventListener("mousedown", down);
+    window.addEventListener("mousemove", move);
+    window.addEventListener("mouseup", up);
+    trackEl.addEventListener("touchstart", down, { passive: true });
+    trackEl.addEventListener("touchmove", move, { passive: true });
+    trackEl.addEventListener("touchend", up);
+
+    window.addEventListener("resize", render);
+    render();
+  }
+  setupLevel("trackLR", "bubbleLR", "valLR");
+  setupLevel("trackVH", "bubbleVH", "valVH");
+
+  // ---------- Einstellungen-Overlay ----------
+  var overlay = document.getElementById("settingsOverlay");
+  document.getElementById("gearBtn").addEventListener("click", function () {
+    overlay.classList.add("open");
+  });
+  document.getElementById("settingsBack").addEventListener("click", function () {
+    overlay.classList.remove("open");
+  });
+  document.getElementById("standortBtn").addEventListener("click", function () {
+    var now = new Date();
+    var zeit = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
+    document.getElementById("standortStatus").textContent = "Übernommen: heute " + zeit + " (simuliert)";
+  });
+})();
+</script>

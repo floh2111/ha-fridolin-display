@@ -1,0 +1,49 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Fridolin Display einrichten",
+        "description": "Grundeinrichtung für das Wohnwagen-Touch-Display. Die Zuordnung von Licht und Heizung stellst du danach über \"Konfigurieren\" ein.",
+        "data": {
+          "device_tracker_entity_id": "Standort-Tracker (deine Home-Assistant-App)",
+          "owm_api_key": "OpenWeatherMap API-Key",
+          "owm_units": "Einheiten",
+          "owm_lang": "Sprache für Wetterbeschreibungen (z.B. de)"
+        }
+      }
+    },
+    "error": {
+      "api_key_required": "Bitte einen OpenWeatherMap API-Key eintragen"
+    },
+    "abort": {
+      "already_configured": "Fridolin Display ist bereits eingerichtet"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Fridolin Display konfigurieren",
+        "description": "Welche echten Entities sollen hinter den Display-Slots stecken? Ein leer gelassenes Licht wird auf dem Display nicht angezeigt.",
+        "data": {
+          "light_slot_1_entity_id": "Licht 1: Ziel-Entity",
+          "light_slot_1_name": "Licht 1: Anzeigename",
+          "light_slot_2_entity_id": "Licht 2: Ziel-Entity",
+          "light_slot_2_name": "Licht 2: Anzeigename",
+          "light_slot_3_entity_id": "Licht 3: Ziel-Entity",
+          "light_slot_3_name": "Licht 3: Anzeigename",
+          "light_slot_4_entity_id": "Licht 4: Ziel-Entity",
+          "light_slot_4_name": "Licht 4: Anzeigename",
+          "climate_target_entity_id": "Heizung: Ziel-Entity"
+        }
+      }
+    }
+  },
+  "selector": {
+    "owm_units": {
+      "options": {
+        "metric": "Metrisch (°C)",
+        "imperial": "Imperial (°F)"
+      }
+    }
+  }
+}
