@@ -386,7 +386,7 @@ sensor:
   ### Kippwinkel links/rechts (Roll) aus den Beschleunigungswerten berechnet
   - platform: template
     id: neigung_links_rechts
-    name: Neigung links/rechts
+    name: Neigung links-rechts
     unit_of_measurement: "°"
     update_interval: 200ms
     lambda: |-
@@ -406,7 +406,7 @@ sensor:
   ### Kippwinkel vorne/hinten (Pitch) aus den Beschleunigungswerten berechnet
   - platform: template
     id: neigung_vorne_hinten
-    name: Neigung vorne/hinten
+    name: Neigung vorne-hinten
     unit_of_measurement: "°"
     update_interval: 200ms
     lambda: |-

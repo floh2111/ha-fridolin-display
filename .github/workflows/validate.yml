@@ -34,7 +34,7 @@ jobs:
           # esphome-Aufruf abbrechen, bevor die eigene Fehlerausgabe
           # unten überhaupt laufen kann.
           overall_code=0
-          for f in esphome/wohnwagen-display.yaml esphome/test-esp32-ohne-display.yaml; do
+          for f in esphome/wohnwagen-display.yaml esphome/test-esp32-ohne-display.yaml esphome/test-kuehlbox-direkt.yaml; do
             echo "### Prüfe $f"
             set +e
             esphome config "$f" 2>&1 | tee esphome_output.txt
@@ -62,6 +62,35 @@ jobs:
             fi
           done
           exit "$overall_code"
+
+  esphome-compile:
+    name: ESPHome kompilieren (${{ matrix.file }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        file:
+          - test-esp32-ohne-display.yaml
+          - test-kuehlbox-direkt.yaml
+          - wohnwagen-display.yaml
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Platzhalter-Secrets bereitstellen
+        run: cp esphome/secrets.yaml.example esphome/secrets.yaml
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: ESPHome installieren
+        run: pip install esphome
+
+      - name: Firmware kompilieren
+        # Findet C++-Fehler in Lambdas (z.B. "'PI' was not declared"), die
+        # "esphome config" nicht sieht.
+        working-directory: esphome
+        run: esphome compile ${{ matrix.file }}
 
   ha-integration:
     name: Home-Assistant-Integration prüfen

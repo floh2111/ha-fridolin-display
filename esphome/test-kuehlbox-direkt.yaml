@@ -1,0 +1,137 @@
+### ------------------------------------------------------------------
+### Test: Kühlbox DIREKT vom ESP32 per Bluetooth (Tuya BLE), ohne die
+### Home-Assistant-Integration "Tuya BLE". Der ESP32 spricht das
+### verschlüsselte Tuya-BLE-Protokoll selbst und stellt die Werte als
+### normale ESPHome-Entities bereit (Home Assistant bekommt sie über die
+### ESPHome-API, das Display kann sie später direkt lokal lesen).
+###
+### WICHTIG:
+###  - Die Kühlbox nimmt nur EINE Bluetooth-Verbindung an. Die Integration
+###    "Tuya BLE" in Home Assistant (und die Tuya-App auf dem Handy) muss
+###    dafür getrennt/deaktiviert sein, und der ESP darf nicht gleichzeitig
+###    mit test-esp32-ohne-display.yaml (Bluetooth-Proxy) laufen.
+###  - Es sind vier Secrets nötig: fridolin_kuehlbox_mac, _device_id, _uuid
+###    und _local_key (siehe secrets.yaml.example).
+###  - Die Werte werden etwa einmal pro Minute aktualisiert, Schreibbefehle
+###    (Ziel, Modus, Power) brauchen einige Sekunden, weil dafür zuerst eine
+###    neue Verbindung aufgebaut wird.
+### ------------------------------------------------------------------
+
+substitutions:
+  name: fridolin-kuehlbox-test
+  friendly_name: Fridolin Kuehlbox Test
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+logger:
+  level: DEBUG
+
+api:
+  encryption:
+    key: !secret fridolin_api_key
+
+ota:
+  - platform: esphome
+    password: !secret fridolin_ota_password
+
+wifi:
+  ssid: !secret fridolin_wifi_ssid
+  password: !secret fridolin_wifi_password
+  power_save_mode: none  # empfohlen bei gleichzeitigem Bluetooth
+
+### Tuya-BLE-Komponente (Fork von Noneawe/BillyNate mit Schreibzugriff),
+### fest auf einen geprüften Commit gepinnt
+external_components:
+  - source:
+      type: git
+      url: https://github.com/floh2111/esphome-tuya-ble-fridolin
+      ref: 50e4ad8ef4e891c3c38681330fd29cacedc759cb
+
+esp32_ble_tracker:
+  scan_parameters:
+    interval: 320ms
+    window: 300ms
+
+tuya_ble_tracker:
+
+tuya_ble_client:
+  - id: tuya_client
+
+tuya_ble_node:
+  - id: kuehlbox
+    mac_address: !secret fridolin_kuehlbox_mac
+    local_key: !secret fridolin_kuehlbox_local_key
+    device_id: !secret fridolin_kuehlbox_device_id
+    uuid: !secret fridolin_kuehlbox_uuid
+    tuya_ble_client_id: tuya_client
+    update_interval: 60s
+    # Mehrere Schreibbefehle nacheinander (z.B. Power + Ziel) sollen alle ankommen
+    max_queued: 5
+
+### Datenpunkte laut Tuya-Datenmodell (dp_id = abilityId)
+switch:
+  - platform: tuya_ble_node
+    tuya_ble_node_id: kuehlbox
+    dp_id: 101
+    name: "Kuehlbox Power"
+    id: kb_power
+
+select:
+  - platform: tuya_ble_node
+    tuya_ble_node_id: kuehlbox
+    dp_id: 103
+    name: "Kuehlbox Modus"
+    id: kb_modus
+    options: ["MAX", "ECO"]
+  - platform: tuya_ble_node
+    tuya_ble_node_id: kuehlbox
+    dp_id: 104
+    name: "Kuehlbox Batterieschutz"
+    id: kb_batterieschutz
+    options: ["L", "M", "H"]
+
+number:
+  - platform: tuya_ble_node
+    tuya_ble_node_id: kuehlbox
+    dp_id: 114
+    name: "Kuehlbox Zieltemperatur"
+    id: kb_ziel
+    unit_of_measurement: "°C"
+    min_value: -20
+    max_value: 20
+    step: 1
+    mode: box
+
+sensor:
+  - platform: tuya_ble_node
+    tuya_ble_node_id: kuehlbox
+    dp_id: 112
+    name: "Kuehlbox Temperatur"
+    id: kb_ist
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+  - platform: tuya_ble_node
+    tuya_ble_node_id: kuehlbox
+    dp_id: 123
+    name: "Kuehlbox Batterie"
+    unit_of_measurement: "%"
+    device_class: battery
+    state_class: measurement
+  - platform: tuya_ble_node
+    tuya_ble_node_id: kuehlbox
+    dp_id: 122
+    name: "Kuehlbox Spannung"
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    # Datenpunkt 122 liefert Zehntelvolt (145 = 14,5 V)
+    filters:
+      - multiply: 0.1
