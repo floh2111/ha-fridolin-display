@@ -10,9 +10,11 @@ weiterarbeiten, ohne das Projekt neu zu erklären.
 ## Projektziel
 
 Florian hat einen Wohnwagen namens **"Fridolin"**. Er baut eine
-Touch-Bedienoberfläche dafür auf Basis eines **Waveshare
-ESP32-S3-Touch-LCD-7** (800×480, 5-Punkt kapazitiver Touch, ESP32-S3,
-8 MB PSRAM, 16 MB Flash), mit **ESPHome + LVGL**. Das Display hängt am
+Touch-Bedienoberfläche dafür auf Basis des **Waveshare
+ESP32-S3-Touch-LCD-7B** (1024×600, GT911-Touch mit 5 Punkten, ESP32-S3,
+8 MB PSRAM, 16 MB Flash, IO-Expander CH32V003 auf 0x24, mit Bluetooth), mit
+**ESPHome + LVGL** (ESPHome 2026.9). Frühere Versionen der Config waren für
+das 800×480-Board "ESP32-S3-Touch-LCD-7" geschrieben (siehe Git-Historie). Das Display hängt am
 Wohnwagen, der Wohnwagen ist per VPN-Router mit Florians Heimnetz und
 seiner **Home Assistant**-Instanz verbunden.
 
@@ -48,17 +50,18 @@ Genaue Entity-ID-Tabelle und Funktionsweise stehen in
 ## Repo-Struktur
 
 ```
-esphome/wohnwagen-display.yaml       – volle Display-Konfiguration (4 Seiten + Einstellungs-Overlay)
+esphome/wohnwagen-display.yaml       – volle Display-Konfiguration für das 7B (5 Wisch-Seiten + Einstellungs-Overlay)
+esphome/test-kuehlbox-direkt.yaml    – Testkonfig: Kühlbox direkt per Tuya-BLE (ohne Home Assistant)
 esphome/secrets.yaml.example         – Vorlage für WLAN/API-Key (echte secrets.yaml ist gitignored)
-esphome/test-esp32-ohne-display.yaml – schlanke Testkonfig ohne Display, nur GY-521 + HA-API-Check
+esphome/test-esp32-ohne-display.yaml – schlanke Testkonfig ohne Display: GY-521 + HA-API-Check + Bluetooth-Proxy
 esphome/fridolin-vorschau.html       – interaktive Browser-Vorschau der UI (auch als Artifact veröffentlicht)
 custom_components/fridolin_display/  – die Home-Assistant-Integration (ConfigFlow, OptionsFlow, Coordinator, Entities)
-.github/workflows/validate.yml       – CI: validiert beide ESPHome-Dateien + hassfest für die Integration
+.github/workflows/validate.yml       – CI: `esphome config` + echter `esphome compile` aller drei Configs, hassfest für die Integration
 ```
 
 ## UI-Struktur (ESPHome/LVGL)
 
-Vier wischbare Seiten plus eine Einstellungsseite, die NICHT im
+Fünf Seiten als Wisch-Karussell (LVGL `tileview`) plus eine Einstellungsseite, die NICHT im
 Wisch-Karussell hängt, sondern nur über einen kleinen Zahnrad-Button auf
 der Übersichtsseite erreichbar ist (LVGL `top_layer:`):
 
@@ -68,12 +71,18 @@ der Übersichtsseite erreichbar ist (LVGL `top_layer:`):
 3. **Heizung** – An/Aus + Zieltemperatur für die climate-Entität.
 4. **Nivellierung** – zwei "Wasserwaagen" (links/rechts, vorne/hinten),
    berechnet aus dem GY-521 per `atan2` auf die Beschleunigungswerte.
-5. **Einstellungen (Overlay, nicht wischbar)** – Button "Standort
+5. **Kühlbox** – runde Zieltemperatur-Anzeige mit −/+, Ein/Aus, Modus MAX/ECO,
+   Batterieschutz L/M/H. Die Kühlbox (Euhomy Car Fridge CF, Tuya-BLE, Kategorie
+   `xbx`) wird **direkt vom ESP** per Bluetooth gelesen/gesteuert, ohne Home
+   Assistant, über die externe Komponente `floh2111/esphome-tuya-ble-fridolin`
+   (Fork von Noneawe/BillyNate, auf einen Commit gepinnt). Nur eine BLE-Verbindung
+   zur Kühlbox möglich: Tuya-App und HA-Integration "Tuya BLE" müssen aus sein.
+6. **Einstellungen (Overlay, nicht wischbar)** – Button "Standort
    übernehmen" (nimmt die Koordinaten vom `device_tracker` und setzt sie
    als festen Wetter-Standort), Anzeige des letzten Übernahme-Zeitpunkts,
    "Zurück"-Button.
 
-## Aktueller Stand (Stand: 2026-09-25)
+## Aktueller Stand (Stand: 2026-09-26)
 
 - ✅ ESPHome-Konfiguration fertig geschrieben (`wohnwagen-display.yaml`).
 - ✅ Home-Assistant-Integration fertig geschrieben, inkl. ConfigFlow,
@@ -96,8 +105,16 @@ der Übersichtsseite erreichbar ist (LVGL `top_layer:`):
   Lichtern/Heizung/Wetterdaten *im Livebetrieb* durchgetestet – nur
   syntaktisch validiert (py_compile, JSON, hassfest, `esphome config`).
   Diese Session hier hatte keinen Zugriff auf eine echte HA-Instanz.
-- ❌ Das eigentliche Waveshare-Display/ESP32-S3 wurde noch nicht
-  bestellt/verkabelt/geflasht.
+- ✅ Kühlbox direkt per Bluetooth auf dem Test-ESP32 (`test-kuehlbox-direkt.yaml`)
+  bei Florian erfolgreich getestet (Werte lesen, Steuerung).
+- ⏳ Umstieg auf das Waveshare **ESP32-S3-Touch-LCD-7B (1024×600)**:
+  `wohnwagen-display.yaml` ist dafür umgebaut (Pins/Timing aus der Community-Config
+  agillis/esphome-modular-lvgl-buttons, IO-Expander `waveshare_io_ch32v003`),
+  kompiliert mit ESPHome 2026.9, aber noch nicht auf dem echten Board geflasht.
+  Die Oberfläche ist noch auf 800×480 gelayoutet, Größen ggf. an 1024×600 anpassen.
+- ❌ Umlaute (ä, ö, ü, Ü) fehlen vermutlich in den eingebauten LVGL-Schriften;
+  neue Seiten nutzen deshalb ASCII-Schreibweise. Bei Kästchen im Display eine
+  eigene `font:` mit Umlauten einbinden.
 
 ## Bekannte Einschränkungen
 
