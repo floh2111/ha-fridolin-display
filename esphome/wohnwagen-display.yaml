@@ -1,6 +1,12 @@
 substitutions:
   name: wohnwagen-display
   friendly_name: Fridolin Display
+  ### Kuehlbox (Tuya-BLE-Integration in Home Assistant): Entity-IDs pruefen und
+  ### bei Bedarf im Builder-Stub unter "substitutions:" ueberschreiben
+  kuehlbox_climate: climate.euhomy_car_fridge_cf_thermostat
+  kuehlbox_verbindung: binary_sensor.euhomy_car_fridge_cf_connection
+  kuehlbox_modus: select.euhomy_car_fridge_cf_mode
+  kuehlbox_batterie: select.euhomy_car_fridge_cf_battery_protection
 
 ### Grundgerüst
 esphome:
@@ -158,6 +164,29 @@ switch:
 ### climate-Entität IST der HVAC-Modus (z.B. "heat" oder "off"), darüber
 ### synchronisieren wir den Heizen-Button
 text_sensor:
+  ### Kuehlbox (aus Home Assistant): Modus, Aktion, Modus-/Batterieschutz-Auswahl
+  - platform: homeassistant
+    id: kb_modus
+    entity_id: ${kuehlbox_climate}
+    on_value:
+      - script.execute: sync_kuehlbox
+  - platform: homeassistant
+    id: kb_aktion
+    entity_id: ${kuehlbox_climate}
+    attribute: hvac_action
+    on_value:
+      - script.execute: sync_kuehlbox
+  - platform: homeassistant
+    id: kb_modus_sel
+    entity_id: ${kuehlbox_modus}
+    on_value:
+      - script.execute: sync_kuehlbox
+  - platform: homeassistant
+    id: kb_batt_sel
+    entity_id: ${kuehlbox_batterie}
+    on_value:
+      - script.execute: sync_kuehlbox
+
   ### Licht-Slots 1-4: Status als Text ("on", "off", "unavailable"). Ein
   ### Slot, den du in der Integration leer lässt, existiert in Home Assistant
   ### gar nicht -> es kommt nie ein Zustand an -> der Button bleibt versteckt.
@@ -259,6 +288,20 @@ text_sensor:
 ### für die Nivellierungs-Seite
 ### ------------------------------------------------------------------
 sensor:
+  ### Kuehlbox: Zieltemperatur und aktuelle Temperatur
+  - platform: homeassistant
+    id: kb_ziel
+    entity_id: ${kuehlbox_climate}
+    attribute: temperature
+    on_value:
+      - script.execute: sync_kuehlbox
+  - platform: homeassistant
+    id: kb_ist
+    entity_id: ${kuehlbox_climate}
+    attribute: current_temperature
+    on_value:
+      - script.execute: sync_kuehlbox
+
   ### Ziel-/Solltemperatur der climate-Entität (Attribut "temperature")
   - platform: homeassistant
     id: ha_zieltemperatur
@@ -381,6 +424,14 @@ sensor:
           value: !lambda return (int) x;
 
 ### Nullt die Neigungsanzeige auf die aktuelle Lage (auch aus Home Assistant bedienbar)
+binary_sensor:
+  ### Kuehlbox: Bluetooth-Verbindung (Verbunden/Getrennt)
+  - platform: homeassistant
+    id: kb_verbunden
+    entity_id: ${kuehlbox_verbindung}
+    on_state:
+      - script.execute: sync_kuehlbox
+
 button:
   - platform: template
     name: Neigung nullen
@@ -392,6 +443,36 @@ button:
 ### und eine nicht eingerichtete Heizung werden auf dem Display versteckt
 ### ------------------------------------------------------------------
 script:
+  - id: sync_kuehlbox
+    then:
+      - lambda: |-
+          const std::string &m = id(kb_modus).state;
+          bool da = id(kb_modus).has_state() && !m.empty() && m != "unavailable" && m != "unknown";
+          bool an = da && m == "cool";
+          const std::string &akt = id(kb_aktion).state;
+          const char *status = !da ? "Nicht verfuegbar" : (!an ? "Aus" : (akt == "cooling" ? "Kuehlt" : "Bereit"));
+          lv_label_set_text(id(lbl_kb_status), status);
+          float z = id(kb_ziel).state;
+          if (!std::isnan(z)) {
+            lv_label_set_text_fmt(id(lbl_kb_ziel), "%d", (int) roundf(z));
+            lv_arc_set_value(id(arc_kb), (int) roundf(z));
+          }
+          float ist = id(kb_ist).state;
+          if (!std::isnan(ist)) lv_label_set_text_fmt(id(lbl_kb_ist), "Ist: %d °C", (int) roundf(ist));
+          lv_label_set_text(id(lbl_kb_verbindung), id(kb_verbunden).state ? "Verbunden" : "Getrennt");
+          auto setzen = [](lv_obj_t *o, bool an) {
+            if (an) lv_obj_add_state(o, LV_STATE_CHECKED);
+            else lv_obj_clear_state(o, LV_STATE_CHECKED);
+          };
+          setzen(id(btn_kb_power), an);
+          const std::string &modus = id(kb_modus_sel).state;
+          setzen(id(btn_kb_max), modus == "MAX");
+          setzen(id(btn_kb_eco), modus == "ECO");
+          const std::string &b = id(kb_batt_sel).state;
+          setzen(id(btn_kb_bl), b == "L");
+          setzen(id(btn_kb_bm), b == "M");
+          setzen(id(btn_kb_bh), b == "H");
+
   ### Aktuelle Lage als Nullpunkt speichern (Wohnwagen steht gerade
   ### waagerecht -> Knopf drücken -> beide Winkel zeigen 0°)
   - id: neigung_nullen
@@ -439,7 +520,7 @@ script:
           else lv_obj_clear_state(id(btn_heizen), LV_STATE_CHECKED);
 
 ### ------------------------------------------------------------------
-### LVGL-Oberfläche: 4 Seiten als Wisch-Karussell (tileview)
+### LVGL-Oberfläche: 5 Seiten als Wisch-Karussell (tileview)
 ### Übersicht -> Licht -> Heizung -> Nivellierung
 ### ------------------------------------------------------------------
 lvgl:
@@ -857,6 +938,226 @@ lvgl:
                             align: CENTER
                       on_click:
                         - script.execute: neigung_nullen
+
+              ### Seite 5: Kuehlbox (Thermostat-Anzeige, Modus, Batterieschutz)
+              - id: tile_kuehlbox
+                row: 0
+                column: 4
+                dir: HOR
+                widgets:
+                  - label:
+                      text: "Kuehlbox"
+                      text_font: montserrat_28
+                      align: TOP_MID
+                      y: 16
+                  - label:
+                      id: lbl_kb_verbindung
+                      text: "Getrennt"
+                      text_font: montserrat_14
+                      align: TOP_LEFT
+                      x: 16
+                      y: 22
+                  - arc:
+                      id: arc_kb
+                      align: CENTER
+                      y: -10
+                      width: 260
+                      height: 260
+                      min_value: -20
+                      max_value: 20
+                      value: 0
+                      start_angle: 135
+                      end_angle: 45
+                      adjustable: false
+                  - label:
+                      id: lbl_kb_status
+                      text: "--"
+                      align: CENTER
+                      y: -75
+                  - label:
+                      id: lbl_kb_ziel
+                      text: "--"
+                      text_font: montserrat_40
+                      align: CENTER
+                      y: -30
+                  - label:
+                      id: lbl_kb_ist
+                      text: "Ist: --"
+                      align: CENTER
+                      y: 25
+                  - button:
+                      align: CENTER
+                      x: -70
+                      y: 140
+                      width: 70
+                      height: 56
+                      widgets:
+                        - label:
+                            text: "-"
+                            text_font: montserrat_28
+                            align: CENTER
+                      on_click:
+                        - homeassistant.action:
+                            action: climate.set_temperature
+                            data:
+                              entity_id: ${kuehlbox_climate}
+                              temperature: !lambda 'return std::max(-20.0f, std::min(20.0f, (isnan(id(kb_ziel).state) ? 5.0f : id(kb_ziel).state) - 1.0f));'
+                  - button:
+                      align: CENTER
+                      x: 70
+                      y: 140
+                      width: 70
+                      height: 56
+                      widgets:
+                        - label:
+                            text: "+"
+                            text_font: montserrat_28
+                            align: CENTER
+                      on_click:
+                        - homeassistant.action:
+                            action: climate.set_temperature
+                            data:
+                              entity_id: ${kuehlbox_climate}
+                              temperature: !lambda 'return std::max(-20.0f, std::min(20.0f, (isnan(id(kb_ziel).state) ? 5.0f : id(kb_ziel).state) + 1.0f));'
+                  - label:
+                      text: "Modus"
+                      text_font: montserrat_14
+                      align: CENTER
+                      x: -290
+                      y: -80
+                  - button:
+                      id: btn_kb_max
+                      checkable: true
+                      align: CENTER
+                      x: -290
+                      y: -35
+                      width: 120
+                      height: 50
+                      checked:
+                        bg_color: 0x3FA34D
+                      widgets:
+                        - label:
+                            text: "MAX"
+                            align: CENTER
+                      on_click:
+                        - homeassistant.action:
+                            action: select.select_option
+                            data:
+                              entity_id: ${kuehlbox_modus}
+                              option: "MAX"
+                  - button:
+                      id: btn_kb_eco
+                      checkable: true
+                      align: CENTER
+                      x: -290
+                      y: 25
+                      width: 120
+                      height: 50
+                      checked:
+                        bg_color: 0x3FA34D
+                      widgets:
+                        - label:
+                            text: "ECO"
+                            align: CENTER
+                      on_click:
+                        - homeassistant.action:
+                            action: select.select_option
+                            data:
+                              entity_id: ${kuehlbox_modus}
+                              option: "ECO"
+                  - label:
+                      text: "Akku-Schutz"
+                      text_font: montserrat_14
+                      align: CENTER
+                      x: 290
+                      y: -80
+                  - button:
+                      id: btn_kb_bl
+                      checkable: true
+                      align: CENTER
+                      x: 225
+                      y: -35
+                      width: 60
+                      height: 50
+                      checked:
+                        bg_color: 0x3FA34D
+                      widgets:
+                        - label:
+                            text: "L"
+                            align: CENTER
+                      on_click:
+                        - homeassistant.action:
+                            action: select.select_option
+                            data:
+                              entity_id: ${kuehlbox_batterie}
+                              option: "L"
+                  - button:
+                      id: btn_kb_bm
+                      checkable: true
+                      align: CENTER
+                      x: 290
+                      y: -35
+                      width: 60
+                      height: 50
+                      checked:
+                        bg_color: 0x3FA34D
+                      widgets:
+                        - label:
+                            text: "M"
+                            align: CENTER
+                      on_click:
+                        - homeassistant.action:
+                            action: select.select_option
+                            data:
+                              entity_id: ${kuehlbox_batterie}
+                              option: "M"
+                  - button:
+                      id: btn_kb_bh
+                      checkable: true
+                      align: CENTER
+                      x: 355
+                      y: -35
+                      width: 60
+                      height: 50
+                      checked:
+                        bg_color: 0x3FA34D
+                      widgets:
+                        - label:
+                            text: "H"
+                            align: CENTER
+                      on_click:
+                        - homeassistant.action:
+                            action: select.select_option
+                            data:
+                              entity_id: ${kuehlbox_batterie}
+                              option: "H"
+                  - button:
+                      id: btn_kb_power
+                      checkable: true
+                      align: BOTTOM_MID
+                      y: -8
+                      width: 200
+                      height: 50
+                      widgets:
+                        - label:
+                            text: "Ein/Aus"
+                            align: CENTER
+                      on_click:
+                        - if:
+                            condition:
+                              lambda: 'return id(kb_modus).state == "cool";'
+                            then:
+                              - homeassistant.action:
+                                  action: climate.set_hvac_mode
+                                  data:
+                                    entity_id: ${kuehlbox_climate}
+                                    hvac_mode: "off"
+                            else:
+                              - homeassistant.action:
+                                  action: climate.set_hvac_mode
+                                  data:
+                                    entity_id: ${kuehlbox_climate}
+                                    hvac_mode: "cool"
 
   ### ------------------------------------------------------------------
   ### Einstellungsseite: kein eigener Wisch-Seite, sondern ein Overlay

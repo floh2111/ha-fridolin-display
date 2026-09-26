@@ -19,6 +19,12 @@
 substitutions:
   name: fridolin-test
   friendly_name: Fridolin Test
+  ### Kuehlbox (Tuya-BLE-Integration in Home Assistant): Entity-IDs pruefen und
+  ### bei Bedarf im Builder-Stub unter "substitutions:" ueberschreiben
+  kuehlbox_climate: climate.euhomy_car_fridge_cf_thermostat
+  kuehlbox_verbindung: binary_sensor.euhomy_car_fridge_cf_connection
+  kuehlbox_modus: select.euhomy_car_fridge_cf_mode
+  kuehlbox_batterie: select.euhomy_car_fridge_cf_battery_protection
 
 esphome:
   name: ${name}
@@ -110,6 +116,17 @@ bluetooth_proxy:
   active: true
 
 sensor:
+  ### Kuehlbox aus Home Assistant (Tuya BLE), rein zur Kontrolle
+  - platform: homeassistant
+    id: test_kb_ziel
+    entity_id: ${kuehlbox_climate}
+    attribute: temperature
+    name: Test Kuehlbox Zieltemperatur
+  - platform: homeassistant
+    id: test_kb_ist
+    entity_id: ${kuehlbox_climate}
+    attribute: current_temperature
+    name: Test Kuehlbox Temperatur
   - platform: mpu6050
     address: 0x68
     i2c_id: bus_a
@@ -154,11 +171,27 @@ sensor:
 ### ------------------------------------------------------------------
 binary_sensor:
   - platform: homeassistant
+    id: test_kb_verbunden
+    entity_id: ${kuehlbox_verbindung}
+    name: Test Kuehlbox Verbunden
+  - platform: homeassistant
     id: test_licht_1
     entity_id: light.fridolin_licht_1
     name: Test Licht 1 Status
 
 text_sensor:
+  - platform: homeassistant
+    id: test_kb_modus
+    entity_id: ${kuehlbox_climate}
+    name: Test Kuehlbox Thermostat
+  - platform: homeassistant
+    id: test_kb_modus_sel
+    entity_id: ${kuehlbox_modus}
+    name: Test Kuehlbox Modus
+  - platform: homeassistant
+    id: test_kb_batt_sel
+    entity_id: ${kuehlbox_batterie}
+    name: Test Kuehlbox Batterieschutz
   - platform: homeassistant
     id: test_heizung_modus
     entity_id: climate.fridolin_heizung
