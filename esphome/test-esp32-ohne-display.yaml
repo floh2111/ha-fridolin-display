@@ -127,7 +127,7 @@ sensor:
     unit_of_measurement: "°"
     update_interval: 1s
     lambda: |-
-      float roh = atan2(id(accel_y).state, id(accel_z).state) * 180.0 / PI;
+      float roh = atan2(id(accel_y).state, id(accel_z).state) * 180.0 / M_PI;
       id(g_roh_lr) = roh;
       return roh - id(g_offset_lr);
 
@@ -137,7 +137,7 @@ sensor:
     unit_of_measurement: "°"
     update_interval: 1s
     lambda: |-
-      float roh = atan2(-id(accel_x).state, sqrt(id(accel_y).state * id(accel_y).state + id(accel_z).state * id(accel_z).state)) * 180.0 / PI;
+      float roh = atan2(-id(accel_x).state, sqrt(id(accel_y).state * id(accel_y).state + id(accel_z).state * id(accel_z).state)) * 180.0 / M_PI;
       id(g_roh_vh) = roh;
       return roh - id(g_offset_vh);
 
