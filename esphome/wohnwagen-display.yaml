@@ -181,7 +181,7 @@ external_components:
   - source:
       type: git
       url: https://github.com/floh2111/esphome-tuya-ble-fridolin
-      ref: 7186f89a63fea749ca11478fcc43908530ecf697
+      ref: 76f0e49d25ef46f6940ec9656df3f1321c5fcb18
 
 esp32_ble_tracker:
   scan_parameters:
