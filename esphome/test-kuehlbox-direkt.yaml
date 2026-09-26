@@ -96,18 +96,77 @@ select:
     name: "Kuehlbox Batterieschutz"
     id: kb_batterieschutz
     options: ["L", "M", "H"]
+  ### Zieltemperatur als Dropdown (-20 bis 20 °C)
+  - platform: template
+    name: "Kuehlbox Zieltemperatur"
+    id: kb_ziel_auswahl
+    optimistic: true
+    options:
+      - "-20 °C"
+      - "-19 °C"
+      - "-18 °C"
+      - "-17 °C"
+      - "-16 °C"
+      - "-15 °C"
+      - "-14 °C"
+      - "-13 °C"
+      - "-12 °C"
+      - "-11 °C"
+      - "-10 °C"
+      - "-9 °C"
+      - "-8 °C"
+      - "-7 °C"
+      - "-6 °C"
+      - "-5 °C"
+      - "-4 °C"
+      - "-3 °C"
+      - "-2 °C"
+      - "-1 °C"
+      - "0 °C"
+      - "1 °C"
+      - "2 °C"
+      - "3 °C"
+      - "4 °C"
+      - "5 °C"
+      - "6 °C"
+      - "7 °C"
+      - "8 °C"
+      - "9 °C"
+      - "10 °C"
+      - "11 °C"
+      - "12 °C"
+      - "13 °C"
+      - "14 °C"
+      - "15 °C"
+      - "16 °C"
+      - "17 °C"
+      - "18 °C"
+      - "19 °C"
+      - "20 °C"
+    set_action:
+      - number.set:
+          id: kb_ziel
+          value: !lambda 'return (float) atoi(x.c_str());'
 
 number:
+  ### Interne Zahl (in Home Assistant nicht sichtbar): sendet die Zieltemperatur an die
+  ### Kühlbox. Bedient wird sie über die Auswahl "Kuehlbox Zieltemperatur" unten.
   - platform: tuya_ble_node
     tuya_ble_node_id: kuehlbox
     dp_id: 114
-    name: "Kuehlbox Zieltemperatur"
+    name: "Kuehlbox Zieltemperatur Zahl"
     id: kb_ziel
+    internal: true
     unit_of_measurement: "°C"
     min_value: -20
     max_value: 20
     step: 1
     mode: box
+    on_value:
+      # Auswahl an den tatsächlichen Wert der Kühlbox angleichen (publish_state löst
+      # set_action nicht erneut aus, also keine Schleife)
+      - lambda: |-
+          id(kb_ziel_auswahl).publish_state(str_sprintf("%d °C", (int) roundf(x)));
 
 sensor:
   - platform: tuya_ble_node
@@ -130,6 +189,7 @@ sensor:
     dp_id: 122
     name: "Kuehlbox Spannung"
     unit_of_measurement: "V"
+    accuracy_decimals: 1
     device_class: voltage
     state_class: measurement
     # Datenpunkt 122 liefert Zehntelvolt (145 = 14,5 V)
