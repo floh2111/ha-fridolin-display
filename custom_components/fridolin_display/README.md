@@ -61,44 +61,21 @@ gelöscht werden, sobald die Integration läuft.
 
 ## Lovelace-Karte für die Nivellierung
 
-Die Integration liefert außerdem eine eigene Dashboard-Karte
-(`www/fridolin-nivellierung-card.js`), die dieselbe Kreuzlibelle wie die
-Nivellierungs-Seite auf dem Display zeigt – nur mit der **Front nach oben**
-statt nach rechts (die passendere Ausrichtung für ein Dashboard). Im
-Karteneditor wählbar: **Wohnwagen** (Deichsel) oder **Wohnmobil**
-(Frontscheibe) – beide mit derselben Libellen-Anzeige. Ein Druck auf
-"Nullen" in der Karte ruft
-denselben `button.press`-Service auf wie der Knopf auf dem Display selbst
-– der Nullpunkt wird also **lokal auf dem ESP** gespeichert (übersteht
-auch einen Neustart von Home Assistant, weil er im Flash des ESP liegt,
-nicht in HA).
+Die Dashboard-Karte für die Nivellierung (Kreuzlibelle auf einem
+Wohnwagen-/Wohnmobil-Grundriss) ist **kein Teil dieser Integration
+mehr** – sie lebt seit Version 0.2.0 in einem eigenen Repository:
+[floh2111/rv-leveling-card](https://github.com/floh2111/rv-leveling-card),
+als eigenständiges HACS-Dashboard-Repository installierbar. Dort auch
+die Einrichtungsanleitung.
 
-Einrichtung:
-
-1. Home Assistant neu starten (die Integration registriert die Karte
-   automatisch unter `/fridolin_display/fridolin-nivellierung-card.js`).
-2. Einstellungen → Dashboards → oben rechts ⋮ → Ressourcen → Ressource
-   hinzufügen. URL: `/fridolin_display/fridolin-nivellierung-card.js`,
-   Ressourcentyp: JavaScript-Modul.
-3. Karte hinzufügen → "Benutzerdefiniert" → "Fridolin Nivellierung".
-   Titel, Fahrzeugtyp (Wohnwagen/Wohnmobil) und die drei Entity-IDs lassen
-   sich direkt im **visuellen Karteneditor** einstellen (kein YAML nötig)
-   – die vorausgewählten Entity-IDs sind nur eine **Annahme** (abgeleitet
-   aus dem ESPHome-Gerätenamen "Fridolin Display"/"Fridolin Test"), prüfe
-   sie unter Einstellungen → Geräte & Dienste → dein ESP32-Gerät →
-   Entitäten und korrigiere sie bei Abweichung im Editor. Alternativ per
-   YAML:
-   ```yaml
-   type: custom:fridolin-nivellierung-card
-   title: Nivellierung
-   vehicle_type: caravan   # oder: motorhome
-   entity_lr: sensor.fridolin_display_neigung_links_rechts
-   entity_vh: sensor.fridolin_display_neigung_vorne_hinten
-   entity_zero_button: button.fridolin_display_neigung_nullen
-   ```
-
-Die Karte ist rein anzeigend (nicht ziehbar) und aktualisiert sich live,
-sobald sich die beiden Neigungs-Sensoren ändern.
+Falls du die Karte schon vor 0.2.0 eingebunden hattest: Die alte
+Ressourcen-URL `/fridolin_display/fridolin-nivellierung-card.js`
+funktioniert nicht mehr (die Integration liefert keine statischen
+Dateien mehr aus). Einmalig die Dashboard-Ressource entfernen und durch
+die neue aus `rv-leveling-card` ersetzen (siehe dessen README) – deine
+Karten-Konfiguration in den Dashboards selbst muss dabei **nicht**
+geändert werden, der Karten-Typ heißt weiterhin
+`custom:fridolin-nivellierung-card`.
 
 ## Grenzen dieser ersten Version
 

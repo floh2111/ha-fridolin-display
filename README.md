@@ -26,6 +26,10 @@ zu müssen.
   Details und Installationsanleitung in deren eigener
   [README](custom_components/fridolin_display/README.md).
 
+Die Dashboard-Karte für die Nivellierung (Wohnwagen-/Wohnmobil-Grundriss
+mit Kreuzlibelle) liegt seit Integrations-Version 0.2.0 in einem eigenen
+Repo: [floh2111/rv-leveling-card](https://github.com/floh2111/rv-leveling-card).
+
 ## Architektur in Kürze
 
 Das Display spricht immer nur mit einer festen Handvoll Entities der

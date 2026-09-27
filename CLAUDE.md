@@ -47,19 +47,24 @@ Proxy-/Spiegel-Schicht:
   Stundenvorhersage + morgen) direkt von **OpenWeatherMap**, Standort
   kommt von einem `device_tracker` (Home-Assistant-App) oder wird über
   einen Button ("Standort übernehmen") manuell fixiert.
-- Die Integration liefert außerdem eine eigene **Lovelace-Karte**
-  (`custom_components/fridolin_display/www/fridolin-nivellierung-card.js`,
-  automatisch unter `/fridolin_display/...` servierbar über
-  `hass.http.async_register_static_paths` in `__init__.py`), die die
-  Nivellierung im selben Stil wie das Display zeigt, mit der Front nach
-  oben statt nach rechts. Im Karteneditor wählbar: Wohnwagen (Deichsel)
-  oder Wohnmobil (Frontscheibe) – eigenes `VEHICLE_ART`-Objekt mit
-  eigenem SVG/viewBox/Röhren-Geometrie je Typ, per `ha-form`-Editor
+- Die Dashboard-Karte für die Nivellierung ist **seit Integrations-
+  Version 0.2.0 kein Teil dieser Integration mehr**, sondern ein
+  eigenständiges Repo: **[floh2111/rv-leveling-card](https://github.com/floh2111/rv-leveling-card)**
+  (eigenes HACS-Dashboard-Repository, Kategorie "plugin"/Dashboard).
+  Grund: nur so taucht sie in HACS als eigenständige Lovelace-Karte auf,
+  unabhängig installierbar von der Integration. Zeigt die Nivellierung
+  im selben Stil wie das Display, mit der Front nach oben statt nach
+  rechts. Im Karteneditor wählbar: Wohnwagen (Deichsel) oder Wohnmobil
+  (Frontscheibe) – eigenes `VEHICLE_ART`-Objekt mit eigenem
+  SVG/viewBox/Röhren-Geometrie je Typ, per `ha-form`-Editor
   (`vehicle_type`) umschaltbar, inkl. visuellem UI-Karteneditor für
-  Titel + alle Entity-IDs.
+  Titel + alle Entity-IDs. Der Custom-Element-Typ heißt weiterhin
+  `fridolin-nivellierung-card` (Herkunft des Projekts, absichtlich nicht
+  umbenannt, damit bestehende Dashboards weiterlaufen).
 
-Genaue Entity-ID-Tabelle, Klimaanlagen-Details und die Einrichtung der
-Lovelace-Karte stehen in `custom_components/fridolin_display/README.md`.
+Genaue Entity-ID-Tabelle und Klimaanlagen-Details stehen in
+`custom_components/fridolin_display/README.md`; die Karte hat ihre
+eigene README im `rv-leveling-card`-Repo.
 
 ## Repo-Struktur
 
@@ -71,9 +76,13 @@ esphome/fridolin-vorschau.html       – interaktive Browser-Vorschau der UI (au
 esphome/images/weather/*.svg         – 16 Wetter-Icons (von Florian geliefert), von ESPHome per resvg gerastert
 esphome/images/wasserwaage.svg       – Wohnwagen-Grundriss + Kreuzlibelle für die Nivellierungs-Seite
 esphome/images/wohnmobil.svg         – Alternative Grafik (Wohnmobil), gleiche Röhren-Koordinaten wie wasserwaage.svg
-custom_components/fridolin_display/  – die Home-Assistant-Integration (ConfigFlow, OptionsFlow, Coordinator, Entities, Lovelace-Karte)
+custom_components/fridolin_display/  – die Home-Assistant-Integration (ConfigFlow, OptionsFlow, Coordinator, Entities)
 .github/workflows/validate.yml       – CI: `esphome config` + echter `esphome compile` beider Configs, hassfest für die Integration
 ```
+
+Die Lovelace-Karte (`rv-leveling-card.js`) liegt **nicht** in diesem
+Repo, sondern in `floh2111/rv-leveling-card` (separat geklont, falls du
+daran arbeiten musst).
 
 ## UI-Struktur (ESPHome/LVGL)
 
@@ -122,21 +131,31 @@ der Übersichtsseite erreichbar ist (LVGL `top_layer:`):
 - ✅ ESPHome-Konfiguration fertig geschrieben (`wohnwagen-display.yaml`),
   aktuell wieder auf 800×480 (siehe Projektziel oben).
 - ✅ Home-Assistant-Integration fertig geschrieben, inkl. ConfigFlow,
-  OptionsFlow, Coordinator, Light/Climate/Sensor/Button-Entities, eigene
-  Lovelace-Karte für die Nivellierung.
+  OptionsFlow, Coordinator, Light/Climate/Sensor/Button-Entities.
 - ✅ GitHub-Repo `floh2111/ha-fridolin-display` eingerichtet, Push-Zugriff
   funktioniert.
+- ✅ Lovelace-Karte in ein eigenes Repo ausgelagert:
+  `floh2111/rv-leveling-card` (öffentlich, MIT-Lizenz, eigene
+  `hacs.json`/README/CI mit `hacs/action`). In der Integration dafür
+  entfernt: `www/`-Ordner, `_async_register_frontend_static_path` in
+  `__init__.py`, `after_dependencies: [http]` in `manifest.json` (nicht
+  mehr gebraucht, da kein `hass.http`-Zugriff mehr). **Breaking Change**
+  für Alt-Installationen: die alte Ressourcen-URL
+  `/fridolin_display/fridolin-nivellierung-card.js` funktioniert nicht
+  mehr, einmalig auf die neue Ressource aus `rv-leveling-card` umstellen
+  (Karten-YAML/`type:` bleibt unverändert).
 - ✅ GitHub Action (`.github/workflows/validate.yml`) validiert bei jedem
   Push/PR: `esphome config` + echter `esphome compile` für beide
   YAML-Dateien, Python-Syntax + JSON-Validität der Integration, sowie
   `hassfest` (offizielle HA-Validierung). **Alle Checks sind aktuell grün.**
 - ✅ Integration erfolgreich über **HACS** (als custom repository) bei
-  Florian installiert, aktuell Version 0.1.7 (Klimaanlage mit Heizen/
-  Kühlen/Presets, Lovelace-Karte mit Wohnwagen/Wohnmobil-Auswahl +
-  UI-Karteneditor). Seit `v0.1.6` liegt ein `hacs.json` im Repo-Root
-  (Pflichtdatei, fehlte vorher – HACS las sie aus dem jeweiligen
-  Release-Tag und lehnte Versionen ohne sie ab). Jede Version braucht
-  weiterhin einen echten Git-Tag/Release (`gh release create vX.Y.Z`).
+  Florian installiert, aktuell Version 0.2.0 (Klimaanlage mit Heizen/
+  Kühlen/Presets; Lovelace-Karte jetzt separates Repo, siehe oben). Seit
+  `v0.1.6` liegt ein `hacs.json` im Repo-Root (Pflichtdatei, fehlte
+  vorher – HACS las sie aus dem jeweiligen Release-Tag und lehnte
+  Versionen ohne sie ab). Jede Version braucht weiterhin einen echten
+  Git-Tag/Release (`gh release create vX.Y.Z`) – gilt jetzt für **beide**
+  Repos unabhängig voneinander.
 - ✅ Test-Config (`test-esp32-ohne-display.yaml`) fasst inzwischen ALLES
   Nicht-Display-Testbare in einer Firmware zusammen: GY-521-Neigung, die
   Fridolin-Display-Integration (Licht/Klimaanlage/Wetter, rein lesend zur
@@ -161,15 +180,16 @@ der Übersichtsseite erreichbar ist (LVGL `top_layer:`):
   eine echte Klimaanlagen-Entity in Home Assistant. Die drei Presets
   (`eco`/`normal`/`max`) werden 1:1 an die Zielentität durchgereicht;
   ob die echte Klimaanlage genau diese drei Werte kennt, ist offen.
-- ⏳ **Lovelace-Karte (Nivellierung)**: Visuell in einer lokalen Browser-
-  Vorschau (Fake-`hass`-Objekt, kein echtes Home Assistant) durchgetestet
-  – Wohnwagen- und Wohnmobil-Grafik, Live-Umschalten per Editor, Blasen-
+- ⏳ **Lovelace-Karte (`rv-leveling-card`, eigenes Repo)**: Visuell in
+  einer lokalen Browser-Vorschau (Fake-`hass`-Objekt, kein echtes Home
+  Assistant, auch auf iPhone-Breite 375px geprüft) durchgetestet –
+  Wohnwagen- und Wohnmobil-Grafik, Live-Umschalten per Editor, Blasen-
   Bewegung, "Nullen"-Button-Service-Call, UI-Karteneditor (`ha-form`)
-  funktionieren dort alle. **Noch nicht in einem echten HA-Dashboard
-  gerendert**, und die vermuteten Entity-IDs
-  (`sensor.fridolin_display_neigung_links_rechts` usw.) sind gegen die
-  echte Home-Assistant-Instanz ungeprüft. Falsche IDs zeigen einfach
-  nichts an (kein Absturz), per Karten-Editor korrigierbar.
+  funktionieren dort alle. **Noch nicht als eigenständiges HACS-
+  Dashboard-Repo bei Florian installiert/in einem echten HA-Dashboard
+  gerendert**, und die Standard-Entity-IDs sind jetzt bewusst leer
+  (kein Fridolin-spezifischer Rate-Default mehr, da das Repo öffentlich
+  für beliebige Nutzer ist) – müssen im Karteneditor gesetzt werden.
 - ⏳ **Wohnmobil-Grafik auf dem Display** (`img_wohnmobil`,
   Einstellungen-Umschalter) ist neu und nur lokal kompiliert – noch nicht
   auf echter Hardware gesehen.
@@ -234,9 +254,10 @@ der Übersichtsseite erreichbar ist (LVGL `top_layer:`):
 2. Klimaanlagen-Seite gegen eine echte `climate`-Entity mit Heizen/Kühlen
    und Eco/Normal/Max-Presets testen; ggf. Preset-Namen anpassen, falls
    die echte Klimaanlage andere Bezeichnungen erwartet.
-3. Lovelace-Karte in einem echten Dashboard einbinden (siehe README) und
-   prüfen, ob die angenommenen Entity-IDs stimmen; bei Abweichung im
-   Karteneditor korrigieren.
+3. `rv-leveling-card` als Custom Repository (Kategorie "Dashboard") zu
+   HACS hinzufügen, installieren, alte Dashboard-Ressource
+   (`/fridolin_display/fridolin-nivellierung-card.js`) durch die neue
+   ersetzen, Entity-IDs im Karteneditor setzen (keine Vorbelegung mehr).
 4. Wohnwagen/Wohnmobil-Umschalter auf der Einstellungsseite des Displays
    auf echter Hardware testen (Grafik-Wechsel, Persistenz nach Neustart).
 5. Sobald das alles läuft: reales 800×480-Waveshare-Display besorgen,
