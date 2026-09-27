@@ -34,7 +34,7 @@ jobs:
           # esphome-Aufruf abbrechen, bevor die eigene Fehlerausgabe
           # unten überhaupt laufen kann.
           overall_code=0
-          for f in esphome/wohnwagen-display.yaml esphome/test-esp32-ohne-display.yaml esphome/test-kuehlbox-direkt.yaml; do
+          for f in esphome/wohnwagen-display.yaml esphome/test-esp32-ohne-display.yaml; do
             echo "### Prüfe $f"
             set +e
             esphome config "$f" 2>&1 | tee esphome_output.txt
@@ -71,7 +71,6 @@ jobs:
       matrix:
         file:
           - test-esp32-ohne-display.yaml
-          - test-kuehlbox-direkt.yaml
           - wohnwagen-display.yaml
     steps:
       - uses: actions/checkout@v4

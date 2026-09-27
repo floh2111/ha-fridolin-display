@@ -1,30 +1,35 @@
 ### ------------------------------------------------------------------
-### Test-Konfiguration: nur zum Ausprobieren auf einem "nackten" ESP32,
-### OHNE das Waveshare-Display. Prüft zwei Dinge unabhängig voneinander:
+### Test-Konfiguration: alles zusammen auf einem "nackten" ESP32, OHNE
+### das Waveshare-Display. Prüft in einer einzigen Firmware:
 ###
 ###  1. Funktioniert der GY-521 (MPU6050) und liefert plausible
 ###     Neigungswerte?
 ###  2. Kommt der ESP32 per WLAN + verschlüsselter API mit Home Assistant
 ###     zusammen, und liefert die "Fridolin Display"-Integration
 ###     brauchbare Werte (Licht, Heizung, Wetter)?
+###  3. Kann der ESP32 die Kühlbox direkt per Bluetooth (Tuya BLE) lesen
+###     und steuern (ohne die Home-Assistant-Integration "Tuya BLE")?
 ###
-### Diese Datei ist NICHT für den echten Einbau gedacht – sie enthält
-### kein Display, kein LVGL, keine Touch-Bedienung. Das eigentliche
-### Ziel ist wohnwagen-display.yaml.
+### Damit lässt sich alles zusammen mit einer echten Home-Assistant-
+### Instanz durchtesten, bevor es ins eigentliche Ziel wohnwagen-
+### display.yaml wandert. Diese Datei ist NICHT für den echten Einbau
+### gedacht - sie enthält kein Display, kein LVGL, keine Touch-Bedienung.
 ###
 ### Verkabelung GY-521 -> ESP32 (Standard-I2C-Pins je nach Board, ggf.
 ### anpassen): VCC -> 3V3, GND -> GND, SDA -> GPIO21, SCL -> GPIO22.
+###
+### WICHTIG zur Kühlbox: Sie nimmt nur EINE Bluetooth-Verbindung an. Die
+### Integration "Tuya BLE" in Home Assistant (und die Tuya-App auf dem
+### Handy) muss dafür getrennt/deaktiviert sein. Es sind vier Secrets
+### nötig: fridolin_kuehlbox_mac, _device_id, _uuid und _local_key (siehe
+### secrets.yaml.example). Die Werte werden etwa einmal pro Minute
+### aktualisiert, Schreibbefehle (Ziel, Modus, Power) brauchen einige
+### Sekunden, weil dafür zuerst eine neue Verbindung aufgebaut wird.
 ### ------------------------------------------------------------------
 
 substitutions:
   name: fridolin-test
   friendly_name: Fridolin Test
-  ### Kuehlbox (Tuya-BLE-Integration in Home Assistant): Entity-IDs pruefen und
-  ### bei Bedarf im Builder-Stub unter "substitutions:" ueberschreiben
-  kuehlbox_climate: climate.euhomy_car_fridge_cf_thermostat
-  kuehlbox_verbindung: binary_sensor.euhomy_car_fridge_cf_connection
-  kuehlbox_modus: select.euhomy_car_fridge_cf_mode
-  kuehlbox_batterie: select.euhomy_car_fridge_cf_battery_protection
 
 esphome:
   name: ${name}
@@ -54,6 +59,7 @@ globals:
 ### passt auf die meisten gängigen "nackten" ESP32-Devboards (NodeMCU-32S,
 ### DOIT ESP32 DevKit v1, etc.). Falls dein Board ein anderes ist, hier
 ### den Namen aus https://esphome.io/components/esp32.html eintragen.
+### esp-idf (statt Arduino) ist für stabiles Bluetooth empfohlen.
 esp32:
   board: esp32dev
   framework:
@@ -72,7 +78,7 @@ ota:
 wifi:
   ssid: !secret fridolin_wifi_ssid
   password: !secret fridolin_wifi_password
-  power_save_mode: none  # empfohlen für Bluetooth-Proxy
+  power_save_mode: none  # empfohlen bei gleichzeitigem Bluetooth
 
 ### ------------------------------------------------------------------
 ### GY-521 / MPU6050 am I2C-Bus. Pins ggf. an deine Verkabelung anpassen.
@@ -102,31 +108,161 @@ button:
       - script.execute: neigung_nullen
 
 ### ------------------------------------------------------------------
-### Bluetooth-Proxy für die Kühlbox (Tuya-BLE-Gerät, z.B. Euhomy CF55)
-### Der ESP32 reicht Bluetooth an Home Assistant durch; die Kühlbox selbst
-### steuert die HACS-Integration "Tuya BLE" in Home Assistant.
+### Kühlbox direkt per Bluetooth (Tuya BLE), ohne Home Assistant.
+### Komponente: eigener Fork, fest auf einen geprüften Commit gepinnt.
+### Kein bluetooth_proxy hier - der würde sich mit der eigenen aktiven
+### Verbindung zur Kühlbox um den einzigen BLE-Funk streiten.
 ### ------------------------------------------------------------------
+external_components:
+  - source:
+      type: git
+      url: https://github.com/floh2111/esphome-tuya-ble-fridolin
+      ref: 76f0e49d25ef46f6940ec9656df3f1321c5fcb18
+
 esp32_ble_tracker:
   scan_parameters:
     interval: 320ms
     window: 300ms
-    active: true
 
-bluetooth_proxy:
-  active: true
+tuya_ble_tracker:
+
+tuya_ble_client:
+  - id: tuya_client
+
+tuya_ble_node:
+  - id: kuehlbox
+    mac_address: !secret fridolin_kuehlbox_mac
+    local_key: !secret fridolin_kuehlbox_local_key
+    device_id: !secret fridolin_kuehlbox_device_id
+    uuid: !secret fridolin_kuehlbox_uuid
+    tuya_ble_client_id: tuya_client
+    update_interval: 60s
+    # Mehrere Schreibbefehle nacheinander (z.B. Power + Ziel) sollen alle ankommen
+    max_queued: 5
+
+### Datenpunkte laut Tuya-Datenmodell (dp_id = abilityId)
+switch:
+  - platform: tuya_ble_node
+    tuya_ble_node_id: kuehlbox
+    dp_id: 101
+    name: "Kuehlbox Power"
+    id: kb_power
+
+select:
+  - platform: tuya_ble_node
+    tuya_ble_node_id: kuehlbox
+    dp_id: 103
+    name: "Kuehlbox Modus"
+    id: kb_modus
+    options: ["MAX", "ECO"]
+  - platform: tuya_ble_node
+    tuya_ble_node_id: kuehlbox
+    dp_id: 104
+    name: "Kuehlbox Batterieschutz"
+    id: kb_batterieschutz
+    options: ["L", "M", "H"]
+  ### Zieltemperatur als Dropdown (-20 bis 20 °C)
+  - platform: template
+    name: "Kuehlbox Zieltemperatur"
+    id: kb_ziel_auswahl
+    optimistic: true
+    options:
+      - "-20 °C"
+      - "-19 °C"
+      - "-18 °C"
+      - "-17 °C"
+      - "-16 °C"
+      - "-15 °C"
+      - "-14 °C"
+      - "-13 °C"
+      - "-12 °C"
+      - "-11 °C"
+      - "-10 °C"
+      - "-9 °C"
+      - "-8 °C"
+      - "-7 °C"
+      - "-6 °C"
+      - "-5 °C"
+      - "-4 °C"
+      - "-3 °C"
+      - "-2 °C"
+      - "-1 °C"
+      - "0 °C"
+      - "1 °C"
+      - "2 °C"
+      - "3 °C"
+      - "4 °C"
+      - "5 °C"
+      - "6 °C"
+      - "7 °C"
+      - "8 °C"
+      - "9 °C"
+      - "10 °C"
+      - "11 °C"
+      - "12 °C"
+      - "13 °C"
+      - "14 °C"
+      - "15 °C"
+      - "16 °C"
+      - "17 °C"
+      - "18 °C"
+      - "19 °C"
+      - "20 °C"
+    set_action:
+      - number.set:
+          id: kb_ziel
+          value: !lambda 'return (float) atoi(x.c_str());'
+
+number:
+  ### Interne Zahl (in Home Assistant nicht sichtbar): sendet die Zieltemperatur an die
+  ### Kühlbox. Bedient wird sie über die Auswahl "Kuehlbox Zieltemperatur" oben.
+  - platform: tuya_ble_node
+    tuya_ble_node_id: kuehlbox
+    dp_id: 114
+    name: "Kuehlbox Zieltemperatur Zahl"
+    id: kb_ziel
+    internal: true
+    unit_of_measurement: "°C"
+    min_value: -20
+    max_value: 20
+    step: 1
+    mode: box
+    on_value:
+      # Auswahl an den tatsächlichen Wert der Kühlbox angleichen (publish_state löst
+      # set_action nicht erneut aus, also keine Schleife)
+      - lambda: |-
+          id(kb_ziel_auswahl).publish_state(str_sprintf("%d °C", (int) roundf(x)));
 
 sensor:
-  ### Kuehlbox aus Home Assistant (Tuya BLE), rein zur Kontrolle
-  - platform: homeassistant
-    id: test_kb_ziel
-    entity_id: ${kuehlbox_climate}
-    attribute: temperature
-    name: Test Kuehlbox Zieltemperatur
-  - platform: homeassistant
-    id: test_kb_ist
-    entity_id: ${kuehlbox_climate}
-    attribute: current_temperature
-    name: Test Kuehlbox Temperatur
+  ### Kühlbox-Werte (direkt per Bluetooth)
+  - platform: tuya_ble_node
+    tuya_ble_node_id: kuehlbox
+    dp_id: 112
+    name: "Kuehlbox Temperatur"
+    id: kb_ist
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+  - platform: tuya_ble_node
+    tuya_ble_node_id: kuehlbox
+    dp_id: 123
+    name: "Kuehlbox Batterie"
+    unit_of_measurement: "%"
+    device_class: battery
+    state_class: measurement
+  - platform: tuya_ble_node
+    tuya_ble_node_id: kuehlbox
+    dp_id: 122
+    name: "Kuehlbox Spannung"
+    unit_of_measurement: "V"
+    accuracy_decimals: 1
+    device_class: voltage
+    state_class: measurement
+    # Datenpunkt 122 liefert Zehntelvolt (145 = 14,5 V)
+    filters:
+      - multiply: 0.1
+
+  ### GY-521 / MPU6050: Neigungssensor
   - platform: mpu6050
     address: 0x68
     i2c_id: bus_a
@@ -171,27 +307,11 @@ sensor:
 ### ------------------------------------------------------------------
 binary_sensor:
   - platform: homeassistant
-    id: test_kb_verbunden
-    entity_id: ${kuehlbox_verbindung}
-    name: Test Kuehlbox Verbunden
-  - platform: homeassistant
     id: test_licht_1
     entity_id: light.fridolin_licht_1
     name: Test Licht 1 Status
 
 text_sensor:
-  - platform: homeassistant
-    id: test_kb_modus
-    entity_id: ${kuehlbox_climate}
-    name: Test Kuehlbox Thermostat
-  - platform: homeassistant
-    id: test_kb_modus_sel
-    entity_id: ${kuehlbox_modus}
-    name: Test Kuehlbox Modus
-  - platform: homeassistant
-    id: test_kb_batt_sel
-    entity_id: ${kuehlbox_batterie}
-    name: Test Kuehlbox Batterieschutz
   - platform: homeassistant
     id: test_heizung_modus
     entity_id: climate.fridolin_heizung

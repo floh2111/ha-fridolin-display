@@ -11,22 +11,26 @@ weiterarbeiten, ohne das Projekt neu zu erklären.
 
 Florian hat einen Wohnwagen namens **"Fridolin"**. Er baut eine
 Touch-Bedienoberfläche dafür auf Basis des **Waveshare
-ESP32-S3-Touch-LCD-7B** (1024×600, GT911-Touch mit 5 Punkten, ESP32-S3,
-8 MB PSRAM, 16 MB Flash, IO-Expander CH32V003 auf 0x24, mit Bluetooth), mit
-**ESPHome + LVGL** (ESPHome 2026.9). Frühere Versionen der Config waren für
-das 800×480-Board "ESP32-S3-Touch-LCD-7" geschrieben (siehe Git-Historie). Das Display hängt am
+ESP32-S3-Touch-LCD-7** (800×480, GT911-Touch, ESP32-S3, 8 MB PSRAM,
+16 MB Flash, IO-Expander CH422G), mit **ESPHome + LVGL** (ESPHome 2026.9).
+Zwischenzeitlich stand ein Umstieg auf das größere 7B-Board (1024×600) im
+Raum und wurde auch umgesetzt, Florian hat sich aber wieder für das
+kleinere 800×480-Board entschieden – die aktuelle `wohnwagen-display.yaml`
+ist wieder komplett auf 800×480 zurückgebaut (siehe Git-Historie für die
+7B-Variante, falls doch nochmal gebraucht). Das Display hängt am
 Wohnwagen, der Wohnwagen ist per VPN-Router mit Florians Heimnetz und
 seiner **Home Assistant**-Instanz verbunden.
 
 Nur der Neigungssensor (**GY-521 / MPU6050**) ist physisch direkt am
-ESP32 verbaut. Alle anderen Entitäten (Lichter, Heizung) sind echte,
-bereits existierende Home-Assistant-Entitäten – das Display steuert sie
-nur fern, simuliert nichts lokal.
+ESP32 verbaut. Die Kühlbox (Euhomy Car Fridge CF, Tuya-BLE) wird ebenfalls
+**direkt vom ESP** per Bluetooth angesprochen (nicht über Home Assistant).
+Alle anderen Entitäten (Lichter, Klimaanlage) sind echte, bereits
+existierende Home-Assistant-Entitäten – das Display steuert sie nur fern.
 
 ## Architektur (wichtig!)
 
 Damit sich alles, was auf dem Display angezeigt wird (welches Licht,
-welche Heizung, welcher Standort-Tracker), **über die Home-Assistant-UI
+welche Klimaanlage, welcher Standort-Tracker), **über die Home-Assistant-UI
 konfigurieren lässt statt hart in der ESPHome-YAML verdrahtet zu sein**,
 gibt es eine **selbstgeschriebene Home-Assistant-Custom-Integration**
 (`custom_components/fridolin_display/`). Sie funktioniert als
@@ -37,26 +41,33 @@ Proxy-/Spiegel-Schicht:
   `climate.fridolin_heizung`, `sensor.fridolin_wetter_*`,
   `sensor.fridolin_standort_status`, `button.fridolin_standort_uebernehmen`).
 - Über die **Options-Seite der Integration** in Home Assistant stellt
-  Florian ein, welche **echten** Licht-/Heizungs-Entities dahinterstecken.
+  Florian ein, welche **echten** Licht-/Klimaanlagen-Entities dahinterstecken.
   Das wirkt sofort, ohne den ESP32 neu zu flashen.
 - Ein eigener `DataUpdateCoordinator` holt Wetterdaten (aktuell +
   Stundenvorhersage + morgen) direkt von **OpenWeatherMap**, Standort
   kommt von einem `device_tracker` (Home-Assistant-App) oder wird über
   einen Button ("Standort übernehmen") manuell fixiert.
+- Die Integration liefert außerdem eine eigene **Lovelace-Karte**
+  (`custom_components/fridolin_display/www/fridolin-nivellierung-card.js`,
+  automatisch unter `/fridolin_display/...` servierbar über
+  `hass.http.async_register_static_paths` in `__init__.py`), die die
+  Nivellierung im selben Stil wie das Display zeigt, nur auf einem
+  Wohnwagen-Grundriss mit der Deichsel nach oben.
 
-Genaue Entity-ID-Tabelle und Funktionsweise stehen in
-`custom_components/fridolin_display/README.md`.
+Genaue Entity-ID-Tabelle, Klimaanlagen-Details und die Einrichtung der
+Lovelace-Karte stehen in `custom_components/fridolin_display/README.md`.
 
 ## Repo-Struktur
 
 ```
-esphome/wohnwagen-display.yaml       – volle Display-Konfiguration für das 7B (5 Wisch-Seiten + Einstellungs-Overlay)
-esphome/test-kuehlbox-direkt.yaml    – Testkonfig: Kühlbox direkt per Tuya-BLE (ohne Home Assistant)
+esphome/wohnwagen-display.yaml       – volle Display-Konfiguration (5 Wisch-Seiten + Einstellungs-Overlay), 800x480
 esphome/secrets.yaml.example         – Vorlage für WLAN/API-Key (echte secrets.yaml ist gitignored)
-esphome/test-esp32-ohne-display.yaml – schlanke Testkonfig ohne Display: GY-521 + HA-API-Check + Bluetooth-Proxy
+esphome/test-esp32-ohne-display.yaml – Testkonfig ohne Display: GY-521 + HA-API-Check + Kühlbox direkt per Tuya-BLE, alles in einer Firmware
 esphome/fridolin-vorschau.html       – interaktive Browser-Vorschau der UI (auch als Artifact veröffentlicht)
-custom_components/fridolin_display/  – die Home-Assistant-Integration (ConfigFlow, OptionsFlow, Coordinator, Entities)
-.github/workflows/validate.yml       – CI: `esphome config` + echter `esphome compile` aller drei Configs, hassfest für die Integration
+esphome/images/weather/*.svg         – 16 Wetter-Icons (von Florian geliefert), von ESPHome per resvg gerastert
+esphome/images/wasserwaage.svg       – Wohnwagen-Grundriss + Kreuzlibelle für die Nivellierungs-Seite
+custom_components/fridolin_display/  – die Home-Assistant-Integration (ConfigFlow, OptionsFlow, Coordinator, Entities, Lovelace-Karte)
+.github/workflows/validate.yml       – CI: `esphome config` + echter `esphome compile` beider Configs, hassfest für die Integration
 ```
 
 ## UI-Struktur (ESPHome/LVGL)
@@ -65,61 +76,97 @@ Fünf Seiten als Wisch-Karussell (LVGL `tileview`) plus eine Einstellungsseite, 
 Wisch-Karussell hängt, sondern nur über einen kleinen Zahnrad-Button auf
 der Übersichtsseite erreichbar ist (LVGL `top_layer:`):
 
-1. **Übersicht** – aktuelles Wetter, Stundenvorhersage (4 Slots), kurzer
-   Blick auf morgen. Zahnrad-Button oben führt zu "Einstellungen".
-2. **Licht** – An/Aus-Schalter für die konfigurierten Lichter.
-3. **Heizung** – An/Aus + Zieltemperatur für die climate-Entität.
-4. **Nivellierung** – zwei "Wasserwaagen" (links/rechts, vorne/hinten),
-   berechnet aus dem GY-521 per `atan2` auf die Beschleunigungswerte.
+1. **Übersicht** – vier Felder: oben links aktuelles Wetter + Stundenvorhersage
+   (4 Slots, mit echten Wetter-Icons), oben rechts Uhrzeit/Datum/Standort +
+   Morgen-Ausblick. Unten bewusst frei gelassen (für später). Zahnrad-Button
+   oben führt zu "Einstellungen".
+2. **Licht** – An/Aus-Schalter für bis zu 4 konfigurierte Lichter, unbelegte
+   Slots werden ausgeblendet.
+3. **Klimaanlage** (`tile_heizung`, Entity weiterhin `climate.fridolin_heizung`)
+   – großer Zieltemperatur-Wert in einem zweifarbigen Ring (roter Teil unterhalb
+   der aktuellen Ist-Temperatur, blauer Teil oberhalb), −/+, Modus-Knöpfe
+   Aus/Heizen/Kühlen, Programm-Knöpfe Eco/Normal/Max (fester `preset_mode`,
+   1:1 an die Zielentität durchgereicht). Vom Aufbau wie die Kühlbox-Seite.
+4. **Nivellierung** – Wohnwagen-Grundriss (Draufsicht, Deichsel rechts) mit
+   einer echten Kreuzlibelle: waagerechte ovale Libelle in Fahrtrichtung
+   (Vorne/Hinten), senkrechte im rechten Winkel dazu (Links/Rechts), je mit
+   zwei Mittelstrichen statt eines Rings. Werte aus dem GY-521 per `atan2`,
+   "Nullen"-Knopf speichert den Nullpunkt lokal im Flash des ESP. Braucht
+   keine Internet-/HA-Verbindung, läuft komplett lokal auf dem ESP.
 5. **Kühlbox** – runde Zieltemperatur-Anzeige mit −/+, Ein/Aus, Modus MAX/ECO,
    Batterieschutz L/M/H. Die Kühlbox (Euhomy Car Fridge CF, Tuya-BLE, Kategorie
    `xbx`) wird **direkt vom ESP** per Bluetooth gelesen/gesteuert, ohne Home
    Assistant, über die externe Komponente `floh2111/esphome-tuya-ble-fridolin`
-   (Fork von Noneawe/BillyNate, auf einen Commit gepinnt). Nur eine BLE-Verbindung
-   zur Kühlbox möglich: Tuya-App und HA-Integration "Tuya BLE" müssen aus sein.
+   (Fork von Noneawe/BillyNate, auf einen Commit gepinnt, mit Schreibzugriff
+   erweitert). Nur eine BLE-Verbindung zur Kühlbox möglich: Tuya-App und
+   HA-Integration "Tuya BLE" müssen aus sein.
 6. **Einstellungen (Overlay, nicht wischbar)** – Button "Standort
    übernehmen" (nimmt die Koordinaten vom `device_tracker` und setzt sie
    als festen Wetter-Standort), Anzeige des letzten Übernahme-Zeitpunkts,
    "Zurück"-Button.
 
-## Aktueller Stand (Stand: 2026-09-26)
+## Aktueller Stand (Stand: 2026-09-27)
 
-- ✅ ESPHome-Konfiguration fertig geschrieben (`wohnwagen-display.yaml`).
+- ✅ ESPHome-Konfiguration fertig geschrieben (`wohnwagen-display.yaml`),
+  aktuell wieder auf 800×480 (siehe Projektziel oben).
 - ✅ Home-Assistant-Integration fertig geschrieben, inkl. ConfigFlow,
-  OptionsFlow, Coordinator, Light/Climate/Sensor/Button-Entities.
+  OptionsFlow, Coordinator, Light/Climate/Sensor/Button-Entities, eigene
+  Lovelace-Karte für die Nivellierung.
 - ✅ GitHub-Repo `floh2111/ha-fridolin-display` eingerichtet, Push-Zugriff
   funktioniert.
 - ✅ GitHub Action (`.github/workflows/validate.yml`) validiert bei jedem
-  Push/PR: `esphome config` für beide YAML-Dateien, Python-Syntax +
-  JSON-Validität der Integration, sowie `hassfest` (offizielle
-  HA-Validierung). **Alle Checks sind aktuell grün.**
+  Push/PR: `esphome config` + echter `esphome compile` für beide
+  YAML-Dateien, Python-Syntax + JSON-Validität der Integration, sowie
+  `hassfest` (offizielle HA-Validierung). **Alle Checks sind aktuell grün.**
 - ✅ Integration erfolgreich über **HACS** (als custom repository) bei
-  Florian installiert, mit Release-Tag `v0.1.0`.
-- ✅ Test-ESPHome-Config (`test-esp32-ohne-display.yaml`) erstellt: ein
-  "nackter" ESP32 + GY-521, ohne Display/LVGL, um Neigungssensor und
-  HA-API-Verbindung unabhängig vom teuren Display-Board zu testen.
-- ⏳ **Nächster Schritt bei Florian:** Test-Config über das
-  ESPHome-Builder-Add-on in Home Assistant flashen (Florian macht das
-  Flashen bewusst direkt über das Add-on, nicht über die CLI hier).
+  Florian installiert, aktuell Version 0.1.5 (Klimaanlage mit Heizen/
+  Kühlen/Presets + Lovelace-Karte), Release-Tags bis `v0.1.3` angelegt –
+  **für 0.1.4/0.1.5 fehlt noch ein Git-Tag/Release**, siehe "Offene
+  Aufgaben" unten.
+- ✅ Test-Config (`test-esp32-ohne-display.yaml`) fasst inzwischen ALLES
+  Nicht-Display-Testbare in einer Firmware zusammen: GY-521-Neigung, die
+  Fridolin-Display-Integration (Licht/Klimaanlage/Wetter, rein lesend zur
+  Kontrolle) UND die Kühlbox direkt per Bluetooth (Tuya BLE). Damit lässt
+  sich alles zusammen mit einer echten Home-Assistant-Instanz testen. Die
+  frühere separate `test-kuehlbox-direkt.yaml` ist entfallen (Inhalt hier
+  eingeflossen). **Kein `bluetooth_proxy` mehr in dieser Datei** – der
+  würde sich mit der eigenen aktiven BLE-Verbindung zur Kühlbox um den
+  einzigen Bluetooth-Funk des ESP32 streiten.
+- ✅ Kühlbox direkt per Bluetooth bei Florian erfolgreich getestet (Werte
+  lesen, Steuerung) – auf dem *alten* `test-kuehlbox-direkt.yaml`, das
+  jetzt in `test-esp32-ohne-display.yaml` aufgegangen ist. Nach dem Merge
+  nicht erneut auf echter Hardware bestätigt, nur lokal kompiliert.
+- ⏳ Kurzer Ausflug zum Waveshare **ESP32-S3-Touch-LCD-7B (1024×600)**
+  (siehe Git-Historie, u.a. Commit "Display: Umstieg auf Waveshare
+  ESP32-S3-Touch-LCD-7B") – wieder verworfen, Florian bleibt beim
+  800×480-Board. Alle Seiten (Übersicht, Nivellierung) sind wieder auf
+  800×480 zurückgebaut und lokal kompiliert, aber **noch nicht auf
+  echter 800×480-Hardware geflasht/gesehen**.
+- ⏳ **Klimaanlagen-Seite (Heizen/Kühlen/Presets) und der zweifarbige
+  Ring sind neu und ungetestet** – weder auf echter Hardware noch gegen
+  eine echte Klimaanlagen-Entity in Home Assistant. Die drei Presets
+  (`eco`/`normal`/`max`) werden 1:1 an die Zielentität durchgereicht;
+  ob die echte Klimaanlage genau diese drei Werte kennt, ist offen.
+- ⏳ **Lovelace-Karte (Nivellierung) ist neu und ungetestet** – weder in
+  einem echten Dashboard gerendert noch die vermuteten Entity-IDs
+  (`sensor.fridolin_display_neigung_links_rechts` usw.) gegen die echte
+  Home Assistant-Instanz geprüft. Die Karte ist so gebaut, dass falsche
+  IDs einfach nichts anzeigen (kein Absturz), per Karten-Konfiguration
+  überschreibbar.
 - ❌ Noch nicht gegen eine echte Home-Assistant-Instanz mit echten
-  Lichtern/Heizung/Wetterdaten *im Livebetrieb* durchgetestet – nur
-  syntaktisch validiert (py_compile, JSON, hassfest, `esphome config`).
-  Diese Session hier hatte keinen Zugriff auf eine echte HA-Instanz.
-- ✅ Kühlbox direkt per Bluetooth auf dem Test-ESP32 (`test-kuehlbox-direkt.yaml`)
-  bei Florian erfolgreich getestet (Werte lesen, Steuerung).
-- ⏳ Umstieg auf das Waveshare **ESP32-S3-Touch-LCD-7B (1024×600)**:
-  `wohnwagen-display.yaml` ist dafür umgebaut (Pins/Timing aus der Community-Config
-  agillis/esphome-modular-lvgl-buttons, IO-Expander `waveshare_io_ch32v003`),
-  kompiliert mit ESPHome 2026.9, aber noch nicht auf dem echten Board geflasht.
-  Die Oberfläche ist noch auf 800×480 gelayoutet, Größen ggf. an 1024×600 anpassen.
+  Lichtern/Klimaanlage/Wetterdaten *im Livebetrieb* durchgetestet (nur
+  Kühlbox + Neigungssensor bestätigt) – der Rest nur syntaktisch/per
+  Compile validiert.
 - ❌ Umlaute (ä, ö, ü, Ü) fehlen vermutlich in den eingebauten LVGL-Schriften;
-  neue Seiten nutzen deshalb ASCII-Schreibweise. Bei Kästchen im Display eine
-  eigene `font:` mit Umlauten einbinden.
+  neuere Seiten nutzen deshalb ASCII-Schreibweise ("Kuehlbox" statt
+  "Kühlbox" o.ä.). Bei Kästchen im Display eine eigene `font:` mit
+  Umlauten einbinden.
 
 ## Bekannte Einschränkungen
 
-- Heizungs-Entity unterstützt nur "Heizen an/aus" + Zieltemperatur, keine
-  weiteren HVAC-Modi (Kühlen, Auto, …).
+- Klimaanlagen-Entity (`climate.fridolin_heizung`) unterstützt Heizen,
+  Kühlen, Aus sowie einen festen Eco/Normal/Max-`preset_mode` – kein
+  Auto-Modus, keine Lüfterstufen. Presets werden ungeprüft durchgereicht.
 - Die Integration ist für **genau ein Display / einen Wohnwagen**
   ausgelegt (`async_set_unique_id(DOMAIN)` erzwingt eine einzige Instanz).
 - Bis zu 4 Licht-Slots, nicht mehr.
@@ -135,29 +182,47 @@ der Übersichtsseite erreichbar ist (LVGL `top_layer:`):
   eigene Fehlerbehandlung/Annotationen laufen.
 - **HACS braucht einen echten Git-Tag/Release** (nicht nur eine
   `version` in der `manifest.json`), um eine Version installierbar zu
-  machen. Aktuell: Tag `v0.1.0` auf Commit mit `manifest.json version
-  0.1.0`. Bei künftigen Änderungen: `version` in `manifest.json` hochzählen,
-  committen, dann einen passenden Git-Tag + GitHub-Release anlegen.
+  machen. Bei künftigen Änderungen: `version` in `manifest.json`
+  hochzählen, committen, dann einen passenden Git-Tag + GitHub-Release
+  anlegen (per `gh release create vX.Y.Z`).
 - `manifest.json`'s `documentation`-Feld darf bei Custom-Integrationen
   **nicht** auf `home-assistant.io` zeigen (hassfest lehnt das ab) –
   muss auf die eigene Repo-URL zeigen.
+- **ESPHome-Board-Wechsel** (falls nochmal nötig): Das 800×480-Board
+  braucht `ch422g:` als IO-Expander, `display: platform: mipi_rgb, model:
+  ESP32-S3-TOUCH-LCD-7-800X480`, Backlight als einfacher `switch:
+  platform: gpio`. Das 7B-Board (1024×600) braucht stattdessen
+  `waveshare_io_ch32v003:`, `model: RPI` mit expliziten Timing-Werten
+  (siehe Git-Historie, Commit "Display: Umstieg auf Waveshare
+  ESP32-S3-Touch-LCD-7B"), und die Backlight ist dort eine dimmbare
+  `light:`-Entity statt eines einfachen Schalters. Beide Boards nutzen
+  denselben `esp32:`-Kern (ESP32-S3, esp-idf), aber mit leicht
+  unterschiedlichen `sdkconfig_options`/`framework.advanced`-Einträgen –
+  am einfachsten den kompletten Block aus der Git-Historie kopieren
+  statt einzelne Werte zu ändern.
 - Die Datei `home-assistant-standort-wetter.yaml` (ältere REST/Jinja-
   Lösung für Standort+Wetter) ist **veraltet und obsolet**, wurde durch
   die Custom-Integration komplett ersetzt und liegt nicht im Repo.
 
 ## Offene Aufgaben / mögliche nächste Schritte
 
-1. Test-Config (`test-esp32-ohne-display.yaml`) bei Florian über das
-   ESPHome-Add-on flashen und die Werte in Home Assistant prüfen
-   (Neigungssensor-Plausibilität, Integration liefert echte Licht-/
-   Heizungs-/Wetterwerte).
-2. Sobald das läuft: reales Waveshare-Display besorgen, verkabeln,
-   `wohnwagen-display.yaml` flashen, die komplette UI live testen.
-3. Ggf. Kleinigkeiten aus dem Livetest nachjustieren (Pinbelegung,
-   Timing, Layout).
-4. Bei jeder inhaltlichen Änderung an der Integration: Version in
-   `manifest.json` hochzählen + neuen Git-Tag/Release anlegen, damit
-   HACS das Update erkennt.
+1. Test-Config (`test-esp32-ohne-display.yaml`) bei Florian erneut über
+   das ESPHome-Add-on flashen (nach dem Merge mit der Kühlbox) und
+   prüfen, ob weiterhin alles funktioniert – insbesondere, dass
+   `bluetooth_proxy` fehlt jetzt niemanden fehlt, den Florian eigentlich
+   noch wollte.
+2. Home-Assistant-Integration Version 0.1.5: neuen Git-Tag/Release
+   anlegen, damit HACS das Update (Klimaanlage + Lovelace-Karte) zieht.
+3. Klimaanlagen-Seite gegen eine echte `climate`-Entity mit Heizen/Kühlen
+   und Eco/Normal/Max-Presets testen; ggf. Preset-Namen anpassen, falls
+   die echte Klimaanlage andere Bezeichnungen erwartet.
+4. Lovelace-Karte einbinden (siehe README) und prüfen, ob die
+   angenommenen Entity-IDs stimmen; bei Abweichung in der Karten-
+   Konfiguration korrigieren.
+5. Sobald das alles läuft: reales 800×480-Waveshare-Display besorgen,
+   verkabeln, `wohnwagen-display.yaml` flashen, komplette UI live testen.
+6. Ggf. Kleinigkeiten aus dem Livetest nachjustieren (Pinbelegung,
+   Timing, Layout, Umlaute/eigene Schriftart).
 
 ## Ton/Stil-Hinweis
 
