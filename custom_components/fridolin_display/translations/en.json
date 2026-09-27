@@ -23,7 +23,7 @@
     "step": {
       "init": {
         "title": "Seitenplan",
-        "description": "Welche Seiten soll das Display in welcher Reihenfolge zeigen? Als JSON-Liste, z.B. [{\"type\": \"overview\", \"title\": \"Übersicht\"}, {\"type\": \"light\", \"title\": \"Licht\"}, ...]. Gültige Typen: overview, light, climate, leveling, fridge, sensors. Achtung: eine geänderte Seiten-Auswahl/-Reihenfolge wirkt erst, nachdem du das Display mit der passend neu generierten YAML neu geflasht hast (siehe esphome/generate_display_yaml.py) - die Entity-Zuordnung im nächsten Schritt wirkt dagegen sofort.",
+        "description": "Welche Seiten soll das Display in welcher Reihenfolge zeigen? Als JSON-Liste von Objekten mit den Feldern 'type' und 'title', z.B. zuerst Typ overview mit Titel Übersicht, danach Typ light mit Titel Licht, usw. Gültige Typen: overview, light, climate, leveling, fridge, sensors. Achtung: eine geänderte Seiten-Auswahl/-Reihenfolge wirkt erst, nachdem du das Display mit der passend neu generierten YAML neu geflasht hast (siehe esphome/generate_display_yaml.py) - die Entity-Zuordnung im nächsten Schritt wirkt dagegen sofort.",
         "data": {
           "page_plan_json": "Seitenplan (JSON)"
         }
