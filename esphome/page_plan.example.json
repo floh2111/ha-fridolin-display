@@ -1,0 +1,7 @@
+[
+  { "type": "overview", "title": "Übersicht" },
+  { "type": "light", "title": "Licht" },
+  { "type": "climate", "title": "Klimaanlage" },
+  { "type": "leveling", "title": "Nivellierung" },
+  { "type": "fridge", "title": "Kuehlbox" }
+]

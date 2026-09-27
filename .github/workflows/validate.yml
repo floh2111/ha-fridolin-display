@@ -23,6 +23,15 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Seitenplan-Generator-Selbsttest
+        # Regressionsschutz für esphome/generate_display_yaml.py: das
+        # Skript zerlegt wohnwagen-display.yaml selbst in Seiten-Bausteine
+        # (siehe Skript-Docstring) - --check baut daraus wieder exakt die
+        # Originaldatei und vergleicht Byte für Byte. Schlägt fehl, wenn
+        # jemand die Tileview-Struktur so ändert, dass der Generator sie
+        # nicht mehr sicher erkennt.
+        run: python3 esphome/generate_display_yaml.py --check
+
       - name: ESPHome installieren
         run: pip install esphome
 

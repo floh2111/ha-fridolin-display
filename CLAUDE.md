@@ -105,28 +105,62 @@ bestehenden Seite nicht (wie bisher).
   wie vorher (gleiche Entity-IDs), da `DEFAULT_PAGE_PLAN` nur
   Legacy-Instanzen enthält.
 
-**Noch offen (nächster Schritt)**:
-1. **YAML-Generator** (`esphome/generate_display_yaml.py`, geplant,
-   noch nicht angefangen): nimmt den Seitenplan (aus der Integration
-   exportiert oder als lokale JSON-Datei) und rendert daraus die
-   komplette `wohnwagen-display.yaml`. Empfohlener erster Meilenstein:
-   Generator so bauen, dass er mit `DEFAULT_PAGE_PLAN` als Eingabe
-   funktional dasselbe Display erzeugt wie die aktuelle, handgeschriebene
-   YAML (Regressionstest, mit echtem `esphome compile` verifizieren),
-   bevor neue Fähigkeiten (Mehrfach-Instanzen, neue Reihenfolge)
-   draufgesetzt werden. Technischer Ansatz: die 5 bestehenden
-   `tile_*`-Blöcke aus `wohnwagen-display.yaml` als parametrisierte
-   Jinja2-Makros extrahieren (Titel, Entity-IDs als Variablen), Rest der
-   Datei (Hardware, WLAN, Wetter-System, Einstellungen-Overlay,
-   Kühlbox-BLE, Nivellierungs-Sensorik) bleibt statische Basis-Vorlage.
-2. Neuer Seiten-Typ `sensors` (generische Sensor-Anzeige): Datenmodell
+**YAML-Generator** (`esphome/generate_display_yaml.py`) – Milestone 1
+fertig und verifiziert:
+- Funktionsweise: `wohnwagen-display.yaml` selbst dient als
+  "Block-Bibliothek". Die 5 `tile_*`-Blöcke in der `lvgl: -> pages: ->
+  tiles:`-Liste werden anhand der `- id: tile_xxx`-Marker (plus ihrer
+  `###`-Kommentarzeilen) per Regex erkannt und als Rohtext extrahiert;
+  alles andere in der Datei (Hardware, WLAN, Wetter-System,
+  Einstellungen-Overlay, Kühlbox-BLE, Nivellierungs-Sensorik) bleibt
+  unverändert. `generate(plan)` setzt pro Block `column:` (Position im
+  Wisch-Karussell) und ersetzt die erste `text: "..."`-Zeile (Titel) -
+  Übersicht bleibt unangetastet (hat keine einzelne Titel-Zeile).
+- **Verifiziert**: `--check` baut aus der aktuellen Datei selbst einen
+  Plan und vergleicht die Neuerzeugung Byte für Byte mit dem Original
+  (läuft jetzt auch in CI, `esphome-config`-Job) - besteht.
+  Reihenfolge-Ändern + Umbenennen (alle 5 Seiten enthalten, nur
+  umsortiert/umbenannt) wurde mit echtem `esphome compile` getestet und
+  kompiliert erfolgreich, RAM/Flash-Verbrauch identisch zum Original.
+- **Bekannte Grenze (mit echtem Compile-Fehler nachgewiesen): Seiten
+  komplett WEGLASSEN funktioniert noch nicht.** Jede Seite hat neben
+  ihrem `tile_*`-Block noch weitere, im Rest der Datei VERSTREUTE
+  Definitionen (z.B. Kühlbox: `select:`/`number:`/`switch:`/`sensor:`-
+  Einträge für `kb_*` plus das `sync_kuehlbox`-Script - über mehrere
+  hundert Zeilen verteilt, nicht neben dem `tile_kuehlbox`-Block). Lässt
+  man eine Seite im Plan weg, bleiben deren Scripts/Sensoren trotzdem in
+  der Datei und referenzieren dann nicht mehr existierende Widget-IDs
+  (`Couldn't find ID 'arc_kb'` usw.) - Compile-Fehler. Um Seiten wirklich
+  entfernen zu können, müssten diese verstreuten Fragmente pro Seiten-Typ
+  zusätzlich erkannt und mit extrahiert werden (deutlich mehr
+  Parser-Arbeit als die bisherige, zusammenhängende `tile_*`-Block-
+  Extraktion).
+- Mehrfach-Instanzen (2. Klimaanlage) im Generator: **noch nicht
+  unterstützt** - würde Widget-ID-Kollisionen geben, wenn derselbe Block
+  zweimal eingefügt wird (alle `arc_klima_*`/`btn_klima_*`/etc.-IDs
+  müssten pro Instanz suffixiert werden). Nur die Python/HA-Seite
+  (Entities) unterstützt Mehrfach-Instanzen bereits, siehe oben.
+- `esphome/page_plan.example.json` reproduziert nachweislich exakt das
+  aktuelle Display (Standardtitel, Original-Reihenfolge).
+- Nutzung aktuell manuell: Seitenplan (aus dem Options-Flow-JSON-Feld
+  oder von Hand) in eine `.json`-Datei speichern, dann
+  `python3 esphome/generate_display_yaml.py --plan plan.json --out
+  esphome/wohnwagen-display.yaml` und neu flashen. Kein Automatismus
+  (Download-Button in der Integration o.ä.) bisher vorhanden.
+
+**Noch offen**:
+1. Seiten wirklich weglassen können (siehe "Bekannte Grenze" oben) -
+   verstreute Fragmente pro Seiten-Typ mit extrahieren.
+2. Mehrfach-Instanzen (2. Klimaanlage etc.) im Generator selbst -
+   Widget-IDs pro Instanz suffixieren.
+3. Neuer Seiten-Typ `sensors` (generische Sensor-Anzeige): Datenmodell
    ist vorbereitet (`PAGE_TYPE_SENSORS`, `entities`-Liste im Plan-Eintrag),
    aber weder eine HA-Entity-Erzeugung noch ein LVGL-Seitentemplate
-   existieren dafür bisher.
-3. Optionale spätere Verbesserung: der Seitenplan-Editor als
-   Multi-Step-Wizard statt JSON-Textfeld (freundlicher fürs UI, aber
-   deutlich mehr Code).
-4. **Explizit nicht gewünscht**: Kartenansicht mit dauerhaft
+   noch ein Block in der Generator-Bibliothek existieren dafür bisher.
+4. Komfort: Export/Import-Knopf in der Integration statt manuellem
+   JSON-Kopieren; Seitenplan-Editor als Multi-Step-Wizard statt
+   JSON-Textfeld.
+5. **Explizit nicht gewünscht**: Kartenansicht mit dauerhaft
    gespeicherten Standort-Pins (Florian hat das abgelehnt) und eine
    separate "Heizung"-Seite (ist inhaltlich dasselbe wie eine zweite
    Klimaanlagen-Seite, kein eigener Typ nötig).

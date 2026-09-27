@@ -38,15 +38,21 @@ parametrisierte Entity-IDs (`climate.fridolin_climate_2`,
 Kompatibilitätsgründen die alten IDs (`climate.fridolin_heizung`,
 `light.fridolin_licht_1`).
 
-**Wichtig:** Der Seitenplan wirkt aktuell **nur auf die HA-Seite**
-(welche Entities angelegt werden) – die ESP32-Firmware selbst zeigt
-weiterhin die fest verdrahteten 5 Seiten aus `wohnwagen-display.yaml`
-in fester Reihenfolge. Ein Generator, der aus dem Seitenplan die
-passende `wohnwagen-display.yaml` erzeugt (sodass Reihenfolge/Auswahl
-der Seiten nach einem Reflash tatsächlich dem Plan folgen), ist der
-nächste Ausbauschritt und noch nicht fertig. Solange du den Seitenplan
-nicht änderst (Standard entspricht genau dem bisherigen Display),
-ändert sich für dich nichts.
+**Auf der Display-Firmware anwenden**: `esphome/generate_display_yaml.py`
+baut aus einem Seitenplan (JSON, z.B. den Text aus Schritt 1 oben in
+eine Datei kopiert) eine passende `wohnwagen-display.yaml`:
+
+```bash
+python3 esphome/generate_display_yaml.py --plan mein_plan.json --out esphome/wohnwagen-display.yaml
+```
+
+Danach wie gewohnt flashen. **Aktueller Stand**: Umsortieren und
+Titel ändern funktioniert und ist mit echtem `esphome compile`
+verifiziert – **Seiten komplett weglassen dagegen noch nicht** (führt zu
+einem Compile-Fehler, siehe `CLAUDE.md`), ebenso Mehrfach-Instanzen
+(2. Klimaanlage) in der erzeugten YAML. Solange du den Seitenplan nicht
+änderst (Standard entspricht genau dem bisherigen Display), ändert sich
+für dich ohnehin nichts.
 
 Die Entity-Zuordnung (welches echte Licht/welche echte Klimaanlage
 hinter einer Seite steckt) ist im zweiten Options-Schritt weiterhin
