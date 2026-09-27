@@ -1,8 +1,8 @@
 {
   "domain": "fridolin_display",
   "name": "Fridolin Display",
-  "codeowners": ["@floh2111"],
   "after_dependencies": ["http"],
+  "codeowners": ["@floh2111"],
   "config_flow": true,
   "documentation": "https://github.com/floh2111/ha-fridolin-display",
   "integration_type": "hub",
