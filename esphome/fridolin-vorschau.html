@@ -13,9 +13,11 @@
     --dev-panel: #17212c;
     --dev-btn: #2b3a55;
     --dev-btn-active: #f53b3b;
+    --dev-btn-good: #3fa34d;
     --dev-text: #f5f7fa;
     --dev-muted: #8a97ac;
     --dev-bezel: #05070a;
+    --dev-track: #263243;
   }
 
   @media (prefers-color-scheme: dark) {
@@ -52,7 +54,7 @@
   }
 
   .intro {
-    max-width: 640px;
+    max-width: 680px;
     text-align: center;
   }
   .intro h1 {
@@ -79,10 +81,10 @@
     margin-bottom: 10px;
   }
 
-  /* ---- Device frame: fixed 800x480 aspect, like the real 7" panel ---- */
+  /* ---- Device frame: fixed 1024x600 aspect, wie das echte 7"-Panel ---- */
   .device-wrap {
     width: 100%;
-    max-width: 860px;
+    max-width: 980px;
   }
   .bezel {
     background: var(--dev-bezel);
@@ -93,7 +95,7 @@
   .screen {
     position: relative;
     width: 100%;
-    aspect-ratio: 800 / 480;
+    aspect-ratio: 1024 / 600;
     background: var(--dev-bg);
     border-radius: 8px;
     overflow: hidden;
@@ -119,21 +121,21 @@
     position: absolute;
     inset: 0;
     display: flex;
-    width: 400%;
+    width: 500%;
     height: 100%;
     transition: transform 320ms cubic-bezier(.22,.8,.28,1);
     will-change: transform;
   }
   .page {
-    width: 25%;
+    width: 20%;
     height: 100%;
     flex-shrink: 0;
     position: relative;
-    padding: 22px 30px 0;
+    padding: 20px 30px 0;
   }
 
   .page-title {
-    font-size: 15px;
+    font-size: 16px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--dev-muted);
@@ -141,58 +143,67 @@
     margin: 0;
   }
 
-  /* --- Page 1: Übersicht --- */
+  .wicon { display: inline-block; line-height: 0; }
+  .wicon svg { display: block; width: 100%; height: 100%; }
+
+  /* --- Seite 1: Übersicht --- */
   .fridolin-name {
     text-align: center;
-    font-size: 34px;
+    font-size: 32px;
     font-weight: 700;
-    margin: 2px 0 0;
+    margin: 0;
     letter-spacing: 0.5px;
   }
   .weather-row {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 18px;
-    margin-top: 18px;
+    gap: 16px;
+    margin-top: 14px;
   }
-  .weather-icon { font-size: 46px; line-height: 1; }
+  .weather-icon.wicon { width: 58px; height: 58px; }
   .weather-temp {
     font-family: "IBM Plex Mono", monospace;
-    font-size: 42px;
+    font-size: 44px;
     font-variant-numeric: tabular-nums;
+    line-height: 1;
   }
-  .weather-cond { color: var(--dev-muted); font-size: 15px; margin-top: 2px; }
+  .weather-cond { color: var(--dev-muted); font-size: 14px; margin-top: 3px; }
   .forecast-row {
     display: flex;
     justify-content: space-between;
-    margin-top: 20px;
-    padding: 0 6px;
+    margin-top: 22px;
+    padding: 0 20px;
   }
   .forecast-item {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
+    gap: 5px;
     font-size: 12px;
     color: var(--dev-muted);
   }
-  .forecast-item .ic { font-size: 20px; }
-  .forecast-item .val { color: var(--dev-text); font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; }
+  .forecast-item .wicon { width: 24px; height: 24px; }
+  .forecast-item .val { color: var(--dev-text); font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; font-size: 15px; }
   .tomorrow {
-    text-align: center;
-    margin-top: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 20px;
     font-size: 13px;
     color: var(--dev-muted);
   }
+  .tomorrow .wicon { width: 20px; height: 20px; }
   .tomorrow b { color: var(--dev-text); font-weight: 600; }
 
-  /* --- Page 2: Licht --- */
+  /* --- Seite 2: Licht --- */
   .light-grid {
     display: flex;
-    gap: 20px;
+    gap: 16px;
     justify-content: center;
-    margin-top: 34px;
+    margin-top: 40px;
+    flex-wrap: wrap;
   }
   .light-card {
     width: 190px;
@@ -207,46 +218,49 @@
     gap: 10px;
     cursor: pointer;
     transition: background 150ms ease, transform 80ms ease;
+    color: var(--dev-text);
+    font: inherit;
   }
   .light-card:active { transform: scale(0.97); }
   .light-card.on {
     background: linear-gradient(180deg, #f6c453, #e8a93a);
     color: #2a1c05;
   }
-  .light-card .bulb { font-size: 34px; }
+  .light-card .bulb { font-size: 32px; }
   .light-card .label { font-size: 15px; font-weight: 600; }
 
-  /* --- Page 3: Heizung --- */
+  /* --- Seite 3: Heizung --- */
   .target-temp {
     text-align: center;
     font-family: "IBM Plex Mono", monospace;
-    font-size: 44px;
+    font-size: 46px;
     font-variant-numeric: tabular-nums;
-    margin-top: 26px;
+    margin-top: 22px;
   }
   .target-label { text-align: center; color: var(--dev-muted); font-size: 12px; margin-top: -4px; letter-spacing: 0.08em; text-transform: uppercase; }
   .temp-controls {
     display: flex;
     gap: 14px;
     justify-content: center;
-    margin-top: 16px;
+    margin-top: 18px;
   }
   .temp-btn {
-    width: 54px;
-    height: 48px;
+    width: 56px;
+    height: 50px;
     border-radius: 10px;
     background: var(--dev-btn);
     color: var(--dev-text);
     font-size: 22px;
     border: none;
     cursor: pointer;
+    font: inherit;
   }
   .temp-btn:active { transform: scale(0.94); }
   .heat-toggle {
     display: block;
     margin: 22px auto 0;
-    width: 180px;
-    height: 52px;
+    width: 200px;
+    height: 54px;
     border-radius: 12px;
     background: var(--dev-btn);
     color: var(--dev-text);
@@ -255,17 +269,18 @@
     font-weight: 600;
     letter-spacing: 0.03em;
     cursor: pointer;
+    font-family: inherit;
   }
   .heat-toggle.on { background: var(--dev-btn-active); }
 
-  /* --- Page 4: Nivellierung --- */
+  /* --- Seite 4: Nivellierung --- */
   .level-row {
     display: flex;
     justify-content: space-around;
-    margin-top: 20px;
+    margin-top: 22px;
     gap: 10px;
   }
-  .level-col { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 46%; }
+  .level-col { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 44%; }
   .level-label { font-size: 12px; color: var(--dev-muted); letter-spacing: 0.06em; text-transform: uppercase; }
   .level-track {
     position: relative;
@@ -290,20 +305,101 @@
     top: 3px;
     width: 28px; height: 28px;
     border-radius: 50%;
-    background: #4bdc7f;
+    background: var(--dev-btn-good);
     left: 50%;
     translate: -50% 0;
     transition: background 120ms ease;
     box-shadow: 0 2px 6px rgba(0,0,0,0.4);
   }
   .bubble.warn { background: #f6c453; }
-  .bubble.bad { background: #f53b3b; }
+  .bubble.bad { background: var(--dev-btn-active); }
   .level-value {
     font-family: "IBM Plex Mono", monospace;
     font-size: 18px;
     font-variant-numeric: tabular-nums;
   }
-  .level-hint { font-size: 11px; color: var(--dev-muted); text-align: center; margin-top: 10px; }
+  .level-hint { font-size: 11px; color: var(--dev-muted); text-align: center; margin-top: 14px; max-width: 380px; margin-inline: auto; }
+  .level-zero {
+    display: block;
+    margin: 16px auto 0;
+    width: 180px;
+    height: 44px;
+    border-radius: 10px;
+    background: var(--dev-btn);
+    color: var(--dev-text);
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .level-zero:active { transform: scale(0.96); }
+
+  /* --- Seite 5: Kühlbox --- */
+  .fridge-wrap { display: flex; flex-direction: column; align-items: center; margin-top: 4px; }
+  .fridge-conn {
+    position: absolute;
+    top: 20px;
+    left: 30px;
+    font-size: 11px;
+    color: var(--dev-muted);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .fridge-conn::before {
+    content: "";
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--dev-btn-good);
+  }
+  .fridge-dial { position: relative; width: 176px; height: 176px; margin-top: 2px; }
+  .fridge-dial svg { width: 100%; height: 100%; }
+  .fridge-dial-mid {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+  }
+  .fridge-status { font-size: 12px; color: var(--dev-muted); letter-spacing: 0.04em; text-transform: uppercase; }
+  .fridge-target { font-family: "IBM Plex Mono", monospace; font-size: 36px; font-variant-numeric: tabular-nums; line-height: 1; }
+  .fridge-actual { font-size: 12px; color: var(--dev-muted); }
+  .fridge-steps { display: flex; gap: 14px; margin-top: 10px; }
+  .fridge-row { display: flex; gap: 40px; margin-top: 14px; }
+  .fridge-group { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .fridge-group .glabel { font-size: 11px; color: var(--dev-muted); letter-spacing: 0.06em; text-transform: uppercase; }
+  .pill-row { display: flex; gap: 8px; }
+  .pill {
+    min-width: 46px;
+    height: 40px;
+    padding: 0 12px;
+    border-radius: 10px;
+    background: var(--dev-btn);
+    color: var(--dev-text);
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .pill.on { background: var(--dev-btn-good); }
+  .fridge-power {
+    margin-top: 14px;
+    width: 180px;
+    height: 48px;
+    border-radius: 12px;
+    background: var(--dev-btn);
+    color: var(--dev-text);
+    border: none;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .fridge-power.on { background: var(--dev-btn-active); }
 
   /* nav dots */
   .dots {
@@ -344,7 +440,7 @@
   }
 
   .caption {
-    max-width: 640px;
+    max-width: 680px;
     text-align: center;
     color: var(--muted);
     font-size: 12.5px;
@@ -399,6 +495,7 @@
     font-size: 15px;
     font-weight: 600;
     cursor: pointer;
+    font-family: inherit;
   }
   .settings-btn:active { transform: scale(0.97); }
   .settings-status {
@@ -417,13 +514,48 @@
     border: none;
     font-size: 14px;
     cursor: pointer;
+    font-family: inherit;
   }
+
+  /* --- Regieraum: Wetterlage simulieren (kein Teil des echten Geräts) --- */
+  .regie {
+    width: 100%;
+    max-width: 980px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .regie-label {
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .regie select {
+    flex: 1;
+    min-width: 200px;
+    padding: 9px 12px;
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--ink);
+    font: inherit;
+    font-size: 14px;
+  }
+
+  .caption strong { color: var(--ink); font-weight: 600; }
 </style>
 
 <div class="intro">
   <span class="tag">Vorschau, kein Gerät</span>
   <h1>Fridolin — Touch-Oberfläche</h1>
-  <p>Näherung der vier ESPHome/LVGL-Seiten im 800×480-Format eures Waveshare-Displays. Wischen, ziehen oder die Pfeile nutzen; Werte sind zum Ausprobieren simuliert.</p>
+  <p>Näherung der fünf ESPHome/LVGL-Seiten im 1024×600-Format des Waveshare ESP32-S3-Touch-LCD-7B. Wischen, ziehen oder die Pfeile nutzen; die Wetter-Icons sind die echten SVGs, die auch im Display landen.</p>
 </div>
 
 <div class="device-wrap">
@@ -438,34 +570,45 @@
         <div class="page">
           <button class="gear-btn" id="gearBtn" aria-label="Einstellungen öffnen">⚙</button>
           <p class="fridolin-name">Fridolin</p>
-          <p class="page-title" style="margin-top:-2px;">Übersicht</p>
+          <p class="page-title" style="margin-top:2px;" id="wetterOrt">Übersicht</p>
           <div class="weather-row">
-            <div class="weather-icon">⛅</div>
+            <div class="weather-icon wicon" id="wetterIconGross"></div>
             <div>
-              <div class="weather-temp">18.4°C</div>
-              <div class="weather-cond">Leicht bewölkt</div>
+              <div class="weather-temp" id="wetterTemp">18.4°C</div>
+              <div class="weather-cond" id="wetterZustand">Leicht bewölkt</div>
             </div>
           </div>
-          <div class="forecast-row">
-            <div class="forecast-item"><span>14:00</span><span class="val">19°</span></div>
-            <div class="forecast-item"><span>17:00</span><span class="val">17°</span></div>
-            <div class="forecast-item"><span>20:00</span><span class="val">15°</span></div>
-            <div class="forecast-item"><span>23:00</span><span class="val">13°</span></div>
+          <div class="forecast-row" id="forecastRow">
+            <div class="forecast-item" data-zeit="14:00" data-temp="19" data-icon="sunny"></div>
+            <div class="forecast-item" data-zeit="17:00" data-temp="17" data-icon="partlycloudy"></div>
+            <div class="forecast-item" data-zeit="20:00" data-temp="15" data-icon="cloudy"></div>
+            <div class="forecast-item" data-zeit="23:00" data-temp="13" data-icon="clear-night"></div>
           </div>
-          <div class="tomorrow">Morgen: <b>13° – 20°</b><br>wechselnd bewölkt</div>
+          <div class="tomorrow">
+            <div class="wicon" id="morgenIcon"></div>
+            <span>Morgen: <b>13° – 20°</b> · wechselnd bewölkt</span>
+          </div>
         </div>
 
         <!-- Seite 2: Licht -->
         <div class="page">
           <p class="page-title">Licht</p>
           <div class="light-grid">
-            <div class="light-card" data-light="1">
+            <div class="light-card" data-light="1" role="button" tabindex="0">
               <div class="bulb">💡</div>
               <div class="label">Licht 1</div>
             </div>
-            <div class="light-card" data-light="2">
+            <div class="light-card" data-light="2" role="button" tabindex="0">
               <div class="bulb">💡</div>
               <div class="label">Licht 2</div>
+            </div>
+            <div class="light-card" data-light="3" role="button" tabindex="0">
+              <div class="bulb">💡</div>
+              <div class="label">Licht 3</div>
+            </div>
+            <div class="light-card" data-light="4" role="button" tabindex="0">
+              <div class="bulb">💡</div>
+              <div class="label">Licht 4</div>
             </div>
           </div>
         </div>
@@ -497,7 +640,46 @@
               <div class="level-value" id="valVH">0.0°</div>
             </div>
           </div>
-          <div class="level-hint">Zum Testen an den Reglern ziehen — am echten Gerät kommen die Werte vom GY-521-Sensor.</div>
+          <button class="level-zero" id="levelZero">Nullen</button>
+          <div class="level-hint">Zum Testen an den Reglern ziehen. „Nullen“ setzt die aktuelle Lage als Nullpunkt — am echten Gerät kommen die Werte vom GY-521-Sensor.</div>
+        </div>
+
+        <!-- Seite 5: Kühlbox -->
+        <div class="page">
+          <div class="fridge-conn" id="fridgeConn">Verbunden</div>
+          <p class="page-title">Kühlbox</p>
+          <div class="fridge-wrap">
+            <div class="fridge-dial">
+              <svg viewBox="0 0 176 176" id="fridgeArc"></svg>
+              <div class="fridge-dial-mid">
+                <div class="fridge-status" id="fridgeStatus">Bereit</div>
+                <div class="fridge-target" id="fridgeTarget">5°</div>
+                <div class="fridge-actual" id="fridgeActual">Ist: 6 °C</div>
+              </div>
+            </div>
+            <div class="fridge-steps">
+              <button class="temp-btn" id="fridgeDown">−</button>
+              <button class="temp-btn" id="fridgeUp">+</button>
+            </div>
+            <div class="fridge-row">
+              <div class="fridge-group">
+                <div class="glabel">Modus</div>
+                <div class="pill-row">
+                  <button class="pill" id="fridgeMax">MAX</button>
+                  <button class="pill on" id="fridgeEco">ECO</button>
+                </div>
+              </div>
+              <div class="fridge-group">
+                <div class="glabel">Akku-Schutz</div>
+                <div class="pill-row">
+                  <button class="pill" id="fridgeL">L</button>
+                  <button class="pill" id="fridgeM">M</button>
+                  <button class="pill on" id="fridgeH">H</button>
+                </div>
+              </div>
+            </div>
+            <button class="fridge-power on" id="fridgePower">Ein/Aus</button>
+          </div>
         </div>
       </div>
 
@@ -515,22 +697,91 @@
         <div class="dot" data-page="1"></div>
         <div class="dot" data-page="2"></div>
         <div class="dot" data-page="3"></div>
+        <div class="dot" data-page="4"></div>
       </div>
     </div>
   </div>
 </div>
 
-<p class="caption">Diese Seite ist eine optische Näherung zum Ausprobieren von Layout und Bedienung — keine 1:1-Simulation des ESPHome/LVGL-Renderings. Farben, Schrift und genaues Timing können auf dem echten Display leicht abweichen.</p>
+<div class="regie">
+  <span class="regie-label">Wetterlage testen</span>
+  <select id="wetterlageSelect" aria-label="Wetterlage für die Übersichtsseite wählen"></select>
+</div>
+
+<p class="caption">Diese Seite ist eine optische Näherung zum Ausprobieren von Layout und Bedienung — keine 1:1-Simulation des ESPHome/LVGL-Renderings. Die Wetter-Icons sind exakt die 16 SVGs aus <strong>esphome/images/weather/</strong>, statisch dargestellt wie auf dem echten Display (dort rastert ESPHome sie einmal beim Kompilieren). Farben, Schrift und genaues Timing können sonst leicht abweichen.</p>
 
 <script>
 (function () {
   "use strict";
 
-  // ---------- Seiten-Swipe ----------
+  /* ---------- Wetter-Icons: dieselben 16 SVGs wie esphome/images/weather/ ---------- */
+  var WEATHER_ICONS = {
+    "sunny": "<g><path fill=\"none\" stroke=\"#f59e0b\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"3\" d=\"M42.5 32A10.5 10.5 0 1132 21.5 10.5 10.5 0 0142.5 32zM32 15.71V9.5m0 45v-6.21m11.52-27.81l4.39-4.39M16.09 47.91l4.39-4.39m0-23l-4.39-4.39m31.82 31.78l-4.39-4.39M15.71 32H9.5m45 0h-6.21\"/></g>",
+    "clear-night": "<g><path fill=\"none\" stroke=\"#72b9d5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"3\" d=\"M46.66 36.2a16.66 16.66 0 01-16.78-16.55 16.29 16.29 0 01.55-4.15A16.56 16.56 0 1048.5 36.1c-.61.06-1.22.1-1.84.1z\"/></g>",
+    "partlycloudy": "<defs><clipPath id=\"a\"><path fill=\"none\" d=\"M12 35l-5.28-4.21-2-6 1-7 4-5 5-3h6l5 1 3 3L33 20l-6 4h-6l-3 3v4l-4 2-2 2z\"/></clipPath></defs><g clip-path=\"url(#a)\"><g><path fill=\"none\" stroke=\"#f59e0b\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"2\" d=\"M23.5 24a4.5 4.5 0 11-4.5-4.5 4.49 4.49 0 014.5 4.5zM19 15.67V12.5m0 23v-3.17m5.89-14.22l2.24-2.24M10.87 32.13l2.24-2.24m0-11.78l-2.24-2.24m16.26 16.26l-2.24-2.24M7.5 24h3.17m19.83 0h-3.17\"/></g></g><path fill=\"none\" stroke=\"#e5e7eb\" stroke-linejoin=\"round\" stroke-width=\"3\" d=\"M46.5 31.5h-.32a10.49 10.49 0 00-19.11-8 7 7 0 00-10.57 6 7.21 7.21 0 00.1 1.14A7.5 7.5 0 0018 45.5a4.19 4.19 0 00.5 0v0h28a7 7 0 000-14z\"/>",
+    "partly-cloudy-night": "<defs><clipPath id=\"a\"><path fill=\"none\" d=\"M12 35l-5.28-4.21-2-6 1-7 4-5 5-3h6l5 1 3 3L33 20l-6 4h-6l-3 3v4l-4 2-2 2z\"/></clipPath></defs><g clip-path=\"url(#a)\"><g><path fill=\"none\" stroke=\"#72b9d5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M29.33 26.68a10.61 10.61 0 01-10.68-10.54A10.5 10.5 0 0119 13.5a10.54 10.54 0 1011.5 13.11 11.48 11.48 0 01-1.17.07z\"/></g></g><path fill=\"none\" stroke=\"#e5e7eb\" stroke-linejoin=\"round\" stroke-width=\"3\" d=\"M46.5 31.5h-.32a10.49 10.49 0 00-19.11-8 7 7 0 00-10.57 6 7.21 7.21 0 00.1 1.14A7.5 7.5 0 0018 45.5a4.19 4.19 0 00.5 0v0h28a7 7 0 000-14z\"/>",
+    "cloudy": "<g><path fill=\"none\" stroke=\"#e5e7eb\" stroke-linejoin=\"round\" stroke-width=\"3\" d=\"M46.5 31.5h-.32a10.49 10.49 0 00-19.11-8 7 7 0 00-10.57 6 7.21 7.21 0 00.1 1.14A7.5 7.5 0 0018 45.5a4.19 4.19 0 00.5 0v0h28a7 7 0 000-14z\"/></g>",
+    "rainy": "<path fill=\"none\" stroke=\"#e5e7eb\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"3\" d=\"M43.67 45.5h2.83a7 7 0 000-14h-.32a10.49 10.49 0 00-19.11-8 7 7 0 00-10.57 6 7.21 7.21 0 00.1 1.14A7.5 7.5 0 0018 45.5a4.19 4.19 0 00.5 0v0\"/><g><path fill=\"none\" stroke=\"#2885c7\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"2\" d=\"M24.39 43.03l-.78 4.94\"/></g><g><path fill=\"none\" stroke=\"#2885c7\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"2\" d=\"M31.39 43.03l-.78 4.94\"/></g><g><path fill=\"none\" stroke=\"#2885c7\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"2\" d=\"M38.39 43.03l-.78 4.94\"/></g>",
+    "pouring": "<path fill=\"none\" stroke=\"#e5e7eb\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"3\" d=\"M43.67 45.5h2.83a7 7 0 000-14h-.32a10.49 10.49 0 00-19.11-8 7 7 0 00-10.57 6 7.21 7.21 0 00.1 1.14A7.5 7.5 0 0018 45.5a4.19 4.19 0 00.5 0v0\"/><g><path fill=\"none\" stroke=\"#2885c7\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"2\" d=\"M24.39 43.03l-.78 4.94\"/></g><g><path fill=\"none\" stroke=\"#2885c7\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"2\" d=\"M31.39 43.03l-.78 4.94\"/></g><g><path fill=\"none\" stroke=\"#2885c7\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"2\" d=\"M38.39 43.03l-.78 4.94\"/></g>",
+    "snowy": "<path fill=\"none\" stroke=\"#e5e7eb\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"3\" d=\"M43.67 45.5h2.83a7 7 0 000-14h-.32a10.49 10.49 0 00-19.11-8 7 7 0 00-10.57 6 7.21 7.21 0 00.1 1.14A7.5 7.5 0 0018 45.5a4.19 4.19 0 00.5 0v0\"/><g><circle cx=\"31\" cy=\"45\" r=\"1.25\" fill=\"none\" stroke=\"#72b8d4\" stroke-miterlimit=\"10\"/><path fill=\"none\" stroke=\"#72b8d4\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" d=\"M33.17 46.25l-1.09-.63m-2.16-1.24l-1.09-.63M31 42.5v1.25m0 3.75v-1.25m-1.08-.63l-1.09.63m4.34-2.5l-1.09.63\"/></g><g><circle cx=\"24\" cy=\"45\" r=\"1.25\" fill=\"none\" stroke=\"#72b8d4\" stroke-miterlimit=\"10\"/><path fill=\"none\" stroke=\"#72b8d4\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" d=\"M26.17 46.25l-1.09-.63m-2.16-1.24l-1.09-.63M24 42.5v1.25m0 3.75v-1.25m-1.08-.63l-1.09.63m4.34-2.5l-1.09.63\"/></g><g><circle cx=\"38\" cy=\"45\" r=\"1.25\" fill=\"none\" stroke=\"#72b8d4\" stroke-miterlimit=\"10\"/><path fill=\"none\" stroke=\"#72b8d4\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" d=\"M40.17 46.25l-1.09-.63m-2.16-1.24l-1.09-.63M38 42.5v1.25m0 3.75v-1.25m-1.08-.63l-1.09.63m4.34-2.5l-1.09.63\"/></g>",
+    "snowy-rainy": "<path fill=\"none\" stroke=\"#e5e7eb\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"3\" d=\"M43.67 45.5h2.83a7 7 0 000-14h-.32a10.49 10.49 0 00-19.11-8 7 7 0 00-10.57 6 7.21 7.21 0 00.1 1.14A7.5 7.5 0 0018 45.5a4.19 4.19 0 00.5 0v0\"/><g><circle cx=\"24\" cy=\"45\" r=\"1.25\" fill=\"none\" stroke=\"#72b8d4\" stroke-miterlimit=\"10\"/><path fill=\"none\" stroke=\"#72b8d4\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" d=\"M26.17 46.25l-1.09-.63m-2.16-1.24l-1.09-.63M24 42.5v1.25m0 3.75v-1.25m-1.08-.63l-1.09.63m4.34-2.5l-1.09.63\"/></g><g><circle cx=\"38\" cy=\"45\" r=\"1.25\" fill=\"none\" stroke=\"#72b8d4\" stroke-miterlimit=\"10\"/><path fill=\"none\" stroke=\"#72b8d4\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" d=\"M40.17 46.25l-1.09-.63m-2.16-1.24l-1.09-.63M38 42.5v1.25m0 3.75v-1.25m-1.08-.63l-1.09.63m4.34-2.5l-1.09.63\"/></g><g><path fill=\"none\" stroke=\"#2885c7\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"2\" d=\"M24.08 45.01l-.16.98\"/></g><g><path fill=\"none\" stroke=\"#2885c7\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"2\" d=\"M31.08 45.01l-.16.98\"/></g><g><path fill=\"none\" stroke=\"#2885c7\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"2\" d=\"M38.08 45.01l-.16.98\"/></g>",
+    "lightning": "<path fill=\"none\" stroke=\"#e5e7eb\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"3\" d=\"M43.67 45.5h2.83a7 7 0 000-14h-.32a10.49 10.49 0 00-19.11-8 7 7 0 00-10.57 6 7.21 7.21 0 00.1 1.14A7.5 7.5 0 0018 45.5a4.19 4.19 0 00.5 0v0\"/><g><path fill=\"#f59e0b\" d=\"M30 36l-4 12h4l-2 10 10-14h-6l4-8h-6z\"/></g>",
+    "lightning-rainy": "<path fill=\"none\" stroke=\"#e5e7eb\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"3\" d=\"M43.67 45.5h2.83a7 7 0 000-14h-.32a10.49 10.49 0 00-19.11-8 7 7 0 00-10.57 6 7.21 7.21 0 00.1 1.14A7.5 7.5 0 0018 45.5a4.19 4.19 0 00.5 0v0\"/><g><path fill=\"none\" stroke=\"#2885c7\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"2\" d=\"M24.39 43.03l-.78 4.94\"/></g><g><path fill=\"none\" stroke=\"#2885c7\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"2\" d=\"M31.39 43.03l-.78 4.94\"/></g><g><path fill=\"none\" stroke=\"#2885c7\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"2\" d=\"M38.39 43.03l-.78 4.94\"/></g><g><path fill=\"#f59e0b\" d=\"M30 36l-4 12h4l-2 10 10-14h-6l4-8h-6z\"/></g>",
+    "fog": "<path fill=\"none\" stroke=\"#e5e7eb\" stroke-linejoin=\"round\" stroke-width=\"3\" d=\"M46.5 31.5h-.32a10.49 10.49 0 00-19.11-8 7 7 0 00-10.57 6 7.21 7.21 0 00.1 1.14A7.5 7.5 0 0018 45.5a4.19 4.19 0 00.5 0v0h28a7 7 0 000-14z\"/><g><path fill=\"none\" stroke=\"#d1d5db\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"3\" d=\"M17 58h30\"/></g><g><path fill=\"none\" stroke=\"#d1d5db\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"3\" d=\"M17 52h30\"/></g>",
+    "hail": "<path fill=\"none\" stroke=\"#e5e7eb\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"3\" d=\"M43.67 45.5h2.83a7 7 0 000-14h-.32a10.49 10.49 0 00-19.11-8 7 7 0 00-10.57 6 7.21 7.21 0 00.1 1.14A7.5 7.5 0 0018 45.5a4.19 4.19 0 00.5 0v0\"/><g><circle cx=\"24\" cy=\"45\" r=\"1.5\" fill=\"#72b8d4\"/></g><g><circle cx=\"31\" cy=\"45\" r=\"1.5\" fill=\"#72b8d4\"/></g><g><circle cx=\"38\" cy=\"45\" r=\"1.5\" fill=\"#72b8d4\"/></g>",
+    "windy": "<path fill=\"none\" stroke=\"#e5e7eb\" stroke-dasharray=\"35 22\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"3\" d=\"M43.64 20a5 5 0 113.61 8.46h-35.5\"></path><path fill=\"none\" stroke=\"#e5e7eb\" stroke-dasharray=\"24 15\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"3\" d=\"M29.14 44a5 5 0 103.61-8.46h-21\"></path>",
+    "windy-variant": "<path fill=\"none\" stroke=\"#e5e7eb\" stroke-dasharray=\"35 22\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"3\" d=\"M43.64 20a5 5 0 113.61 8.46h-35.5\"></path><path fill=\"none\" stroke=\"#e5e7eb\" stroke-dasharray=\"24 15\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"3\" d=\"M29.14 44a5 5 0 103.61-8.46h-21\"></path>",
+    "exceptional": "<g><path fill=\"none\" stroke=\"#f59e0b\" stroke-linecap=\"round\" stroke-miterlimit=\"10\" stroke-width=\"3\" d=\"M42.5 32A10.5 10.5 0 1132 21.5 10.5 10.5 0 0142.5 32zM32 15.71V9.5m0 45v-6.21m11.52-27.81l4.39-4.39M16.09 47.91l4.39-4.39m0-23l-4.39-4.39m31.82 31.78l-4.39-4.39M15.71 32H9.5m45 0h-6.21\"/></g>",
+  };
+  var WEATHER_LABELS = {
+    "sunny": "Sonnig", "clear-night": "Klarer Himmel (Nacht)",
+    "partlycloudy": "Leicht bewölkt", "partly-cloudy-night": "Leicht bewölkt (Nacht)",
+    "cloudy": "Bewölkt", "rainy": "Regen", "pouring": "Starkregen",
+    "snowy": "Schnee", "snowy-rainy": "Schneeregen",
+    "lightning": "Gewitter", "lightning-rainy": "Gewitter mit Regen",
+    "fog": "Nebel", "hail": "Hagel", "windy": "Windig",
+    "windy-variant": "Stürmisch", "exceptional": "Außergewöhnlich"
+  };
+  var ICON_ORDER = ["sunny","clear-night","partlycloudy","partly-cloudy-night","cloudy","rainy","pouring",
+    "snowy","snowy-rainy","lightning","lightning-rainy","fog","hail","windy","windy-variant","exceptional"];
+
+  function setIcon(el, key) {
+    el.innerHTML = WEATHER_ICONS[key] ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' + WEATHER_ICONS[key] + '</svg>' : "";
+  }
+
+  var wetterlageSelect = document.getElementById("wetterlageSelect");
+  ICON_ORDER.forEach(function (key) {
+    var opt = document.createElement("option");
+    opt.value = key;
+    opt.textContent = WEATHER_LABELS[key];
+    if (key === "partlycloudy") opt.selected = true;
+    wetterlageSelect.appendChild(opt);
+  });
+  function applyWetterlage(key) {
+    setIcon(document.getElementById("wetterIconGross"), key);
+    document.getElementById("wetterZustand").textContent = WEATHER_LABELS[key];
+  }
+  wetterlageSelect.addEventListener("change", function () { applyWetterlage(wetterlageSelect.value); });
+  applyWetterlage("partlycloudy");
+
+  document.querySelectorAll(".forecast-item").forEach(function (item) {
+    var ic = document.createElement("div");
+    ic.className = "wicon";
+    setIcon(ic, item.dataset.icon);
+    var zeit = document.createElement("span");
+    zeit.textContent = item.dataset.zeit;
+    var temp = document.createElement("span");
+    temp.className = "val";
+    temp.textContent = item.dataset.temp + "°";
+    item.append(zeit, ic, temp);
+  });
+  setIcon(document.getElementById("morgenIcon"), "cloudy");
+
+  /* ---------- Seiten-Swipe ---------- */
   var track = document.getElementById("track");
   var screen = document.getElementById("screen");
   var dots = Array.prototype.slice.call(document.querySelectorAll(".dot"));
-  var pageCount = 4;
+  var pageCount = 5;
   var current = 0;
   var dragging = false;
   var startX = 0;
@@ -540,7 +791,7 @@
   function setPage(i, animate) {
     current = Math.max(0, Math.min(pageCount - 1, i));
     track.style.transition = animate === false ? "none" : "";
-    track.style.transform = "translateX(-" + (current * 25) + "%)";
+    track.style.transform = "translateX(-" + (current * 20) + "%)";
     dots.forEach(function (d, idx) {
       d.classList.toggle("active", idx === current);
     });
@@ -559,11 +810,10 @@
   screen.tabIndex = 0;
 
   function onPointerDown(e) {
-    // ignore drags starting on interactive controls so taps still work
-    if (e.target.closest(".light-card, .temp-btn, .heat-toggle, .level-track, .arrow, .dot")) return;
+    if (e.target.closest(".light-card, .temp-btn, .heat-toggle, .level-track, .level-zero, .pill, .fridge-power, .arrow, .dot")) return;
     dragging = true;
     startX = (e.touches ? e.touches[0].clientX : e.clientX);
-    startTranslate = -current * 25;
+    startTranslate = -current * 20;
     track.style.transition = "none";
   }
   function onPointerMove(e) {
@@ -579,7 +829,7 @@
     if (!dragging) return;
     dragging = false;
     track.style.transition = "";
-    var target = Math.round(-currentTranslatePercent / 25);
+    var target = Math.round(-currentTranslatePercent / 20);
     setPage(target);
   }
   screen.addEventListener("mousedown", onPointerDown);
@@ -589,17 +839,20 @@
   screen.addEventListener("touchmove", onPointerMove, { passive: true });
   screen.addEventListener("touchend", onPointerUp);
 
-  // ---------- Seite 2: Licht ----------
-  var lightState = { 1: false, 2: false };
+  /* ---------- Seite 2: Licht ---------- */
+  var lightState = { 1: false, 2: true, 3: false, 4: false };
   document.querySelectorAll(".light-card").forEach(function (card) {
-    card.addEventListener("click", function () {
-      var id = card.dataset.light;
+    var id = card.dataset.light;
+    card.classList.toggle("on", lightState[id]);
+    function toggle() {
       lightState[id] = !lightState[id];
       card.classList.toggle("on", lightState[id]);
-    });
+    }
+    card.addEventListener("click", toggle);
+    card.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); } });
   });
 
-  // ---------- Seite 3: Heizung ----------
+  /* ---------- Seite 3: Heizung ---------- */
   var targetTemp = 21.0;
   var heating = false;
   var tempEl = document.getElementById("targetTemp");
@@ -623,7 +876,7 @@
   });
   renderTemp();
 
-  // ---------- Seite 4: Nivellierung (simulierte Wasserwaagen) ----------
+  /* ---------- Seite 4: Nivellierung (simulierte Wasserwaagen) ---------- */
   function setupLevel(trackId, bubbleId, valueId) {
     var trackEl = document.getElementById(trackId);
     var bubbleEl = document.getElementById(bubbleId);
@@ -632,7 +885,7 @@
 
     function render() {
       var w = trackEl.getBoundingClientRect().width;
-      var usable = w - 28; // bubble diameter
+      var usable = w - 28;
       var pos = ((angle + 45) / 90) * usable;
       bubbleEl.style.left = pos + "px";
       bubbleEl.style.translate = "0 0";
@@ -672,11 +925,92 @@
 
     window.addEventListener("resize", render);
     render();
+    return { zero: function () { angle = 0; render(); } };
   }
-  setupLevel("trackLR", "bubbleLR", "valLR");
-  setupLevel("trackVH", "bubbleVH", "valVH");
+  var levelLR = setupLevel("trackLR", "bubbleLR", "valLR");
+  var levelVH = setupLevel("trackVH", "bubbleVH", "valVH");
+  document.getElementById("levelZero").addEventListener("click", function () {
+    levelLR.zero();
+    levelVH.zero();
+  });
 
-  // ---------- Einstellungen-Overlay ----------
+  /* ---------- Seite 5: Kühlbox ---------- */
+  (function () {
+    var MIN = -20, MAX = 20;
+    var target = 5, actual = 6, on = true, mode = "eco", batt = "h";
+    var arcSvg = document.getElementById("fridgeArc");
+    var cx = 88, cy = 88, r = 74;
+    var startDeg = 135, sweepDeg = 270;
+
+    function arcPoint(deg) {
+      var rad = (deg * Math.PI) / 180;
+      return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+    }
+    function arcPath(fromDeg, toDeg) {
+      var p1 = arcPoint(fromDeg), p2 = arcPoint(toDeg);
+      var large = (toDeg - fromDeg) % 360 > 180 ? 1 : 0;
+      return "M " + p1.x.toFixed(2) + " " + p1.y.toFixed(2) + " A " + r + " " + r + " 0 " + large + " 1 " + p2.x.toFixed(2) + " " + p2.y.toFixed(2);
+    }
+
+    var track = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    track.setAttribute("d", arcPath(startDeg, startDeg + sweepDeg));
+    track.setAttribute("fill", "none");
+    track.setAttribute("stroke", "var(--dev-track)");
+    track.setAttribute("stroke-width", "12");
+    track.setAttribute("stroke-linecap", "round");
+    arcSvg.appendChild(track);
+
+    var progress = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    progress.setAttribute("fill", "none");
+    progress.setAttribute("stroke", "#3fa8dc");
+    progress.setAttribute("stroke-width", "12");
+    progress.setAttribute("stroke-linecap", "round");
+    arcSvg.appendChild(progress);
+
+    var statusEl = document.getElementById("fridgeStatus");
+    var targetEl = document.getElementById("fridgeTarget");
+    var actualEl = document.getElementById("fridgeActual");
+    var powerBtn = document.getElementById("fridgePower");
+
+    function render() {
+      var frac = (target - MIN) / (MAX - MIN);
+      progress.setAttribute("d", arcPath(startDeg, startDeg + sweepDeg * frac));
+      targetEl.textContent = Math.round(target) + "°";
+      actualEl.textContent = "Ist: " + Math.round(actual) + " °C";
+      statusEl.textContent = !on ? "Aus" : (actual > target ? "Kühlt" : "Bereit");
+      powerBtn.classList.toggle("on", on);
+      progress.style.opacity = on ? "1" : "0.35";
+    }
+
+    document.getElementById("fridgeDown").addEventListener("click", function () {
+      target = Math.max(MIN, target - 1);
+      render();
+    });
+    document.getElementById("fridgeUp").addEventListener("click", function () {
+      target = Math.min(MAX, target + 1);
+      render();
+    });
+    powerBtn.addEventListener("click", function () { on = !on; render(); });
+
+    var modeButtons = { fridgeMax: "max", fridgeEco: "eco" };
+    Object.keys(modeButtons).forEach(function (id) {
+      document.getElementById(id).addEventListener("click", function () {
+        mode = modeButtons[id];
+        Object.keys(modeButtons).forEach(function (k) { document.getElementById(k).classList.toggle("on", k === id); });
+      });
+    });
+    var battButtons = { fridgeL: "l", fridgeM: "m", fridgeH: "h" };
+    Object.keys(battButtons).forEach(function (id) {
+      document.getElementById(id).addEventListener("click", function () {
+        batt = battButtons[id];
+        Object.keys(battButtons).forEach(function (k) { document.getElementById(k).classList.toggle("on", k === id); });
+      });
+    });
+
+    render();
+  })();
+
+  /* ---------- Einstellungen-Overlay ---------- */
   var overlay = document.getElementById("settingsOverlay");
   document.getElementById("gearBtn").addEventListener("click", function () {
     overlay.classList.add("open");
