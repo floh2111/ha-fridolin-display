@@ -56,12 +56,12 @@ const CARAVAN_SVG_BODY = `
 
   <rect x="80" y="113" width="150" height="54" rx="27" fill="#3A4250" stroke="#55606F" stroke-width="2"/>
   <rect x="86" y="119" width="138" height="42" rx="21" fill="url(#fwGradV)"/>
-  <line x1="134" y1="129" x2="134" y2="151" stroke="#101a05" stroke-width="3" stroke-linecap="round"/>
-  <line x1="176" y1="129" x2="176" y2="151" stroke="#101a05" stroke-width="3" stroke-linecap="round"/>
+  <line x1="136" y1="129" x2="136" y2="151" stroke="#101a05" stroke-width="3" stroke-linecap="round"/>
+  <line x1="174" y1="129" x2="174" y2="151" stroke="#101a05" stroke-width="3" stroke-linecap="round"/>
   <rect x="270" y="65" width="54" height="150" rx="27" fill="#3A4250" stroke="#55606F" stroke-width="2"/>
   <rect x="276" y="71" width="42" height="138" rx="21" fill="url(#fwGradH)"/>
-  <line x1="286" y1="119" x2="308" y2="119" stroke="#101a05" stroke-width="3" stroke-linecap="round"/>
-  <line x1="286" y1="161" x2="308" y2="161" stroke="#101a05" stroke-width="3" stroke-linecap="round"/>
+  <line x1="286" y1="121" x2="308" y2="121" stroke="#101a05" stroke-width="3" stroke-linecap="round"/>
+  <line x1="286" y1="159" x2="308" y2="159" stroke="#101a05" stroke-width="3" stroke-linecap="round"/>
 `;
 
 const MOTORHOME_SVG_BODY = `
@@ -90,13 +90,13 @@ const MOTORHOME_SVG_BODY = `
 
   <rect x="70" y="63" width="150" height="44" rx="22" fill="#3A4250" stroke="#55606F" stroke-width="2"/>
   <rect x="76" y="69" width="138" height="32" rx="16" fill="url(#fwGradV)"/>
-  <line x1="124" y1="74" x2="124" y2="96" stroke="#101a05" stroke-width="3" stroke-linecap="round"/>
-  <line x1="166" y1="74" x2="166" y2="96" stroke="#101a05" stroke-width="3" stroke-linecap="round"/>
+  <line x1="126" y1="74" x2="126" y2="96" stroke="#101a05" stroke-width="3" stroke-linecap="round"/>
+  <line x1="164" y1="74" x2="164" y2="96" stroke="#101a05" stroke-width="3" stroke-linecap="round"/>
 
   <rect x="255" y="20" width="44" height="130" rx="22" fill="#3A4250" stroke="#55606F" stroke-width="2"/>
   <rect x="261" y="26" width="32" height="118" rx="16" fill="url(#fwGradH)"/>
-  <line x1="266" y1="64" x2="288" y2="64" stroke="#101a05" stroke-width="3" stroke-linecap="round"/>
-  <line x1="266" y1="106" x2="288" y2="106" stroke="#101a05" stroke-width="3" stroke-linecap="round"/>
+  <line x1="266" y1="66" x2="288" y2="66" stroke="#101a05" stroke-width="3" stroke-linecap="round"/>
+  <line x1="266" y1="104" x2="288" y2="104" stroke="#101a05" stroke-width="3" stroke-linecap="round"/>
 `;
 
 const RANGE_DEG = 8;
@@ -124,14 +124,16 @@ const VEHICLE_ART = {
 
 const CARD_STYLE = `
   :host { display: block; }
-  ha-card { padding: 16px 16px 20px; }
-  .fw-title { font-size: 1.5em; font-weight: 600; margin: 4px 0 18px; }
+  ha-card { padding: 14px 16px 16px; }
+  .fw-title { font-size: 1.5em; font-weight: 600; text-align: center; margin: 2px 0 6px; }
   .fw-outer {
     position: relative;
     width: 100%;
-    /* Seitenverhältnis wird pro Fahrzeugtyp in _layout() gesetzt (padding-top). */
-    padding-top: 153.33%;
-    max-width: 340px;
+    /* Höhe wird passend zum Seitenverhältnis pro Fahrzeugtyp in _layout()
+       direkt in Pixeln gesetzt (nicht per padding-top-Prozent-Trick: der
+       bezieht sich auf die Breite des Elternelements, nicht auf die per
+       max-width begrenzte eigene Breite - würde hier zu hoch ausfallen). */
+    max-width: 260px;
     margin: 0 auto;
   }
   .fw-inner {
@@ -154,7 +156,7 @@ const CARD_STYLE = `
     display: flex;
     justify-content: center;
     gap: 28px;
-    margin-top: 14px;
+    margin-top: 8px;
     font-size: 0.9em;
     color: var(--secondary-text-color);
   }
@@ -166,7 +168,7 @@ const CARD_STYLE = `
   .fw-footer {
     display: flex;
     justify-content: center;
-    margin-top: 14px;
+    margin-top: 8px;
   }
   .fw-zero-btn {
     appearance: none;
@@ -327,8 +329,8 @@ class FridolinNivellierungCard extends HTMLElement {
           <svg id="fwSvg" viewBox="${vb.x} ${vb.y} ${vb.w} ${vb.h}" xmlns="http://www.w3.org/2000/svg">
             ${art.svg}
           </svg>
-          <div class="fw-bubble" id="fwBubbleVh" style="width:30px;height:22px;"></div>
-          <div class="fw-bubble" id="fwBubbleLr" style="width:22px;height:30px;"></div>
+          <div class="fw-bubble" id="fwBubbleVh" style="width:34px;height:18px;"></div>
+          <div class="fw-bubble" id="fwBubbleLr" style="width:18px;height:34px;"></div>
         </div>
       </div>
       <div class="fw-values">
@@ -380,13 +382,13 @@ class FridolinNivellierungCard extends HTMLElement {
     if (!this._els) return;
     const vb = this._art().viewBox;
     const outerWidth = this._els.outer.clientWidth;
-    // Seitenverhältnis nach der 90°-Drehung passend zu diesem Fahrzeugtyp setzen
-    this._els.outer.style.paddingTop = (vb.w / vb.h * 100) + "%";
     if (!outerWidth) return;
     // Nach der Drehung um 90° wird aus der Breite des Grundrisses die Höhe
     // im Kartenlayout, und umgekehrt - daher hier getauscht: die
-    // "unrotierte" Breite richtet sich nach der Kartenhöhe.
+    // "unrotierte" Breite richtet sich nach der Kartenhöhe. Höhe direkt in
+    // Pixeln setzen (nicht per padding-top-Prozent, siehe CSS-Kommentar).
     const outerHeight = outerWidth * (vb.w / vb.h);
+    this._els.outer.style.height = outerHeight + "px";
     const innerWidth = outerHeight;
     const innerHeight = outerWidth;
     this._els.inner.style.width = innerWidth + "px";
