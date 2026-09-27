@@ -66,6 +66,71 @@ Genaue Entity-ID-Tabelle und Klimaanlagen-Details stehen in
 `custom_components/fridolin_display/README.md`; die Karte hat ihre
 eigene README im `rv-leveling-card`-Repo.
 
+### Seitenplan / Seiten-Baukasten (seit Integrations-Version 0.3.0, WIP)
+
+Florian möchte Reihenfolge, Auswahl und Titel der Display-Seiten flexibel
+gestalten können, inkl. Mehrfach-Instanzen (z.B. zwei Klimazonen) und
+neuer Seiten-Typen (zuerst: generische Sensor-Seite; Karte mit
+Standort-Pins wurde explizit **abgelehnt**, siehe Konversation).
+Wichtiger technischer Befund: LVGL-Widgets sind zur **Compile-Zeit**
+fest, ein "jeder Slot kann jeden Seitentyp zeigen"-Baukasten zur
+Laufzeit würde die Widget-Zahl vervielfachen und den RAM des ESP32-S3
+sprengen. Gewählter Ansatz (Ansatz B): **Seitenplan-Editor in der
+HA-Integration + YAML-Generator**, der daraus die passende
+`wohnwagen-display.yaml` erzeugt – Reihenfolge/Auswahl der Seiten
+braucht dadurch einen Reflash, Entity-Zuordnung *innerhalb* einer
+bestehenden Seite nicht (wie bisher).
+
+**Bereits umgesetzt** (Python-Seite, `custom_components/fridolin_display/`):
+- `const.py`: `CONF_PAGE_PLAN`, `PAGE_TYPE_*`, `DEFAULT_PAGE_PLAN`
+  (entspricht 1:1 dem bisherigen 5-Seiten-Display), sowie Helper
+  (`climate_target_key`, `light_slot_entity_key`, `climate_entity_id`,
+  `light_entity_id`), die zwischen der **Legacy-Instanz** (`"1"`, alte
+  Entity-IDs `climate.fridolin_heizung`/`light.fridolin_licht_1.._4`)
+  und weiteren, instanz-parametrisierten Instanzen vermitteln.
+- `page_plan.py`: liest + normalisiert den Seitenplan aus den Options
+  (Fallback auf `DEFAULT_PAGE_PLAN`), vergibt fehlende `instance`-Werte
+  automatisch.
+- `light.py`/`climate.py`: erzeugen jetzt **eine Entity-Gruppe pro
+  Licht-/Klimaanlagen-Seite im Plan** statt einer fest verdrahteten
+  Gruppe - mehrere Instanzen funktionieren bereits (nur der YAML-Teil
+  fehlt noch, siehe unten).
+- `config_flow.py`: Options-Flow jetzt zweistufig - Schritt 1
+  (`async_step_init`) editiert den Seitenplan als **JSON-Textfeld**
+  (bewusst kein Multi-Step-Wizard mit Hinzufügen/Entfernen/Verschieben -
+  das wäre ein eigenes, größeres Stück Arbeit), Schritt 2
+  (`async_step_entities`) baut das Entity-Zuordnungsformular dynamisch
+  aus dem gerade eingegebenen Plan.
+- Rückwärtskompatibel: Ohne eigenen Seitenplan verhält sich alles exakt
+  wie vorher (gleiche Entity-IDs), da `DEFAULT_PAGE_PLAN` nur
+  Legacy-Instanzen enthält.
+
+**Noch offen (nächster Schritt)**:
+1. **YAML-Generator** (`esphome/generate_display_yaml.py`, geplant,
+   noch nicht angefangen): nimmt den Seitenplan (aus der Integration
+   exportiert oder als lokale JSON-Datei) und rendert daraus die
+   komplette `wohnwagen-display.yaml`. Empfohlener erster Meilenstein:
+   Generator so bauen, dass er mit `DEFAULT_PAGE_PLAN` als Eingabe
+   funktional dasselbe Display erzeugt wie die aktuelle, handgeschriebene
+   YAML (Regressionstest, mit echtem `esphome compile` verifizieren),
+   bevor neue Fähigkeiten (Mehrfach-Instanzen, neue Reihenfolge)
+   draufgesetzt werden. Technischer Ansatz: die 5 bestehenden
+   `tile_*`-Blöcke aus `wohnwagen-display.yaml` als parametrisierte
+   Jinja2-Makros extrahieren (Titel, Entity-IDs als Variablen), Rest der
+   Datei (Hardware, WLAN, Wetter-System, Einstellungen-Overlay,
+   Kühlbox-BLE, Nivellierungs-Sensorik) bleibt statische Basis-Vorlage.
+2. Neuer Seiten-Typ `sensors` (generische Sensor-Anzeige): Datenmodell
+   ist vorbereitet (`PAGE_TYPE_SENSORS`, `entities`-Liste im Plan-Eintrag),
+   aber weder eine HA-Entity-Erzeugung noch ein LVGL-Seitentemplate
+   existieren dafür bisher.
+3. Optionale spätere Verbesserung: der Seitenplan-Editor als
+   Multi-Step-Wizard statt JSON-Textfeld (freundlicher fürs UI, aber
+   deutlich mehr Code).
+4. **Explizit nicht gewünscht**: Kartenansicht mit dauerhaft
+   gespeicherten Standort-Pins (Florian hat das abgelehnt) und eine
+   separate "Heizung"-Seite (ist inhaltlich dasselbe wie eine zweite
+   Klimaanlagen-Seite, kein eigener Typ nötig).
+
 ## Repo-Struktur
 
 ```
@@ -264,6 +329,10 @@ der Übersichtsseite erreichbar ist (LVGL `top_layer:`):
    verkabeln, `wohnwagen-display.yaml` flashen, komplette UI live testen.
 6. Ggf. Kleinigkeiten aus dem Livetest nachjustieren (Pinbelegung,
    Timing, Layout, Umlaute/eigene Schriftart).
+7. **Seitenplan-YAML-Generator bauen** (siehe Abschnitt "Seitenplan /
+   Seiten-Baukasten" oben) – der nächste große Schritt für den
+   Seiten-Baukasten, aktuell wirkt der Seitenplan nur auf die
+   HA-Entity-Seite, noch nicht auf die tatsächliche Display-Firmware.
 
 ## Ton/Stil-Hinweis
 

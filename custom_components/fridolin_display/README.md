@@ -12,8 +12,8 @@ Integration:
 
 | Display-Entity | Zweck |
 |---|---|
-| `light.fridolin_licht_1` … `_4` | Licht-Slots (nur belegte Slots werden angelegt) |
-| `climate.fridolin_heizung` | Klimaanlage (Heizen/Kühlen/Aus, Eco/Normal/Max) |
+| `light.fridolin_licht_1` … `_4` | Licht-Slots der ersten Licht-Seite (nur belegte Slots werden angelegt) |
+| `climate.fridolin_heizung` | Klimaanlage der ersten Klimaanlagen-Seite (Heizen/Kühlen/Aus, Eco/Normal/Max) |
 | `sensor.fridolin_wetter_zustand` / `_temperatur` / `_icon` | aktuelles Wetter |
 | `sensor.fridolin_wetter_h0_zeit/_temp/_zustand/_icon` … `h3_*` | Stunden-Vorhersage |
 | `sensor.fridolin_wetter_morgen_min/_max/_zustand/_icon` | Ausblick auf morgen |
@@ -22,6 +22,35 @@ Integration:
 
 Änderst du in den Integrations-Optionen, welches echte Licht z.B.
 hinter "Licht 1" steckt, wirkt sich das sofort aufs Display aus.
+
+## Seitenplan (welche Seiten das Display zeigt)
+
+Seit Version 0.3.0 legt ein **Seitenplan** fest, welche Seiten das
+Display in welcher Reihenfolge zeigt – einstellbar über "Konfigurieren"
+→ erster Schritt (JSON-Liste, siehe `page_plan.py`). Mögliche
+Seiten-Typen: `overview`, `light`, `climate`, `leveling`, `fridge`,
+`sensors` (`sensors` ist als Typ bereits vorbereitet, hat aber noch
+keine eigene Entity-Erzeugung/Display-Seite – folgt später). `light`
+und `climate` können **mehrfach** im Plan vorkommen (z.B. zwei
+Klimazonen) – jede weitere Instanz bekommt eigene, instanz-
+parametrisierte Entity-IDs (`climate.fridolin_climate_2`,
+`light.fridolin_licht_2_1` usw.), die erste Instanz behält aus
+Kompatibilitätsgründen die alten IDs (`climate.fridolin_heizung`,
+`light.fridolin_licht_1`).
+
+**Wichtig:** Der Seitenplan wirkt aktuell **nur auf die HA-Seite**
+(welche Entities angelegt werden) – die ESP32-Firmware selbst zeigt
+weiterhin die fest verdrahteten 5 Seiten aus `wohnwagen-display.yaml`
+in fester Reihenfolge. Ein Generator, der aus dem Seitenplan die
+passende `wohnwagen-display.yaml` erzeugt (sodass Reihenfolge/Auswahl
+der Seiten nach einem Reflash tatsächlich dem Plan folgen), ist der
+nächste Ausbauschritt und noch nicht fertig. Solange du den Seitenplan
+nicht änderst (Standard entspricht genau dem bisherigen Display),
+ändert sich für dich nichts.
+
+Die Entity-Zuordnung (welches echte Licht/welche echte Klimaanlage
+hinter einer Seite steckt) ist im zweiten Options-Schritt weiterhin
+sofort wirksam, ohne Reflash.
 
 Die `_icon`-Sensoren liefern einen von 16 festen Schlüsseln (`sunny`,
 `clear-night`, `partlycloudy`, `partly-cloudy-night`, `cloudy`, `rainy`,

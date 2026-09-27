@@ -1,10 +1,11 @@
-"""Klimaanlage: feste Display-Entity climate.fridolin_heizung, spiegelt die
-in den Optionen gewählte echte climate-Entity (Heizen/Kühlen/Aus,
-Zieltemperatur, sowie ein fester Eco/Normal/Max-Modus als Preset).
+"""Klimaanlage(n): feste Display-Entity(s), spiegeln die in den Optionen
+gewählte(n) echte(n) climate-Entity(s) (Heizen/Kühlen/Aus, Zieltemperatur,
+sowie ein fester Eco/Normal/Max-Modus als Preset).
 
-Trotz des Entity- und Options-Namens "Heizung" (historisch, siehe
-CONF_CLIMATE_TARGET) ist die Zielentität inzwischen typischerweise eine
-echte Klimaanlage mit Kühl- und Heizbetrieb, kein reines Heizgerät mehr.
+Wie viele Klimaanlagen-Seiten es gibt (und damit wie viele
+FridolinDisplayClimate-Entities angelegt werden), bestimmt der Seitenplan
+(siehe page_plan.py) - die erste Instanz behält aus Kompatibilitätsgründen
+die historische Entity-ID climate.fridolin_heizung.
 """
 
 from __future__ import annotations
@@ -23,7 +24,8 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_state_change_event
 
-from .const import CONF_CLIMATE_TARGET, DOMAIN, MANUFACTURER, MODEL
+from .const import DOMAIN, MANUFACTURER, MODEL, climate_entity_id, climate_target_key
+from .page_plan import climate_pages
 
 # Feste Preset-Auswahl fürs Display, unabhängig davon, welche presets die
 # echte Zielentität sonst noch anbietet (ähnlich wie die festen Licht-Slots).
@@ -41,11 +43,18 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     config = {**entry.data, **entry.options}
-    target_entity_id = config.get(CONF_CLIMATE_TARGET)
-    if not target_entity_id:
-        return  # keine Heizung zugewiesen - keine Entity anlegen
+    entities: list[FridolinDisplayClimate] = []
 
-    async_add_entities([FridolinDisplayClimate(entry, target_entity_id)])
+    for page in climate_pages(config):
+        instance = page["instance"]
+        target_entity_id = config.get(climate_target_key(instance))
+        if not target_entity_id:
+            continue  # keine Zielentität zugewiesen - keine Entity anlegen
+        entities.append(
+            FridolinDisplayClimate(entry, instance, target_entity_id, page["title"])
+        )
+
+    async_add_entities(entities)
 
 
 class FridolinDisplayClimate(ClimateEntity):
@@ -59,11 +68,17 @@ class FridolinDisplayClimate(ClimateEntity):
         ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
     )
 
-    def __init__(self, entry: ConfigEntry, target_entity_id: str) -> None:
+    def __init__(
+        self,
+        entry: ConfigEntry,
+        instance: str,
+        target_entity_id: str,
+        display_name: str,
+    ) -> None:
         self._target_entity_id = target_entity_id
-        self._attr_name = "Klimaanlage"
-        self._attr_unique_id = f"{entry.entry_id}_heizung"
-        self.entity_id = "climate.fridolin_heizung"
+        self._attr_name = display_name
+        self._attr_unique_id = f"{entry.entry_id}_heizung_{instance}"
+        self.entity_id = climate_entity_id(instance)
         self._attr_hvac_mode = HVACMode.OFF
         self._attr_preset_mode = None
         self._attr_target_temperature = None

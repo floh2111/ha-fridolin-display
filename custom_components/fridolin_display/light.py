@@ -2,9 +2,10 @@
 
 Jede FridolinDisplayLight hält Zustand und Helligkeit ihrer Ziel-Entity
 live nach (über einen State-Change-Listener) und reicht toggle/turn_on/
-turn_off einfach weiter. Das ESP32-Display spricht immer
-light.fridolin_licht_1 / _2 / ... an; welches echte Licht dahinter
-hängt, stellst du über die Options-Seite der Integration ein.
+turn_off einfach weiter. Das ESP32-Display spricht immer feste Entity-IDs
+an (z.B. light.fridolin_licht_1); welches echte Licht dahinter hängt und
+wie viele Licht-Seiten es überhaupt gibt, stellst du über den Seitenplan
+und die Options-Seite der Integration ein (siehe page_plan.py).
 """
 
 from __future__ import annotations
@@ -19,13 +20,15 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_state_change_event
 
 from .const import (
-    CONF_LIGHT_SLOT_ENTITY,
-    CONF_LIGHT_SLOT_NAME,
     DOMAIN,
     MANUFACTURER,
-    MODEL,
     MAX_LIGHT_SLOTS,
+    MODEL,
+    light_entity_id,
+    light_slot_entity_key,
+    light_slot_name_key,
 )
+from .page_plan import light_pages
 
 
 async def async_setup_entry(
@@ -36,16 +39,20 @@ async def async_setup_entry(
     config = {**entry.data, **entry.options}
     entities: list[FridolinDisplayLight] = []
 
-    for index in range(1, MAX_LIGHT_SLOTS + 1):
-        target_entity_id = config.get(CONF_LIGHT_SLOT_ENTITY.format(index=index))
-        if not target_entity_id:
-            continue  # Slot nicht belegt - keine Entity anlegen
-        display_name = config.get(
-            CONF_LIGHT_SLOT_NAME.format(index=index), f"Licht {index}"
-        )
-        entities.append(
-            FridolinDisplayLight(entry, index, target_entity_id, display_name)
-        )
+    for page in light_pages(config):
+        instance = page["instance"]
+        for index in range(1, MAX_LIGHT_SLOTS + 1):
+            target_entity_id = config.get(light_slot_entity_key(instance, index))
+            if not target_entity_id:
+                continue  # Slot nicht belegt - keine Entity anlegen
+            display_name = config.get(
+                light_slot_name_key(instance, index), f"Licht {index}"
+            )
+            entities.append(
+                FridolinDisplayLight(
+                    entry, instance, index, target_entity_id, display_name
+                )
+            )
 
     async_add_entities(entities)
 
@@ -60,15 +67,16 @@ class FridolinDisplayLight(LightEntity):
     def __init__(
         self,
         entry: ConfigEntry,
+        instance: str,
         slot_index: int,
         target_entity_id: str,
         display_name: str,
     ) -> None:
         self._target_entity_id = target_entity_id
         self._attr_name = display_name
-        self._attr_unique_id = f"{entry.entry_id}_licht_{slot_index}"
+        self._attr_unique_id = f"{entry.entry_id}_licht_{instance}_{slot_index}"
         # Feste, vorhersagbare Entity-ID fürs ESPHome-Display
-        self.entity_id = f"light.fridolin_licht_{slot_index}"
+        self.entity_id = light_entity_id(instance, slot_index)
         self._attr_is_on = False
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
