@@ -144,10 +144,12 @@ Falls du die Karte schon vor 0.2.0 eingebunden hattest: Die alte
 Ressourcen-URL `/fridolin_display/fridolin-nivellierung-card.js`
 funktioniert nicht mehr (die Integration liefert keine statischen
 Dateien mehr aus). Einmalig die Dashboard-Ressource entfernen und durch
-die neue aus `rv-leveling-card` ersetzen (siehe dessen README) – deine
-Karten-Konfiguration in den Dashboards selbst muss dabei **nicht**
-geändert werden, der Karten-Typ heißt weiterhin
-`custom:fridolin-nivellierung-card`.
+die neue aus `rv-leveling-card` ersetzen (siehe dessen README).
+
+**Seit `rv-leveling-card` Version 2.0.0** heißt der Karten-Typ außerdem
+`custom:rv-leveling-card` statt `custom:fridolin-nivellierung-card` –
+Karten mit dem alten Typ in deinen Dashboards musst du einmalig neu
+hinzufügen bzw. `type:` in der YAML anpassen.
 
 ## Grenzen dieser ersten Version
 

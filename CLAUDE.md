@@ -58,9 +58,10 @@ Proxy-/Spiegel-Schicht:
   (Frontscheibe) – eigenes `VEHICLE_ART`-Objekt mit eigenem
   SVG/viewBox/Röhren-Geometrie je Typ, per `ha-form`-Editor
   (`vehicle_type`) umschaltbar, inkl. visuellem UI-Karteneditor für
-  Titel + alle Entity-IDs. Der Custom-Element-Typ heißt weiterhin
-  `fridolin-nivellierung-card` (Herkunft des Projekts, absichtlich nicht
-  umbenannt, damit bestehende Dashboards weiterlaufen).
+  Titel + alle Entity-IDs. Der Custom-Element-Typ heißt seit
+  `rv-leveling-card` Version 2.0.0 `rv-leveling-card` (vorher
+  `fridolin-nivellierung-card` - auf Florians Wunsch umbenannt, er
+  konfiguriert sein Dashboard einmalig neu).
 
 Genaue Entity-ID-Tabelle und Klimaanlagen-Details stehen in
 `custom_components/fridolin_display/README.md`; die Karte hat ihre
@@ -339,8 +340,10 @@ der Übersichtsseite erreichbar ist (LVGL `top_layer:`):
   mehr gebraucht, da kein `hass.http`-Zugriff mehr). **Breaking Change**
   für Alt-Installationen: die alte Ressourcen-URL
   `/fridolin_display/fridolin-nivellierung-card.js` funktioniert nicht
-  mehr, einmalig auf die neue Ressource aus `rv-leveling-card` umstellen
-  (Karten-YAML/`type:` bleibt unverändert).
+  mehr, einmalig auf die neue Ressource aus `rv-leveling-card` umstellen.
+  (`type:` in der Karten-YAML blieb bei dieser Auslagerung noch
+  unverändert - wurde erst später, in `rv-leveling-card` 2.0.0, auf
+  `rv-leveling-card` umbenannt, siehe oben.)
 - ✅ GitHub Action (`.github/workflows/validate.yml`) validiert bei jedem
   Push/PR: `esphome config` + echter `esphome compile` für beide
   YAML-Dateien, Python-Syntax + JSON-Validität der Integration, sowie
