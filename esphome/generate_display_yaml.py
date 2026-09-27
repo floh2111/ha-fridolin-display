@@ -10,13 +10,20 @@ Funktionsweise: wohnwagen-display.yaml selbst dient als "Block-Bibliothek".
 Die fuenf Seiten-Bloecke (tile_uebersicht/tile_licht/tile_heizung/
 tile_nivellierung/tile_kuehlbox) innerhalb der lvgl: -> pages: -> tiles:
 Liste werden per Markierungs-Zeilen ("- id: tile_xxx", plus die
-Kommentarzeilen direkt davor) erkannt und als Rohtext extrahiert. Alles
-ausserhalb dieser Liste (Hardware, WLAN, Wetter-System, Kuehlbox-BLE,
-Nivellierungs-Sensorik, Einstellungen-Overlay, Bild-Assets, ...) bleibt
-unveraendert - der Seitenplan steuert bisher NUR, welche der fuenf
-Bloecke in welcher Reihenfolge/mit welchem Titel in die tiles:-Liste
-kommen, nicht deren Inhalt (siehe CLAUDE.md, "Seitenplan / Seiten-
-Baukasten" fuer den Stand/die Grenzen).
+Kommentarzeilen direkt davor) erkannt und als Rohtext extrahiert und laut
+Plan neu zusammengesetzt (Reihenfolge/Titel).
+
+Fehlt ein Seitentyp im Plan (light/climate/fridge - siehe
+REMOVE_ITEM_ANCHORS/STRIP_SUBKEY_ANCHORS), werden zusaetzlich dessen im
+Rest der Datei VERSTREUTE Definitionen entfernt (HA-Spiegel-Sensoren,
+Sync-Scripts, bei fridge die komplette Tuya-BLE-Anbindung) - sonst
+referenzieren sie nach dem Entfernen des tile_*-Blocks nicht mehr
+existierende Widget-IDs (Compile-Fehler). overview und leveling muessen
+weiterhin immer im Plan enthalten sein (siehe REQUIRED_PAGE_TYPES fuer
+die Begruendung). Alles andere in der Datei (Hardware, WLAN,
+Wetter-System, Einstellungen-Overlay, Bild-Assets, ...) bleibt
+unveraendert. Siehe CLAUDE.md, "Seitenplan / Seiten-Baukasten" fuer den
+genauen Stand/die Grenzen.
 
 Aufruf:
     python3 generate_display_yaml.py --plan page_plan.json --out wohnwagen-display.yaml
@@ -55,6 +62,89 @@ TILE_INDENT = " " * 14
 
 TITLE_LINE_RE = re.compile(r'^(\s*text:\s*)"([^"]*)"(\s*)$')
 COLUMN_LINE_RE = re.compile(r"^(\s*column:\s*)\d+(\s*)$")
+
+# Einrueckung, auf der die Top-Level-Listenelemente in Sektionen wie
+# select:/number:/switch:/sensor:/text_sensor:/script:/button:/
+# tuya_ble_node: beginnen ("  - platform: ..." bzw. "  - id: ...").
+ITEM_INDENT = 2
+
+# Seitentypen, die nicht in overview/leveling behandelt werden (siehe
+# unten), haben neben ihrem tile_*-Block noch weitere, im Rest der Datei
+# VERSTREUTE Definitionen (HA-Spiegel-Sensoren + Sync-Script fuer light/
+# climate; die komplette Tuya-BLE-Anbindung fuer fridge) - die referenzieren
+# Widget-IDs aus dem jeweiligen tile_*-Block und muessen mit entfernt
+# werden, wenn die Seite im Plan fehlt, sonst "Couldn't find ID" beim
+# Kompilieren. Jeder Eintrag ist eine Regex, die IRGENDEINE Zeile
+# innerhalb des zu entfernenden Elements eindeutig identifiziert - das
+# umschliessende Element (naechste "  - " Zeile davor, naechstes
+# Element/Sektionsende danach) wird automatisch ermittelt (siehe
+# _find_item_bounds).
+# Bewusst exakt 4 Leerzeichen (Einrueckung eines direkten Feldes eines
+# Listen-Elements, "  - platform: x" + "    id: y") statt "\s*" - manche
+# dieser IDs tauchen auch VERSCHACHTELT in Lambdas/Aktionen anderer
+# Elemente auf (z.B. "id: kb_ziel" innerhalb von kb_ziel_auswahl's
+# set_action), "\s*" wuerde dort faelschlich zuschlagen und auf das
+# falsche (umschliessende) Element zurueckfallen.
+_FIELD_INDENT = " " * (ITEM_INDENT + 2)
+
+REMOVE_ITEM_ANCHORS: dict[str, list[re.Pattern]] = {
+    "light": [re.compile(rf"^{_FIELD_INDENT}id: ha_licht_{n}\s*$") for n in range(1, 5)]
+    + [re.compile(r"^\s*- id: sync_lichter\s*$")],
+    "climate": [
+        re.compile(rf"^{_FIELD_INDENT}id: ha_heizung_modus\s*$"),
+        re.compile(rf"^{_FIELD_INDENT}id: ha_klima_preset\s*$"),
+        re.compile(rf"^{_FIELD_INDENT}id: ha_zieltemperatur\s*$"),
+        re.compile(rf"^{_FIELD_INDENT}id: ha_klima_ist\s*$"),
+        re.compile(r"^\s*- id: sync_klima\s*$"),
+    ],
+    "fridge": [
+        re.compile(r"^\s*- id: g_kb_letzte\s*$"),  # Global, nur fuer die Kuehlbox-Anzeige
+        re.compile(r"^\s*- id: kuehlbox\s*$"),  # tuya_ble_node: Geraet selbst
+        re.compile(rf"^{_FIELD_INDENT}id: kb_modus_sel\s*$"),
+        re.compile(rf"^{_FIELD_INDENT}id: kb_batt_sel\s*$"),
+        re.compile(rf"^{_FIELD_INDENT}id: kb_ziel_auswahl\s*$"),
+        re.compile(rf"^{_FIELD_INDENT}id: kb_ziel\s*$"),
+        re.compile(rf"^{_FIELD_INDENT}id: kb_power\s*$"),
+        re.compile(rf"^{_FIELD_INDENT}id: kb_ist\s*$"),
+        re.compile(rf'^{_FIELD_INDENT}name: "Kuehlbox Batterie"\s*$'),
+        re.compile(rf'^{_FIELD_INDENT}name: "Kuehlbox Spannung"\s*$'),
+        re.compile(r"^\s*- id: sync_kuehlbox\s*$"),
+        # interval:-Trigger, der sync_kuehlbox alle 10s aufruft (eigenes,
+        # von "id: sync_kuehlbox" getrenntes Element - siehe interval:-
+        # Sektion; "10s" ist an dieser Stelle eindeutig)
+        re.compile(r"^\s*- interval: 10s\s*$"),
+    ],
+}
+
+# Nivellierung ist ein Sonderfall: die beiden Neigungs-Sensoren
+# (neigung_links_rechts/neigung_vorne_hinten) speisen auch die
+# HA-Sensor-Entities hinter der Lovelace-Karte (rv-leveling-card) - die
+# sollen unabhaengig von der Display-Seite weiter funktionieren. Nur ihr
+# on_value:-Unterblock (der die tile_nivellierung-Widgets aktualisiert)
+# wird entfernt, nicht der ganze Sensor.
+STRIP_SUBKEY_ANCHORS: dict[str, list[tuple[re.Pattern, str]]] = {
+    "leveling": [
+        (re.compile(rf"^{_FIELD_INDENT}id: neigung_links_rechts\s*$"), "on_value"),
+        (re.compile(rf"^{_FIELD_INDENT}id: neigung_vorne_hinten\s*$"), "on_value"),
+    ],
+}
+
+# Seitentypen, deren verstreute Abhaengigkeiten (noch) nicht erfasst sind -
+# ein Plan ohne diese Typen wird abgelehnt statt eine kaputte Datei zu
+# erzeugen.
+#   - overview: komplettes Wettersystem, Uhrzeit, Standort - viele, wenig
+#     klar abgrenzbare Abhaengigkeiten, ausserdem die "Startseite" (ein
+#     Plan ohne sie ist ein Sonderfall, der bisher als nicht sinnvoll
+#     eingestuft wurde, siehe CLAUDE.md).
+#   - leveling: die Sensoren selbst waeren einfach zu entfernen (siehe
+#     STRIP_SUBKEY_ANCHORS), ABER der Wohnwagen/Wohnmobil-Umschalter auf
+#     der Einstellungsseite (btn_fahrzeug_*, sync_fahrzeugtyp-Script,
+#     img_wohnmobil-Bild-Asset) ergibt ohne die Nivellierungs-Seite keinen
+#     Sinn mehr und muesste ebenfalls entfernt werden - das liegt aber
+#     TEILWEISE IM FOOTER (Einstellungen-Overlay), den strip_page_fragments
+#     bisher nicht anfasst (nur den Header). Bis das gebaut ist, bleibt
+#     leveling Pflicht.
+REQUIRED_PAGE_TYPES = {"overview", "leveling"}
 
 
 class ParseError(RuntimeError):
@@ -153,10 +243,150 @@ def set_title(block_text: str, title: str) -> str:
     raise ParseError("Block hat keine Titel-Zeile (text: \"...\") gefunden")
 
 
+def _find_item_bounds(lines: list[str], anchor_idx: int) -> tuple[int, int]:
+    """Start/Ende (Zeilenindizes, [start, end)) des Top-Level-Elements, das
+    die Zeile bei anchor_idx enthaelt (Einrueckung ITEM_INDENT, siehe oben)."""
+    item_re = re.compile(rf"^ {{{ITEM_INDENT}}}- ")
+    comment_re = re.compile(rf"^ {{{ITEM_INDENT}}}###")
+
+    start = None
+    for i in range(anchor_idx, -1, -1):
+        if item_re.match(lines[i]):
+            start = i
+            break
+    if start is None:
+        raise ParseError(f"Kein Element-Start vor Zeile {anchor_idx + 1} gefunden")
+
+    j = start - 1
+    while j >= 0 and comment_re.match(lines[j]):
+        start = j
+        j -= 1
+
+    end = len(lines)
+    for i in range(anchor_idx + 1, len(lines)):
+        line = lines[i]
+        if line.strip() == "":
+            continue
+        indent = len(line) - len(line.lstrip(" "))
+        if indent <= ITEM_INDENT:
+            end = i
+            break
+    return start, end
+
+
+def _find_subkey_bounds(lines: list[str], item_start: int, item_end: int, subkey: str) -> tuple[int, int]:
+    """Start/Ende eines verschachtelten Schluessels (z.B. 'on_value:')
+    innerhalb eines per _find_item_bounds gefundenen Elements."""
+    key_re = re.compile(rf"^(\s*){re.escape(subkey)}:\s*$")
+    for i in range(item_start, item_end):
+        m = key_re.match(lines[i])
+        if not m:
+            continue
+        key_indent = len(m.group(1))
+        end = item_end
+        for j in range(i + 1, item_end):
+            line = lines[j]
+            if line.strip() == "":
+                continue
+            indent = len(line) - len(line.lstrip(" "))
+            if indent <= key_indent:
+                end = j
+                break
+        return i, end
+    raise ParseError(f"Schluessel {subkey!r} nicht im Element gefunden (Zeilen {item_start + 1}-{item_end})")
+
+
+_BARE_TOP_LEVEL_KEY_RE = re.compile(r"^(\w+):\s*$")
+
+
+def _maybe_absorb_empty_parent_key(lines: list[str], start: int, end: int) -> tuple[int, int]:
+    """Wenn das entfernte Element das EINZIGE Kind einer eigenen Top-Level-
+    Sektion ist (z.B. "tuya_ble_node:\\n  - id: kuehlbox\\n    ..."), auch
+    die jetzt leere Sektions-Kopfzeile mit entfernen - eine Sektion ohne
+    jedes Element ist bei manchen ESPHome-Komponenten ungueltig (leeres
+    Dict statt leerer Liste)."""
+    if start == 0 or not _BARE_TOP_LEVEL_KEY_RE.match(lines[start - 1]):
+        return start, end
+    # Steht nach dem entfernten Element sofort wieder eine Zeile ohne
+    # Einrueckung (naechste Sektion/Datei-Ende), war dies das einzige Kind.
+    if end >= len(lines) or (lines[end].strip() and not lines[end].startswith(" ")):
+        return start - 1, end
+    return start, end
+
+
+def strip_page_fragments(header: str, missing_types: set[str]) -> str:
+    """Entfernt die verstreuten Sensor-/Script-Fragmente aller Seitentypen,
+    die NICHT im Seitenplan vorkommen, aus dem statischen Datei-Kopf -
+    sonst referenzieren sie nach dem Entfernen des zugehoerigen tile_*-
+    Blocks nicht mehr existierende Widget-IDs (Compile-Fehler)."""
+    lines = header.splitlines(keepends=True)
+    spans: list[tuple[int, int]] = []
+
+    def _find_unique(anchor_re: re.Pattern, page_type: str) -> int:
+        matches = [i for i, line in enumerate(lines) if anchor_re.match(line)]
+        if len(matches) == 1:
+            return matches[0]
+        if not matches:
+            raise ParseError(
+                f"Anker {anchor_re.pattern!r} fuer Seitentyp {page_type!r} nicht "
+                "gefunden - wurde wohnwagen-display.yaml so veraendert, dass "
+                "REMOVE_ITEM_ANCHORS/STRIP_SUBKEY_ANCHORS nicht mehr stimmen?"
+            )
+        raise ParseError(
+            f"Anker {anchor_re.pattern!r} fuer Seitentyp {page_type!r} ist mehrdeutig "
+            f"({len(matches)} Treffer bei Zeilen {[m + 1 for m in matches]}) - Anker "
+            "muss eindeutig sein, sonst wird versehentlich das falsche Element entfernt."
+        )
+
+    for page_type in missing_types:
+        for anchor_re in REMOVE_ITEM_ANCHORS.get(page_type, []):
+            idx = _find_unique(anchor_re, page_type)
+            item_start, item_end = _find_item_bounds(lines, idx)
+            spans.append(_maybe_absorb_empty_parent_key(lines, item_start, item_end))
+
+        for anchor_re, subkey in STRIP_SUBKEY_ANCHORS.get(page_type, []):
+            idx = _find_unique(anchor_re, page_type)
+            item_start, item_end = _find_item_bounds(lines, idx)
+            spans.append(_find_subkey_bounds(lines, item_start, item_end, subkey))
+
+    spans.sort()
+    for a, b in zip(spans, spans[1:]):
+        if a[1] > b[0]:
+            raise ParseError(f"Ueberlappende Faegmente beim Entfernen: {a} und {b}")
+
+    keep = []
+    cursor = 0
+    for start, end in spans:
+        keep.append("".join(lines[cursor:start]))
+        cursor = end
+    keep.append("".join(lines[cursor:]))
+    return "".join(keep)
+
+
 def generate(plan: list[dict], source_text: str | None = None) -> str:
     """Baut die komplette YAML-Datei aus Seitenplan + Block-Bibliothek."""
     source_text = source_text if source_text is not None else SOURCE_FILE.read_text()
     header, blocks, footer = split_source(source_text)
+
+    plan_types = {page["type"] for page in plan}
+    missing_required = REQUIRED_PAGE_TYPES - plan_types
+    if missing_required:
+        raise ParseError(
+            f"Seitentyp(en) {sorted(missing_required)} muessen immer im Plan "
+            "enthalten sein (verstreute Abhaengigkeiten noch nicht erfasst, "
+            "siehe CLAUDE.md 'Seitenplan / Seiten-Baukasten')."
+        )
+    missing_types = set(blocks) - plan_types
+    unsupported_removal = missing_types - set(REMOVE_ITEM_ANCHORS) - set(STRIP_SUBKEY_ANCHORS)
+    if unsupported_removal:
+        raise ParseError(
+            f"Seitentyp(en) {sorted(unsupported_removal)} fehlen im Plan, aber der "
+            "Generator kennt noch keine Aufraeum-Regeln dafuer (siehe "
+            "REMOVE_ITEM_ANCHORS/STRIP_SUBKEY_ANCHORS) - Weglassen wuerde "
+            "vermutlich eine nicht kompilierende Datei erzeugen."
+        )
+    if missing_types:
+        header = strip_page_fragments(header, missing_types)
 
     rendered_tiles = []
     for column, page in enumerate(plan):

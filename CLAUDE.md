@@ -105,41 +105,49 @@ bestehenden Seite nicht (wie bisher).
   wie vorher (gleiche Entity-IDs), da `DEFAULT_PAGE_PLAN` nur
   Legacy-Instanzen enthält.
 
-**YAML-Generator** (`esphome/generate_display_yaml.py`) – Milestone 1
-fertig und verifiziert:
+**YAML-Generator** (`esphome/generate_display_yaml.py`) – Milestone 1 +
+"Seiten weglassen" fertig und verifiziert:
 - Funktionsweise: `wohnwagen-display.yaml` selbst dient als
   "Block-Bibliothek". Die 5 `tile_*`-Blöcke in der `lvgl: -> pages: ->
   tiles:`-Liste werden anhand der `- id: tile_xxx`-Marker (plus ihrer
   `###`-Kommentarzeilen) per Regex erkannt und als Rohtext extrahiert;
-  alles andere in der Datei (Hardware, WLAN, Wetter-System,
-  Einstellungen-Overlay, Kühlbox-BLE, Nivellierungs-Sensorik) bleibt
-  unverändert. `generate(plan)` setzt pro Block `column:` (Position im
-  Wisch-Karussell) und ersetzt die erste `text: "..."`-Zeile (Titel) -
+  `generate(plan)` setzt pro Block `column:` (Position im Wisch-
+  Karussell) und ersetzt die erste `text: "..."`-Zeile (Titel) -
   Übersicht bleibt unangetastet (hat keine einzelne Titel-Zeile).
-- **Verifiziert**: `--check` baut aus der aktuellen Datei selbst einen
-  Plan und vergleicht die Neuerzeugung Byte für Byte mit dem Original
-  (läuft jetzt auch in CI, `esphome-config`-Job) - besteht.
-  Reihenfolge-Ändern + Umbenennen (alle 5 Seiten enthalten, nur
-  umsortiert/umbenannt) wurde mit echtem `esphome compile` getestet und
-  kompiliert erfolgreich, RAM/Flash-Verbrauch identisch zum Original.
-- **Bekannte Grenze (mit echtem Compile-Fehler nachgewiesen): Seiten
-  komplett WEGLASSEN funktioniert noch nicht.** Jede Seite hat neben
-  ihrem `tile_*`-Block noch weitere, im Rest der Datei VERSTREUTE
-  Definitionen (z.B. Kühlbox: `select:`/`number:`/`switch:`/`sensor:`-
-  Einträge für `kb_*` plus das `sync_kuehlbox`-Script - über mehrere
-  hundert Zeilen verteilt, nicht neben dem `tile_kuehlbox`-Block). Lässt
-  man eine Seite im Plan weg, bleiben deren Scripts/Sensoren trotzdem in
-  der Datei und referenzieren dann nicht mehr existierende Widget-IDs
-  (`Couldn't find ID 'arc_kb'` usw.) - Compile-Fehler. Um Seiten wirklich
-  entfernen zu können, müssten diese verstreuten Fragmente pro Seiten-Typ
-  zusätzlich erkannt und mit extrahiert werden (deutlich mehr
-  Parser-Arbeit als die bisherige, zusammenhängende `tile_*`-Block-
-  Extraktion).
-- Mehrfach-Instanzen (2. Klimaanlage) im Generator: **noch nicht
+- **Seiten weglassen**: `REMOVE_ITEM_ANCHORS`/`STRIP_SUBKEY_ANCHORS`
+  (im Skript) listen für `light`/`climate`/`fridge` alle VERSTREUTEN
+  Definitionen (HA-Spiegel-`text_sensor`s, Sync-Scripts, bei `fridge`
+  zusätzlich die komplette Tuya-BLE-Anbindung: `tuya_ble_node:`,
+  `select:`/`number:`/`switch:`/`sensor:`-Einträge, ein `interval:`-
+  Trigger) - fehlt einer dieser Typen im Plan, werden seine Fragmente
+  per Regex-Anker + automatischer Element-Grenzenerkennung
+  (`_find_item_bounds`) aus dem Header entfernt, inkl. Spezialfall
+  "jetzt leerer Elternschlüssel" (leeres `tuya_ble_node:` ohne Kinder
+  ist ungültig, wird mit entfernt). Jeder Anker muss GENAU EINMAL
+  matchen (`_find_unique`), sonst bricht der Generator kontrolliert ab,
+  statt versehentlich das falsche Element zu löschen (ist beim Bauen
+  zweimal tatsächlich passiert, siehe Git-Historie/Commit).
+- **`leveling` ist weiterhin Pflicht** (`REQUIRED_PAGE_TYPES`): die
+  Neigungssensoren selbst wären einfach zu entfernen, aber der
+  Wohnwagen/Wohnmobil-Umschalter auf der Einstellungsseite (liegt
+  TEILWEISE IM FOOTER, den `strip_page_fragments` bisher nicht anfasst)
+  hängt an der Nivellierungs-Seite. `overview` bleibt aus denselben
+  Gründen wie zuvor Pflicht.
+- **Verifiziert** (alle mit echtem `esphome compile`, nicht nur
+  `config`):
+  - `--check`-Selbsttest (Byte-für-Byte-Reproduktion) - läuft in CI.
+  - Reihenfolge ändern + Umbenennen (alle 5 Seiten) - kompiliert,
+    RAM/Flash identisch zum Original.
+  - **Kühlbox-Seite weglassen** - kompiliert erfolgreich, RAM/Flash
+    sogar leicht kleiner (46,2 % / 35,2 % statt 46,7 % / 35,4 %) -
+    ESPHome meldet passend "Components removed (number, tuya_ble_node)".
+  - Licht-Seite weglassen, Klimaanlagen-Seite weglassen - beide
+    bestehen `esphome config` (vollen Compile-Durchlauf nicht extra
+    wiederholt, gleiches Muster wie Kühlbox).
+- Mehrfach-Instanzen (2. Klimaanlage) im Generator: **weiterhin nicht
   unterstützt** - würde Widget-ID-Kollisionen geben, wenn derselbe Block
-  zweimal eingefügt wird (alle `arc_klima_*`/`btn_klima_*`/etc.-IDs
-  müssten pro Instanz suffixiert werden). Nur die Python/HA-Seite
-  (Entities) unterstützt Mehrfach-Instanzen bereits, siehe oben.
+  zweimal eingefügt wird. Nur die Python/HA-Seite (Entities) unterstützt
+  Mehrfach-Instanzen bereits, siehe oben.
 - `esphome/page_plan.example.json` reproduziert nachweislich exakt das
   aktuelle Display (Standardtitel, Original-Reihenfolge).
 - Nutzung aktuell manuell: Seitenplan (aus dem Options-Flow-JSON-Feld
@@ -149,8 +157,11 @@ fertig und verifiziert:
   (Download-Button in der Integration o.ä.) bisher vorhanden.
 
 **Noch offen**:
-1. Seiten wirklich weglassen können (siehe "Bekannte Grenze" oben) -
-   verstreute Fragmente pro Seiten-Typ mit extrahieren.
+1. `leveling` weglassbar machen: `strip_page_fragments` müsste auch den
+   FOOTER bearbeiten können (Wohnwagen/Wohnmobil-Umschalter-UI im
+   Einstellungen-Overlay), plus `g_fahrzeugtyp_wohnmobil`-Global,
+   `sync_fahrzeugtyp`-Script, `on_boot`-Aufruf und das
+   `img_wohnmobil`-Bild-Asset im Header entfernen.
 2. Mehrfach-Instanzen (2. Klimaanlage etc.) im Generator selbst -
    Widget-IDs pro Instanz suffixieren.
 3. Neuer Seiten-Typ `sensors` (generische Sensor-Anzeige): Datenmodell
