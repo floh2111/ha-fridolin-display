@@ -286,6 +286,9 @@ esphome/fridolin-vorschau.html       – interaktive Browser-Vorschau der UI (au
 esphome/images/weather/*.svg         – 16 Wetter-Icons (von Florian geliefert), von ESPHome per resvg gerastert
 esphome/images/wasserwaage.svg       – Wohnwagen-Grundriss + Kreuzlibelle für die Nivellierungs-Seite
 esphome/images/wohnmobil.svg         – Alternative Grafik (Wohnmobil), gleiche Röhren-Koordinaten wie wasserwaage.svg
+esphome/images/zahnrad.svg           – selbst gezeichnetes Zahnrad-Icon für den Einstellungen-Knopf (kein Font-Glyph, siehe "Wichtige technische Details")
+esphome/generate_display_yaml.py     – Seitenplan-JSON -> wohnwagen-display.yaml (siehe "Seitenplan / Seiten-Baukasten")
+esphome/apply_page_plan_from_ha.py   – zieht den Seitenplan direkt per HA-REST-API und ruft generate_display_yaml.py in einem Rutsch auf
 custom_components/fridolin_display/  – die Home-Assistant-Integration (ConfigFlow, OptionsFlow, Coordinator, Entities)
 .github/workflows/validate.yml       – CI: `esphome config` + echter `esphome compile` beider Configs, hassfest für die Integration
 ```
@@ -303,7 +306,13 @@ der Übersichtsseite erreichbar ist (LVGL `top_layer:`):
 1. **Übersicht** – vier Felder: oben links aktuelles Wetter + Stundenvorhersage
    (4 Slots, mit echten Wetter-Icons), oben rechts Uhrzeit/Datum/Standort +
    Morgen-Ausblick. Unten bewusst frei gelassen (für später). Zahnrad-Button
-   oben führt zu "Einstellungen".
+   oben führt zu "Einstellungen" (eigenes SVG-Icon `img_zahnrad`, kein
+   Font-Glyph). Oben links zusätzlich ein Verbindungs-Hinweis
+   (`box_verbindung_verloren`, roter Punkt + "Keine Verbindung"), nur
+   sichtbar, wenn die API-Verbindung zu Home Assistant unterbrochen ist
+   (`api: on_client_connected`/`on_client_disconnected`) - sonst würden
+   eingefrorene Wetter-/Licht-/Klimaanlage-Werte kommentarlos als aktuell
+   erscheinen.
 2. **Licht** – An/Aus-Schalter für bis zu 4 konfigurierte Lichter, unbelegte
    Slots werden ausgeblendet.
 3. **Klimaanlage** (`tile_heizung`, Entity weiterhin `climate.fridolin_heizung`)
@@ -403,7 +412,14 @@ der Übersichtsseite erreichbar ist (LVGL `top_layer:`):
   Dashboard-Repo bei Florian installiert/in einem echten HA-Dashboard
   gerendert**, und die Standard-Entity-IDs sind jetzt bewusst leer
   (kein Fridolin-spezifischer Rate-Default mehr, da das Repo öffentlich
-  für beliebige Nutzer ist) – müssen im Karteneditor gesetzt werden.
+  für beliebige Nutzer ist) – müssen im Karteneditor gesetzt werden. Karte
+  wurde inzwischen umbenannt (`rv-leveling-card` statt
+  `fridolin-nivellierung-card`, Version 2.2.0, i18n für 8 Sprachen) und
+  ein PR gegen `hacs/default` ist offen
+  ([hacs/default#11341](https://github.com/hacs/default/pull/11341)), um
+  sie ganz ohne Custom-Repository-Eintrag im offiziellen HACS-Store
+  auffindbar zu machen – **noch nicht gemerged**, Status per
+  `gh pr view 11341 --repo hacs/default --json state,mergedAt` prüfbar.
 - ⏳ **Wohnmobil-Grafik auf dem Display** (`img_wohnmobil`,
   Einstellungen-Umschalter) ist neu und nur lokal kompiliert – noch nicht
   auf echter Hardware gesehen.
@@ -411,10 +427,39 @@ der Übersichtsseite erreichbar ist (LVGL `top_layer:`):
   Lichtern/Klimaanlage/Wetterdaten *im Livebetrieb* durchgetestet (nur
   Kühlbox + Neigungssensor bestätigt) – der Rest nur syntaktisch/per
   Compile validiert.
-- ❌ Umlaute (ä, ö, ü, Ü) fehlen vermutlich in den eingebauten LVGL-Schriften;
-  neuere Seiten nutzen deshalb ASCII-Schreibweise ("Kuehlbox" statt
-  "Kühlbox" o.ä.). Bei Kästchen im Display eine eigene `font:` mit
-  Umlauten einbinden.
+- ✅ **Umlaute behoben**: eigene `font:`-Deklaration (Google Font
+  Montserrat über ESPHomes Font-Renderer statt LVGLs eingebauter
+  ASCII-only-Bitmap-Fonts, siehe "Wichtige technische Details") unter
+  denselben IDs (`montserrat_14/20/28/40`) wie vorher - ä/ö/ü/Ä/Ö/Ü/ß
+  erscheinen jetzt korrekt, die ASCII-Ersatzschreibweise "Kuehlbox" ist
+  entfallen (jetzt "Kühlbox", auch in den HA-Entity-Namen). Nur lokal
+  kompiliert, noch nicht auf echter Hardware gesehen.
+- ✅ **Verbindungs-Hinweis auf der Übersichtsseite**: `box_verbindung_verloren`
+  wird sichtbar, sobald die API-Verbindung zu Home Assistant abbricht
+  (`api: on_client_connected`/`on_client_disconnected`), damit eingefrorene
+  Wetter-/Licht-/Klimaanlage-Werte nicht unbemerkt als aktuell erscheinen.
+  Start-Zustand optimistisch "verbunden". Nur lokal kompiliert.
+- ✅ **`safe_mode:` ergänzt** (zusätzlich zu ESP-IDFs ohnehin schon aktivem
+  App-Rollback über die zwei OTA-Partitionen app0/app1, siehe "Wichtige
+  technische Details"): nach 5 erfolglosen Boots in Folge (jeweils ohne
+  WLAN/API-Verbindung innerhalb von 2 Minuten) startet das ESP in einen
+  minimalen WLAN+OTA-Modus, über den sich per Netzwerk wieder eine
+  funktionierende Firmware aufspielen lässt.
+- ✅ **`esphome/apply_page_plan_from_ha.py`**: zieht den Seitenplan direkt
+  per Home-Assistant-REST-API (Diagnose-Endpunkt + automatische
+  Config-Entry-Suche über einen Long-Lived Access Token) und ruft
+  `generate_display_yaml.py` in einem Rutsch auf - erspart den bisherigen
+  manuellen Weg "Diagnose herunterladen" -> Datei speichern -> Generator
+  von Hand aufrufen. Dabei auch `_load_plan`/`extract_page_plan()` im
+  Generator selbst korrigiert: erkennt jetzt zusätzlich das ECHTE Format
+  von HAs eingebautem "Diagnose herunterladen"-Knopf (Seitenplan liegt
+  dort unter `data.page_plan`, umschlossen von `home_assistant`/
+  `custom_components`/`integration_manifest` - vorher wurde nur ein
+  Seitenplan auf oberster Ebene erkannt, was beim echten HA-Download real
+  nie zugetroffen hätte). End-to-End gegen einen selbstgebauten
+  Mock-HTTP-Server getestet (Entry-Suche, Diagnose-Abruf, Token-Fehler,
+  Verbindungsfehler) - kein echtes Home Assistant nötig für den Test,
+  Byte-für-Byte-Vergleich mit dem `--check`-Selbsttest bestätigt.
 
 ## Bekannte Einschränkungen
 
@@ -442,6 +487,35 @@ der Übersichtsseite erreichbar ist (LVGL `top_layer:`):
 - `manifest.json`'s `documentation`-Feld darf bei Custom-Integrationen
   **nicht** auf `home-assistant.io` zeigen (hassfest lehnt das ab) –
   muss auf die eigene Repo-URL zeigen.
+- **LVGL-Fonts unter ESPHome**: die "magischen" Kurznamen wie
+  `montserrat_14/20/28/40` sind nur ein Fallback - referenziert man sie in
+  `text_font:`, OHNE sie selbst zu deklarieren, generiert ESPHome
+  automatisch LVGLs eingebaute Bitmap-Fonts (reines ASCII, keine Umlaute).
+  Deklariert man dagegen selbst einen `font:`-Eintrag mit exakt dieser ID
+  (z.B. `file: "gfonts://Montserrat", id: montserrat_14, size: 14`), nutzt
+  LVGL automatisch diesen statt den eingebauten Shortcut zu erzeugen -
+  gleiches Aussehen, aber mit frei waehlbarem `glyphs:`-Zeichensatz. Ein
+  `glyphs:`-Eintrag ERSETZT die Default-ASCII-Liste komplett statt sie zu
+  ergaenzen, deshalb muss man dort den vollen gewuenschten Zeichensatz
+  (ASCII + Umlaute + Sonderzeichen) explizit auflisten, am einfachsten als
+  YAML-Anchor (`&name`) einmal definiert und in den anderen Font-Groessen
+  per `*name` wiederverwendet. Emoji-artige Symbole wie "⚙" sind in
+  normalen Text-Schriftarten (auch Google Fonts wie Montserrat) NICHT
+  enthalten und fuehren zu einem klaren Compile-Fehler ("missing 1 glyph")
+  statt eines stillen Fallbacks - fuer sowas lieber ein eigenes kleines
+  SVG-Icon bauen (siehe `images/zahnrad.svg`) statt nach einer Schriftart
+  mit dem passenden Glyph zu suchen.
+- **Der YAML-Generator hat eigene, hartkodierte Text-Anker** (z.B.
+  `name: "Kühlbox Batterie"` in `REMOVE_ITEM_ANCHORS`/Aequivalenten in
+  `generate_display_yaml.py`), die exakt zum Text in
+  `wohnwagen-display.yaml` passen muessen. Aendert man sichtbaren Text in
+  der YAML (z.B. einen Namen/Titel), IMMER mit `grep` nach dem alten Text
+  in `generate_display_yaml.py` suchen und die Anker mit aktualisieren -
+  sonst bricht `strip_page_fragments()` beim Seiten-Weglassen mit einem
+  klaren `ParseError` ab (kein stiller Fehler, aber leicht zu uebersehen,
+  ist beim Umbenennen "Kuehlbox" -> "Kühlbox" in dieser Session genau so
+  passiert und wurde erst durch den echten `--check`/`--plan`-Testlauf
+  gefunden).
 - **ESPHome-Board-Wechsel** (falls nochmal nötig): Das 800×480-Board
   braucht `ch422g:` als IO-Expander, `display: platform: mipi_rgb, model:
   ESP32-S3-TOUCH-LCD-7-800X480`, Backlight als einfacher `switch:
@@ -468,20 +542,22 @@ der Übersichtsseite erreichbar ist (LVGL `top_layer:`):
 2. Klimaanlagen-Seite gegen eine echte `climate`-Entity mit Heizen/Kühlen
    und Eco/Normal/Max-Presets testen; ggf. Preset-Namen anpassen, falls
    die echte Klimaanlage andere Bezeichnungen erwartet.
-3. `rv-leveling-card` als Custom Repository (Kategorie "Dashboard") zu
-   HACS hinzufügen, installieren, alte Dashboard-Ressource
+3. `rv-leveling-card` installieren: entweder jetzt schon als Custom
+   Repository (Kategorie "Dashboard") in HACS eintragen, oder auf den
+   Merge von [hacs/default#11341](https://github.com/hacs/default/pull/11341)
+   warten und dann ganz normal über die HACS-Suche installieren. Danach
+   alte Dashboard-Ressource
    (`/fridolin_display/fridolin-nivellierung-card.js`) durch die neue
    ersetzen, Entity-IDs im Karteneditor setzen (keine Vorbelegung mehr).
 4. Wohnwagen/Wohnmobil-Umschalter auf der Einstellungsseite des Displays
    auf echter Hardware testen (Grafik-Wechsel, Persistenz nach Neustart).
 5. Sobald das alles läuft: reales 800×480-Waveshare-Display besorgen,
-   verkabeln, `wohnwagen-display.yaml` flashen, komplette UI live testen.
-6. Ggf. Kleinigkeiten aus dem Livetest nachjustieren (Pinbelegung,
-   Timing, Layout, Umlaute/eigene Schriftart).
-7. **Seitenplan-YAML-Generator bauen** (siehe Abschnitt "Seitenplan /
-   Seiten-Baukasten" oben) – der nächste große Schritt für den
-   Seiten-Baukasten, aktuell wirkt der Seitenplan nur auf die
-   HA-Entity-Seite, noch nicht auf die tatsächliche Display-Firmware.
+   verkabeln, `wohnwagen-display.yaml` flashen, komplette UI live testen –
+   das betrifft inzwischen auch alles noch nicht auf echter Hardware
+   Gesehene: die neue Umlaut-Schriftart, den Verbindungs-Hinweis, den
+   Zahnrad-Icon-Button und `safe_mode:`.
+6. Ggf. Kleinigkeiten aus dem Livetest nachjustieren (Pinbelegung, Timing,
+   Layout).
 
 ## Ton/Stil-Hinweis
 

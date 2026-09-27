@@ -82,13 +82,49 @@ esp32:
 
 logger:
 
+### id: erlaubt on_client_connected/on_client_disconnected weiter unten,
+### um den Verbindungs-Hinweis auf der Übersichtsseite zu steuern (siehe
+### box_verbindung_verloren) - ohne staendiges Pollen, die Trigger feuern
+### direkt bei jeder Zustandsaenderung der API-Verbindung zu Home Assistant.
 api:
+  id: fridolin_api
   encryption:
     key: !secret fridolin_api_key
+  on_client_connected:
+    - lvgl.widget.update:
+        id: box_verbindung_verloren
+        hidden: true
+  on_client_disconnected:
+    - lvgl.widget.update:
+        id: box_verbindung_verloren
+        hidden: false
 
 ota:
   - platform: esphome
     password: !secret fridolin_ota_password
+
+### Zweite Sicherheitsebene fuer Flash-/OTA-Probleme (die erste ist bereits
+### automatisch aktiv, ganz ohne Konfiguration hier: ESP-IDFs eingebautes
+### App-Rollback ueber die zwei OTA-Partitionen app0/app1 - siehe
+### CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE in .esphome/build/.../sdkconfig.
+### Eine neu geflashte Firmware, die abstuerzt/neu startet ohne sich als
+### funktionsfaehig zu bestaetigen, wird vom Bootloader beim naechsten Boot
+### automatisch verworfen - zurueck zur vorherigen, funktionierenden
+### Partition, kein Zutun noetig).
+###
+### safe_mode: deckt den Fall ab, den das Bootloader-Rollback NICHT
+### abdeckt: eine Firmware, die zwar startet und laeuft, aber z.B. wegen
+### falscher WLAN-Zugangsdaten oder eines Konfigurationsfehlers nie WLAN/
+### API erreicht - ohne Absturz gibt es fuer den Bootloader nichts zu
+### erkennen. Nach mehreren erfolglosen Boots in Folge (jeweils ohne
+### mindestens boot_is_good_after WLAN/API-Verbindung) startet das ESP
+### stattdessen in einen minimalen Modus nur mit WLAN+OTA, ueber den sich
+### per Netzwerk wieder eine funktionierende Firmware aufspielen laesst -
+### auch wenn der Wohnwagen gerade nicht direkt zugaenglich ist.
+safe_mode:
+  num_attempts: 5
+  boot_is_good_after: 2min
+  reboot_timeout: 10min
 
 wifi:
   ssid: !secret fridolin_wifi_ssid
@@ -195,7 +231,7 @@ select:
   - platform: tuya_ble_node
     tuya_ble_node_id: kuehlbox
     dp_id: 103
-    name: "Kuehlbox Modus"
+    name: "Kühlbox Modus"
     id: kb_modus_sel
     options: ["MAX", "ECO"]
     on_value:
@@ -203,14 +239,14 @@ select:
   - platform: tuya_ble_node
     tuya_ble_node_id: kuehlbox
     dp_id: 104
-    name: "Kuehlbox Batterieschutz"
+    name: "Kühlbox Batterieschutz"
     id: kb_batt_sel
     options: ["L", "M", "H"]
     on_value:
       - script.execute: sync_kuehlbox
   ### Zieltemperatur als Dropdown für Home Assistant (-20 bis 20 °C)
   - platform: template
-    name: "Kuehlbox Zieltemperatur"
+    name: "Kühlbox Zieltemperatur"
     id: kb_ziel_auswahl
     optimistic: true
     options:
@@ -265,7 +301,7 @@ number:
   - platform: tuya_ble_node
     tuya_ble_node_id: kuehlbox
     dp_id: 114
-    name: "Kuehlbox Zieltemperatur Zahl"
+    name: "Kühlbox Zieltemperatur Zahl"
     id: kb_ziel
     internal: true
     unit_of_measurement: "°C"
@@ -295,6 +331,16 @@ interval:
 ### Fridolin-Display-Integration (icon-Schlüssel = Dateiname ohne .svg).
 ### ------------------------------------------------------------------
 image:
+  ### Zahnrad-Icon fuer den Einstellungen-Knopf (esphome/images/zahnrad.svg,
+  ### selbst gezeichnet) - ersetzt das Unicode-Zeichen "⚙", das in keiner
+  ### regulaeren Text-Schriftart (z.B. Montserrat) als Glyph enthalten ist.
+  - platform: file
+    id: img_zahnrad
+    file: images/zahnrad.svg
+    resize: 24x24
+    type: RGB565
+    transparency: alpha_channel
+
   ### Schematischer Wohnwagen-Grundriss mit Kreuzlibelle (siehe
   ### esphome/images/wasserwaage.svg), in nativer Auflösung gerastert
   ### (460x300, deckungsgleich mit dem SVG-viewBox) - die Blasen-Overlays
@@ -568,7 +614,7 @@ switch:
   - platform: tuya_ble_node
     tuya_ble_node_id: kuehlbox
     dp_id: 101
-    name: "Kuehlbox Power"
+    name: "Kühlbox Power"
     id: kb_power
     on_turn_on:
       - script.execute: sync_kuehlbox
@@ -758,7 +804,7 @@ sensor:
   - platform: tuya_ble_node
     tuya_ble_node_id: kuehlbox
     dp_id: 112
-    name: "Kuehlbox Temperatur"
+    name: "Kühlbox Temperatur"
     id: kb_ist
     unit_of_measurement: "°C"
     device_class: temperature
@@ -769,14 +815,14 @@ sensor:
   - platform: tuya_ble_node
     tuya_ble_node_id: kuehlbox
     dp_id: 123
-    name: "Kuehlbox Batterie"
+    name: "Kühlbox Batterie"
     unit_of_measurement: "%"
     device_class: battery
     state_class: measurement
   - platform: tuya_ble_node
     tuya_ble_node_id: kuehlbox
     dp_id: 122
-    name: "Kuehlbox Spannung"
+    name: "Kühlbox Spannung"
     unit_of_measurement: "V"
     device_class: voltage
     state_class: measurement
@@ -1087,6 +1133,44 @@ script:
           setzen(id(btn_klima_max), preset == "max");
 
 ### ------------------------------------------------------------------
+### Eigene Schriftart statt LVGLs eingebauter montserrat_14/20/28/40-
+### Bitmap-Fonts, damit deutsche Umlaute/ß/Sonderzeichen auf dem Display
+### erscheinen - die eingebauten LVGL-Fonts kennen nur reines ASCII. Die
+### frühere Ersatzschreibweise "Kuehlbox" (statt "Kühlbox") ist damit
+### ebenfalls entfallen. Gleiche Google-Font-Familie (Montserrat) wie vorher,
+### nur ueber ESPHomes eigenen Font-Renderer geladen statt LVGLs Bitmap-
+### Shortcut, das Erscheinungsbild bleibt dadurch identisch. Gleiche IDs
+### wie vorher (montserrat_14 usw.) - sobald ein Font mit passender ID
+### selbst deklariert ist, nutzt LVGL automatisch diese Deklaration statt
+### den eingebauten Shortcut zu erzeugen. Zeichensatz: ASCII + Umlaute/ß/
+### Grad/Plusminus/Gedankenstriche + Euro-Zeichen (fuer kuenftige sensors-
+### Seiten mit beliebigen, per Entity-Picker gewaehlten HA-Entity-Namen,
+### siehe config_flow.py). Das Zahnrad-Symbol fuer den Einstellungen-
+### Button ist bewusst KEIN Font-Glyph (normale Text-Schriftarten wie
+### Montserrat enthalten kein "⚙") - siehe stattdessen img_zahnrad weiter
+### unten (eigenes SVG-Icon).
+### ------------------------------------------------------------------
+font:
+  - file: "gfonts://Montserrat"
+    id: montserrat_14
+    size: 14
+    glyphs: &deutsche_zeichen
+      - ' !"#$%&''()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~'
+      - '°±ÄÖÜßäöü–—€'
+  - file: "gfonts://Montserrat"
+    id: montserrat_20
+    size: 20
+    glyphs: *deutsche_zeichen
+  - file: "gfonts://Montserrat"
+    id: montserrat_28
+    size: 28
+    glyphs: *deutsche_zeichen
+  - file: "gfonts://Montserrat"
+    id: montserrat_40
+    size: 40
+    glyphs: *deutsche_zeichen
+
+### ------------------------------------------------------------------
 ### LVGL-Oberfläche: 5 Seiten als Wisch-Karussell (tileview)
 ### Übersicht -> Licht -> Heizung -> Nivellierung
 ### ------------------------------------------------------------------
@@ -1128,6 +1212,41 @@ lvgl:
                       text_font: montserrat_20
                       align: TOP_MID
                       y: 10
+
+                  ### Verbindungs-Hinweis: nur sichtbar, wenn die API-Verbindung zu
+                  ### Home Assistant unterbrochen ist (siehe api: on_client_connected/
+                  ### on_client_disconnected weiter oben) - Wetter/Licht/Klimaanlage
+                  ### zeigen sonst kommentarlos nur noch den letzten bekannten Stand.
+                  ### Start-Zustand optimistisch "verbunden" (ausgeblendet), da die
+                  ### Verbindung normalerweise innerhalb weniger Sekunden nach dem
+                  ### Booten steht.
+                  - obj:
+                      id: box_verbindung_verloren
+                      align: TOP_LEFT
+                      x: 12
+                      y: 14
+                      width: 150
+                      height: 24
+                      hidden: true
+                      bg_opa: TRANSP
+                      border_opa: TRANSP
+                      layout:
+                        type: FLEX
+                        flex_flow: ROW
+                        flex_align_main: START
+                        flex_align_cross: CENTER
+                        pad_column: 6
+                      widgets:
+                        - obj:
+                            width: 12
+                            height: 12
+                            radius: 6
+                            bg_color: 0xF53B3B
+                            bg_opa: COVER
+                            border_opa: TRANSP
+                        - label:
+                            text: "Keine Verbindung"
+                            text_font: montserrat_14
 
                   ### Vier Felder: oben links Wetter + Stundenvorhersage, oben rechts
                   ### Uhrzeit/Datum/Standort + Morgen-Ausblick. Unten bleibt erstmal frei.
@@ -1317,8 +1436,8 @@ lvgl:
                       width: 40
                       height: 40
                       widgets:
-                        - label:
-                            text: "⚙"
+                        - image:
+                            src: img_zahnrad
                             align: CENTER
                       on_click:
                         - lvgl.widget.update:
@@ -1773,7 +1892,7 @@ lvgl:
                 dir: HOR
                 widgets:
                   - label:
-                      text: "Kuehlbox"
+                      text: "Kühlbox"
                       text_font: montserrat_28
                       align: TOP_MID
                       y: 16

@@ -42,6 +42,7 @@ import json
 import re
 import sys
 from pathlib import Path
+from typing import Any
 
 SOURCE_FILE = Path(__file__).parent / "wohnwagen-display.yaml"
 
@@ -112,7 +113,7 @@ REMOVE_ITEM_ANCHORS: dict[str, list[tuple[re.Pattern, int]]] = {
         (re.compile(r"^\s*- id: sync_klima\s*$"), ITEM_INDENT),
     ],
     "fridge": [
-        (re.compile(r"^\s*- id: g_kb_letzte\s*$"), ITEM_INDENT),  # Global, nur fuer die Kuehlbox-Anzeige
+        (re.compile(r"^\s*- id: g_kb_letzte\s*$"), ITEM_INDENT),  # Global, nur fuer die Kühlbox-Anzeige
         (re.compile(r"^\s*- id: kuehlbox\s*$"), ITEM_INDENT),  # tuya_ble_node: Geraet selbst
         (re.compile(rf"^{_FIELD_INDENT}id: kb_modus_sel\s*$"), ITEM_INDENT),
         (re.compile(rf"^{_FIELD_INDENT}id: kb_batt_sel\s*$"), ITEM_INDENT),
@@ -120,8 +121,8 @@ REMOVE_ITEM_ANCHORS: dict[str, list[tuple[re.Pattern, int]]] = {
         (re.compile(rf"^{_FIELD_INDENT}id: kb_ziel\s*$"), ITEM_INDENT),
         (re.compile(rf"^{_FIELD_INDENT}id: kb_power\s*$"), ITEM_INDENT),
         (re.compile(rf"^{_FIELD_INDENT}id: kb_ist\s*$"), ITEM_INDENT),
-        (re.compile(rf'^{_FIELD_INDENT}name: "Kuehlbox Batterie"\s*$'), ITEM_INDENT),
-        (re.compile(rf'^{_FIELD_INDENT}name: "Kuehlbox Spannung"\s*$'), ITEM_INDENT),
+        (re.compile(rf'^{_FIELD_INDENT}name: "Kühlbox Batterie"\s*$'), ITEM_INDENT),
+        (re.compile(rf'^{_FIELD_INDENT}name: "Kühlbox Spannung"\s*$'), ITEM_INDENT),
         (re.compile(r"^\s*- id: sync_kuehlbox\s*$"), ITEM_INDENT),
         # interval:-Trigger, der sync_kuehlbox alle 10s aufruft (eigenes,
         # von "id: sync_kuehlbox" getrenntes Element - siehe interval:-
@@ -750,7 +751,7 @@ def _plan_from_source_order(blocks_order: list[str]) -> list[dict]:
         "light": "Licht",
         "climate": "Klimaanlage",
         "leveling": "Nivellierung",
-        "fridge": "Kuehlbox",
+        "fridge": "Kühlbox",
     }
     return [{"type": t, "title": titles[t]} for t in blocks_order]
 
@@ -795,20 +796,37 @@ def run_check() -> int:
     return 1
 
 
-def _load_plan(path: Path) -> list[dict]:
-    """Laedt den Seitenplan aus einer JSON-Datei.
+def extract_page_plan(parsed: Any) -> list[dict]:
+    """Holt den Seitenplan aus geparstem JSON, gleich in welcher der drei
+    Formen es vorliegt:
 
-    Akzeptiert sowohl die rohe Seitenplan-Liste als auch den Diagnose-
-    Export der Integration (custom_components/fridolin_display/
-    diagnostics.py, "Diagnose herunterladen" in Home Assistant) - der
-    hat den Plan unter dem Schluessel "page_plan", umgeben von weiteren
-    Diagnose-Daten. So kann der heruntergeladene Diagnose-Dump direkt
-    ohne manuelles Herauskopieren an --plan uebergeben werden.
+    1. Die rohe Seitenplan-Liste selbst.
+    2. Der Rueckgabewert von diagnostics.py direkt
+       (dict mit "page_plan"-Schluessel auf oberster Ebene) - z.B. wenn
+       der Diagnose-Endpunkt der HA-REST-API direkt abgefragt wird (siehe
+       apply_page_plan_from_ha.py).
+    3. Der tatsaechliche Datei-Inhalt von Home Assistants eingebautem
+       "Diagnose herunterladen"-Knopf - HA umschliesst dafuer den
+       Rueckgabewert von diagnostics.py zusaetzlich mit einem Umschlag
+       ("home_assistant"/"custom_components"/"integration_manifest"/
+       "data"), der Plan liegt dort also unter "data" -> "page_plan"
+       statt auf oberster Ebene.
     """
-    parsed = json.loads(path.read_text())
-    if isinstance(parsed, dict) and "page_plan" in parsed:
-        return parsed["page_plan"]
+    if isinstance(parsed, dict):
+        if "page_plan" in parsed:
+            return parsed["page_plan"]
+        data = parsed.get("data")
+        if isinstance(data, dict) and "page_plan" in data:
+            return data["page_plan"]
     return parsed
+
+
+def _load_plan(path: Path) -> list[dict]:
+    """Laedt den Seitenplan aus einer JSON-Datei - akzeptiert alle drei in
+    extract_page_plan() beschriebenen Formen, damit sowohl ein manuell
+    heruntergeladener Diagnose-Export als auch die rohe Plan-Liste direkt
+    an --plan uebergeben werden koennen."""
+    return extract_page_plan(json.loads(path.read_text()))
 
 
 def main() -> int:
