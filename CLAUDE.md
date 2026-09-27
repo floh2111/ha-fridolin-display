@@ -215,14 +215,50 @@ verifiziert, funktioniert grundlegend ANDERS als die 5 Bestandsseiten:
   `pad_row`/`pad_column` für Flex-Abstände), sondern als eigene
   Widget-Eigenschaften auf das `obj:` selbst.
 
+**Export-Knopf + Menü-Editor** (seit Integrations-Version 0.4.0) -
+fertig, mit Stub-Home-Assistant-Modulen (siehe unten) end-to-end
+durchgetestet, aber **noch nicht in einer echten HA-Instanz gesehen**:
+- `diagnostics.py`: nutzt HAs eingebauten "Diagnose herunterladen"-
+  Knopf (Einstellungen → Geräte & Dienste → Fridolin Display → ⋮) -
+  kein eigenes UI nötig. Liefert u.a. den aktuellen Seitenplan unter dem
+  Schlüssel `page_plan`, redigiert `owm_api_key`/den Standort-Tracker.
+  `generate_display_yaml.py`s `--plan`-Lader (`_load_plan`) erkennt
+  diesen Dump automatisch (Dict mit `page_plan`-Schlüssel) UND die rohe
+  Plan-Liste - der heruntergeladene Diagnose-Export lässt sich also ohne
+  manuelles Herauskopieren direkt an `--plan` übergeben.
+- `config_flow.py`: `async_step_init` ist jetzt ein **Menü**
+  (`async_show_menu`) statt direkt das JSON-Feld zu zeigen: "Seiten
+  verwalten" (neuer Menü-Editor), "Seitenplan als JSON bearbeiten"
+  (der bisherige Weg, bleibt als Experten-Fallback für Massenänderungen),
+  "Entity-Zuordnung + Speichern" (bestehender Schritt, jetzt Endpunkt
+  jedes Pfads). "Seiten verwalten" ist selbst ein Menü mit "Seite
+  hinzufügen"/"entfernen"/"verschieben" (jeweils ein eigener
+  `async_show_form`-Schritt, der danach zum Menü zurückkehrt) - der
+  Plan liegt waehrend der ganzen Options-Flow-Sitzung in
+  `self._working_plan` (`page_plan.py`s neue, öffentliche
+  `normalize_page_plan()` wird nach jeder Änderung erneut angewendet,
+  damit z.B. eine frisch hinzugefügte Licht-/Klimaanlagen-Seite eine
+  `instance` bekommt). Eine `sensors`-Seite trägt ihre Entities beim
+  Hinzufügen zeilenweise ein (`entity_id|Label|Einheit`,
+  `_parse_sensors_entities`) statt als JSON-Array.
+- **Getestet ohne echtes Home Assistant**: `homeassistant`/`voluptuous`
+  sind in dieser Umgebung nicht installiert - stattdessen minimale
+  Stub-Module (`ConfigEntry`/`ConfigFlow`/`OptionsFlow` mit
+  `async_show_menu`/`async_show_form`/`async_create_entry` als reine
+  Dict-Rückgaben, `selector.*` als einfache Werte-Container) und ein
+  Skript, das den kompletten Flow durchspielt (init → manage_pages →
+  zwei add_page-Aufrufe → move_page → remove_page → entities) und den
+  `self._working_plan`-Zustand nach jedem Schritt prüft - alle
+  Mutationen (Hinzufügen inkl. automatischer Instanz-Vergabe,
+  Verschieben, Entfernen) verhalten sich wie erwartet. Ersetzt keinen
+  echten Test in einer laufenden Home-Assistant-Instanz (Übersetzungen/
+  `async_show_menu`-Verhalten/Formular-Rendering ungeprüft).
+
 **Noch offen**:
-1. Komfort: Export/Import-Knopf in der Integration statt manuellem
-   JSON-Kopieren; Seitenplan-Editor als Multi-Step-Wizard statt
-   JSON-Textfeld.
-2. Mehrfach-Instanzen für `fridge` (2. Kühlbox) - bisher nicht in
+1. Mehrfach-Instanzen für `fridge` (2. Kühlbox) - bisher nicht in
    `MULTI_INSTANCE_SECTIONS`, da nur eine Kühlbox am Wohnwagen hängt;
    technisch analog zu light/climate nachrüstbar, falls je gebraucht.
-3. **Explizit nicht gewünscht**: Kartenansicht mit dauerhaft
+2. **Explizit nicht gewünscht**: Kartenansicht mit dauerhaft
    gespeicherten Standort-Pins (Florian hat das abgelehnt) und eine
    separate "Heizung"-Seite (ist inhaltlich dasselbe wie eine zweite
    Klimaanlagen-Seite, kein eigener Typ nötig).
@@ -310,8 +346,10 @@ der Übersichtsseite erreichbar ist (LVGL `top_layer:`):
   YAML-Dateien, Python-Syntax + JSON-Validität der Integration, sowie
   `hassfest` (offizielle HA-Validierung). **Alle Checks sind aktuell grün.**
 - ✅ Integration erfolgreich über **HACS** (als custom repository) bei
-  Florian installiert, aktuell Version 0.2.0 (Klimaanlage mit Heizen/
-  Kühlen/Presets; Lovelace-Karte jetzt separates Repo, siehe oben). Seit
+  Florian installiert, aktuell Version 0.4.0 (Klimaanlage mit Heizen/
+  Kühlen/Presets; Lovelace-Karte separates Repo; Seitenplan mit
+  Menü-Editor + Diagnose-Export, siehe "Seitenplan / Seiten-Baukasten"
+  oben). Seit
   `v0.1.6` liegt ein `hacs.json` im Repo-Root (Pflichtdatei, fehlte
   vorher – HACS las sie aus dem jeweiligen Release-Tag und lehnte
   Versionen ohne sie ab). Jede Version braucht weiterhin einen echten

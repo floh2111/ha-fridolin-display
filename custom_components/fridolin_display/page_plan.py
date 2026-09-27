@@ -28,10 +28,15 @@ def get_page_plan(config: dict[str, Any]) -> list[dict[str, str]]:
     bisherigen, fest verdrahteten 5-Seiten-Display.
     """
     raw = config.get(CONF_PAGE_PLAN) or DEFAULT_PAGE_PLAN
-    return _normalize(raw)
+    return normalize_page_plan(raw)
 
 
-def _normalize(raw: list[dict[str, Any]]) -> list[dict[str, str]]:
+def normalize_page_plan(raw: list[dict[str, Any]]) -> list[dict[str, str]]:
+    """Normalisiert eine rohe Seitenplan-Liste (fehlende 'instance' wird
+    vergeben, 'entities' einer sensors-Seite vereinheitlicht, unbekannte
+    Typen rausgefiltert). Oeffentlich, damit config_flow.py sie nach jeder
+    Menü-Änderung (Seite hinzufügen/entfernen/verschieben) erneut aufrufen
+    kann - sonst fehlt einer frisch hinzugefügten Seite z.B. 'instance'."""
     plan: list[dict[str, str]] = []
     # Zaehlt, die wievielte Seite dieses Typs wir gerade sehen, um eine
     # fehlende "instance" automatisch zu vergeben (1, 2, 3, ...) - die

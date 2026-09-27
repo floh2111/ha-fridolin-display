@@ -27,8 +27,12 @@ hinter "Licht 1" steckt, wirkt sich das sofort aufs Display aus.
 
 Seit Version 0.3.0 legt ein **Seitenplan** fest, welche Seiten das
 Display in welcher Reihenfolge zeigt – einstellbar über "Konfigurieren"
-→ erster Schritt (JSON-Liste, siehe `page_plan.py`). Mögliche
-Seiten-Typen: `overview`, `light`, `climate`, `leveling`, `fridge`,
+→ **"Seiten verwalten"** (Menü: Seite hinzufügen/entfernen/verschieben,
+seit Version 0.4.0). Für Massenänderungen (z.B. viele Sensoren auf
+einmal) gibt es weiterhin "Seitenplan als JSON bearbeiten" als
+Experten-Fallback im selben Hauptmenü – beide Wege bearbeiten denselben
+Seitenplan und lassen sich beliebig mischen. Mögliche Seiten-Typen:
+`overview`, `light`, `climate`, `leveling`, `fridge`,
 `sensors`. `light` und `climate` können **mehrfach** im Plan vorkommen
 (z.B. zwei Klimazonen) – jede weitere Instanz bekommt eigene, instanz-
 parametrisierte Entity-IDs (`climate.fridolin_climate_2`,
@@ -57,11 +61,20 @@ Mirror-Entity in dieser Integration an, sondern die generierte
 ESPHome-YAML liest die angegebene HA-Entity direkt – eine Änderung der
 Sensor-Auswahl braucht ohnehin einen Reflash (siehe unten), die übliche
 Mirror-Entity-Indirektion (Entity-Zuordnung ohne Reflash ändern) bringt
-hier also keinen Vorteil.
+hier also keinen Vorteil. Im Menü "Seite hinzufügen" trägst du die
+Sensoren zeilenweise ein (`entity_id|Label|Einheit`, Label/Einheit
+optional, z.B. nur `sensor.batterie_soc`) statt als JSON.
+
+**Seitenplan exportieren**: Einstellungen → Geräte & Dienste →
+Fridolin Display → ⋮ → **Diagnose herunterladen** liefert eine JSON-
+Datei mit dem aktuellen Seitenplan (Schlüssel `page_plan`) – lässt sich
+direkt an `generate_display_yaml.py --plan` übergeben, kein manuelles
+Kopieren aus dem JSON-Textfeld nötig.
 
 **Auf der Display-Firmware anwenden**: `esphome/generate_display_yaml.py`
-baut aus einem Seitenplan (JSON, z.B. den Text aus Schritt 1 oben in
-eine Datei kopiert) eine passende `wohnwagen-display.yaml`:
+baut aus einem Seitenplan (JSON-Datei, z.B. der Diagnose-Export von
+oben, oder der Text aus "Seitenplan als JSON bearbeiten") eine passende
+`wohnwagen-display.yaml`:
 
 ```bash
 python3 esphome/generate_display_yaml.py --plan mein_plan.json --out esphome/wohnwagen-display.yaml

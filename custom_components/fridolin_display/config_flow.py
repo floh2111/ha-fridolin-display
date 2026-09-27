@@ -5,11 +5,15 @@ Standort-Tracker und dem OpenWeatherMap-API-Key. Über den
 "Konfigurieren"-Button der Integration (Options Flow) lässt sich danach
 jederzeit ändern:
   1. der Seitenplan (welche Seiten das Display in welcher Reihenfolge
-     zeigt, siehe page_plan.py) - als JSON-Liste editierbar. Eine
+     zeigt, siehe page_plan.py) - über ein Menü (Seite hinzufügen/
+     entfernen/verschieben) oder als JSON-Liste für Experten. Eine
      Änderung der Seiten-*Auswahl/Reihenfolge* braucht ein neu
-     generiertes + geflashtes Display (siehe esphome/generate_display_yaml.py),
-     eine Änderung *innerhalb* eines bestehenden Licht-/Klimaanlagen-Slots
-     (welche echte Entity dahintersteckt) dagegen nicht.
+     generiertes + geflashtes Display (siehe esphome/generate_display_yaml.py,
+     das auch den Diagnose-Export dieser Integration direkt einliest -
+     Einstellungen -> Geräte & Dienste -> Fridolin Display -> ⋮ ->
+     Diagnose herunterladen), eine Änderung *innerhalb* eines
+     bestehenden Licht-/Klimaanlagen-Slots (welche echte Entity
+     dahintersteckt) dagegen nicht.
   2. welche echten Licht-/Heizungs-Entities hinter den Slots aus dem
      Seitenplan stecken - wirkt sofort, ohne den ESP32 neu zu flashen.
 """
@@ -37,11 +41,21 @@ from .const import (
     DOMAIN,
     MAX_LIGHT_SLOTS,
     PAGE_TYPES,
+    PAGE_TYPES_WITH_ENTITIES,
     light_slot_entity_key,
     light_slot_name_key,
     climate_target_key,
 )
-from .page_plan import get_page_plan
+from .page_plan import get_page_plan, normalize_page_plan
+
+PAGE_TYPE_LABELS = {
+    "overview": "Übersicht",
+    "light": "Licht",
+    "climate": "Klimaanlage",
+    "leveling": "Nivellierung",
+    "fridge": "Kühlbox",
+    "sensors": "Sensoren (generisch)",
+}
 
 
 def _user_schema(defaults: dict[str, Any] | None = None) -> vol.Schema:
@@ -71,16 +85,11 @@ def _user_schema(defaults: dict[str, Any] | None = None) -> vol.Schema:
     )
 
 
-def _page_plan_schema(current_plan: list[dict[str, Any]]) -> vol.Schema:
-    """Seitenplan als JSON-Liste editierbar (siehe page_plan.py).
-
-    Bewusst ein einzelnes JSON-Textfeld statt einer Formular-Frage pro
-    Seite: eine "wiederholbare Gruppe von Feldern" (Seite hinzufügen/
-    entfernen/verschieben) gibt es in Home Assistants Selector-System
-    nicht eingebaut - ein Multi-Step-Wizard dafür ist ein separates,
-    größeres Stück Arbeit. Das JSON-Feld ist der pragmatische erste
-    Schritt, den technisch versierte Nutzer direkt nutzen können.
-    """
+def _page_plan_json_schema(current_plan: list[dict[str, Any]]) -> vol.Schema:
+    """Seitenplan als JSON-Liste editierbar - Experten-Fallback neben dem
+    Menü-gefuehrten Editor (async_step_manage_pages & Co.), z.B. um
+    mehrere Seiten auf einmal zu aendern oder eine sensors-Seite mit
+    vielen Entities bequem einzufuegen."""
     return vol.Schema(
         {
             vol.Required(
@@ -93,13 +102,96 @@ def _page_plan_schema(current_plan: list[dict[str, Any]]) -> vol.Schema:
     )
 
 
+def _add_page_schema() -> vol.Schema:
+    return vol.Schema(
+        {
+            vol.Required("type"): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[
+                        selector.SelectOptionDict(value=t, label=PAGE_TYPE_LABELS[t])
+                        for t in PAGE_TYPES
+                    ],
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
+            vol.Required("title"): str,
+            vol.Optional("instance", default=""): str,
+            vol.Optional("sensors_entities", default=""): selector.TextSelector(
+                selector.TextSelectorConfig(multiline=True)
+            ),
+        }
+    )
+
+
+def _page_choice_schema(
+    plan: list[dict[str, Any]], *, with_direction: bool
+) -> vol.Schema:
+    options = [
+        selector.SelectOptionDict(
+            value=str(i),
+            label=f"{i + 1}. {p.get('title') or PAGE_TYPE_LABELS.get(p['type'], p['type'])} ({PAGE_TYPE_LABELS.get(p['type'], p['type'])})",
+        )
+        for i, p in enumerate(plan)
+    ]
+    schema_dict: dict[Any, Any] = {
+        vol.Required("page_index"): selector.SelectSelector(
+            selector.SelectSelectorConfig(options=options, mode=selector.SelectSelectorMode.DROPDOWN)
+        ),
+    }
+    if with_direction:
+        schema_dict[vol.Required("direction")] = selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=[
+                    selector.SelectOptionDict(value="up", label="Nach oben"),
+                    selector.SelectOptionDict(value="down", label="Nach unten"),
+                ],
+                mode=selector.SelectSelectorMode.DROPDOWN,
+            )
+        )
+    return vol.Schema(schema_dict)
+
+
+def _format_plan_summary(plan: list[dict[str, Any]]) -> str:
+    if not plan:
+        return "(noch keine Seiten)"
+    lines = []
+    for i, page in enumerate(plan):
+        type_label = PAGE_TYPE_LABELS.get(page["type"], page["type"])
+        extra = ""
+        if page["type"] in PAGE_TYPES_WITH_ENTITIES and page.get("instance"):
+            extra = f", Instanz {page['instance']}"
+        if page["type"] == "sensors":
+            count = len(page.get("entities") or [])
+            extra = f", {count} Sensor(en)"
+        lines.append(f"{i + 1}. {page.get('title') or type_label} ({type_label}{extra})")
+    return "\n".join(lines)
+
+
+def _parse_sensors_entities(text: str) -> list[dict[str, str]]:
+    """Parst das mehrzeilige Textfeld beim Hinzufuegen einer sensors-Seite:
+    eine Entity pro Zeile, Format 'entity_id|Label|Einheit' (Label/Einheit
+    optional, z.B. nur 'sensor.batterie_soc')."""
+    entities: list[dict[str, str]] = []
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        parts = [p.strip() for p in line.split("|")]
+        entity_id = parts[0]
+        if not entity_id:
+            continue
+        label = parts[1] if len(parts) > 1 and parts[1] else entity_id
+        unit = parts[2] if len(parts) > 2 and parts[2] else ""
+        entities.append({"entity_id": entity_id, "label": label, "unit": unit})
+    return entities
+
+
 def _entity_mapping_schema(
     plan: list[dict[str, Any]], defaults: dict[str, Any] | None = None
 ) -> vol.Schema:
     """Baut das Formular für die Licht-/Klimaanlagen-Zuordnung.
 
-    Eine Seite pro Licht-/Klimaanlagen-Eintrag im Seitenplan (statt
-    früher fest einer Licht- und einer Klimaanlagen-Seite) - ein leer
+    Eine Seite pro Licht-/Klimaanlagen-Eintrag im Seitenplan - ein leer
     gelassener Licht-Slot wird beim Anlegen der Entities einfach
     übersprungen.
     """
@@ -170,16 +262,113 @@ class FridolinDisplayConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class FridolinDisplayOptionsFlow(OptionsFlow):
-    """Options-Flow: zuerst Seitenplan, danach Licht-/Klima-Zuordnung."""
+    """Options-Flow: Hauptmenü -> Seiten verwalten (Menü-Editor) /
+    Seitenplan als JSON (Experten) / Entity-Zuordnung + Speichern."""
 
     def __init__(self, config_entry: ConfigEntry) -> None:
         self._config_entry = config_entry
-        self._new_plan: list[dict[str, Any]] | None = None
+        self._working_plan: list[dict[str, Any]] | None = None
 
-    async def async_step_init(
+    def _current_config(self) -> dict[str, Any]:
+        return {**self._config_entry.data, **self._config_entry.options}
+
+    def _plan(self) -> list[dict[str, Any]]:
+        if self._working_plan is None:
+            self._working_plan = get_page_plan(self._current_config())
+        return self._working_plan
+
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> Any:
+        self._plan()  # stellt sicher, dass _working_plan initialisiert ist
+        return self.async_show_menu(
+            step_id="init",
+            menu_options=["manage_pages", "edit_json", "entities"],
+        )
+
+    # ---- Seiten verwalten (Menü-gefuehrter Editor) ----
+
+    async def async_step_manage_pages(
         self, user_input: dict[str, Any] | None = None
     ) -> Any:
-        current = {**self._config_entry.data, **self._config_entry.options}
+        return self.async_show_menu(
+            step_id="manage_pages",
+            menu_options=["add_page", "remove_page", "move_page", "init"],
+            description_placeholders={"plan_summary": _format_plan_summary(self._plan())},
+        )
+
+    async def async_step_add_page(
+        self, user_input: dict[str, Any] | None = None
+    ) -> Any:
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            page_type = user_input["type"]
+            title = user_input["title"].strip() or PAGE_TYPE_LABELS.get(page_type, page_type)
+            new_page: dict[str, Any] = {"type": page_type, "title": title}
+
+            if page_type in PAGE_TYPES_WITH_ENTITIES:
+                instance = user_input.get("instance", "").strip()
+                if instance:
+                    new_page["instance"] = instance
+                # sonst vergibt page_plan.py beim naechsten get_page_plan()
+                # automatisch eine freie Instanz-Nummer
+
+            if page_type == "sensors":
+                new_page["entities"] = _parse_sensors_entities(
+                    user_input.get("sensors_entities", "")
+                )
+
+            self._plan().append(new_page)
+            self._working_plan = normalize_page_plan(self._working_plan)
+            return await self.async_step_manage_pages()
+
+        return self.async_show_form(
+            step_id="add_page",
+            data_schema=_add_page_schema(),
+            errors=errors,
+        )
+
+    async def async_step_remove_page(
+        self, user_input: dict[str, Any] | None = None
+    ) -> Any:
+        plan = self._plan()
+        if not plan:
+            return await self.async_step_manage_pages()
+
+        if user_input is not None:
+            index = int(user_input["page_index"])
+            if 0 <= index < len(plan):
+                plan.pop(index)
+            return await self.async_step_manage_pages()
+
+        return self.async_show_form(
+            step_id="remove_page",
+            data_schema=_page_choice_schema(plan, with_direction=False),
+        )
+
+    async def async_step_move_page(
+        self, user_input: dict[str, Any] | None = None
+    ) -> Any:
+        plan = self._plan()
+        if len(plan) < 2:
+            return await self.async_step_manage_pages()
+
+        if user_input is not None:
+            index = int(user_input["page_index"])
+            direction = user_input["direction"]
+            target = index - 1 if direction == "up" else index + 1
+            if 0 <= index < len(plan) and 0 <= target < len(plan):
+                plan[index], plan[target] = plan[target], plan[index]
+            return await self.async_step_manage_pages()
+
+        return self.async_show_form(
+            step_id="move_page",
+            data_schema=_page_choice_schema(plan, with_direction=True),
+        )
+
+    # ---- Seitenplan als JSON (Experten-Fallback) ----
+
+    async def async_step_edit_json(
+        self, user_input: dict[str, Any] | None = None
+    ) -> Any:
         errors: dict[str, str] = {}
 
         if user_input is not None:
@@ -195,20 +384,22 @@ class FridolinDisplayOptionsFlow(OptionsFlow):
             except (json.JSONDecodeError, ValueError):
                 errors["base"] = "invalid_page_plan"
             else:
-                self._new_plan = parsed
-                return await self.async_step_entities()
+                self._working_plan = normalize_page_plan(parsed)
+                return await self.async_step_init()
 
         return self.async_show_form(
-            step_id="init",
-            data_schema=_page_plan_schema(get_page_plan(current)),
+            step_id="edit_json",
+            data_schema=_page_plan_json_schema(self._plan()),
             errors=errors,
         )
+
+    # ---- Entity-Zuordnung + Speichern ----
 
     async def async_step_entities(
         self, user_input: dict[str, Any] | None = None
     ) -> Any:
-        current = {**self._config_entry.data, **self._config_entry.options}
-        plan = self._new_plan if self._new_plan is not None else get_page_plan(current)
+        current = self._current_config()
+        plan = self._plan()
 
         if user_input is not None:
             cleaned = {

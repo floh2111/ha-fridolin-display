@@ -795,6 +795,22 @@ def run_check() -> int:
     return 1
 
 
+def _load_plan(path: Path) -> list[dict]:
+    """Laedt den Seitenplan aus einer JSON-Datei.
+
+    Akzeptiert sowohl die rohe Seitenplan-Liste als auch den Diagnose-
+    Export der Integration (custom_components/fridolin_display/
+    diagnostics.py, "Diagnose herunterladen" in Home Assistant) - der
+    hat den Plan unter dem Schluessel "page_plan", umgeben von weiteren
+    Diagnose-Daten. So kann der heruntergeladene Diagnose-Dump direkt
+    ohne manuelles Herauskopieren an --plan uebergeben werden.
+    """
+    parsed = json.loads(path.read_text())
+    if isinstance(parsed, dict) and "page_plan" in parsed:
+        return parsed["page_plan"]
+    return parsed
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--plan", type=Path, help="Seitenplan als JSON-Datei")
@@ -810,7 +826,7 @@ def main() -> int:
     if not args.plan:
         parser.error("--plan ist erforderlich (ausser bei --check)")
 
-    plan = json.loads(args.plan.read_text())
+    plan = _load_plan(args.plan)
     result = generate(plan)
 
     if args.out:

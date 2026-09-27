@@ -22,8 +22,50 @@
   "options": {
     "step": {
       "init": {
-        "title": "Seitenplan",
-        "description": "Welche Seiten soll das Display in welcher Reihenfolge zeigen? Als JSON-Liste von Objekten mit den Feldern 'type' und 'title', z.B. zuerst Typ overview mit Titel Übersicht, danach Typ light mit Titel Licht, usw. Gültige Typen: overview, light, climate, leveling, fridge, sensors. Achtung: eine geänderte Seiten-Auswahl/-Reihenfolge wirkt erst, nachdem du das Display mit der passend neu generierten YAML neu geflasht hast (siehe esphome/generate_display_yaml.py) - die Entity-Zuordnung im nächsten Schritt wirkt dagegen sofort.",
+        "title": "Fridolin Display konfigurieren",
+        "description": "Was möchtest du tun? Eine geänderte Seiten-Auswahl/-Reihenfolge wirkt erst, nachdem du das Display mit der passend neu generierten YAML neu geflasht hast (siehe esphome/generate_display_yaml.py, liest auch den Diagnose-Export dieser Integration direkt ein) - die Entity-Zuordnung wirkt dagegen sofort, ohne Reflash.",
+        "menu_options": {
+          "manage_pages": "Seiten verwalten (hinzufügen/entfernen/verschieben)",
+          "edit_json": "Seitenplan als JSON bearbeiten (für Experten)",
+          "entities": "Entity-Zuordnung ändern + speichern"
+        }
+      },
+      "manage_pages": {
+        "title": "Seiten verwalten",
+        "description": "Aktueller Seitenplan:\n\n{plan_summary}",
+        "menu_options": {
+          "add_page": "Seite hinzufügen",
+          "remove_page": "Seite entfernen",
+          "move_page": "Seite verschieben",
+          "init": "Zurück zum Hauptmenü"
+        }
+      },
+      "add_page": {
+        "title": "Seite hinzufügen",
+        "description": "Wird ans Ende des Seitenplans angehängt - die Reihenfolge lässt sich danach unter \"Seite verschieben\" anpassen.",
+        "data": {
+          "type": "Seitentyp",
+          "title": "Titel (auf dem Display sichtbar)",
+          "instance": "Instanz-Kennung (nur für Licht/Klimaanlage, bei mehreren Seiten desselben Typs - leer lassen für automatische Vergabe)",
+          "sensors_entities": "Nur für Seitentyp \"Sensoren\": eine Entity pro Zeile, Format entity_id|Label|Einheit (Label und Einheit optional, z.B. nur sensor.batterie_soc)"
+        }
+      },
+      "remove_page": {
+        "title": "Seite entfernen",
+        "data": {
+          "page_index": "Zu entfernende Seite"
+        }
+      },
+      "move_page": {
+        "title": "Seite verschieben",
+        "data": {
+          "page_index": "Zu verschiebende Seite",
+          "direction": "Richtung"
+        }
+      },
+      "edit_json": {
+        "title": "Seitenplan als JSON",
+        "description": "Für Experten: der komplette Seitenplan als JSON-Liste von Objekten mit den Feldern 'type' und 'title' (und ggf. 'instance'/'entities'), z.B. zuerst Typ overview mit Titel Übersicht, danach Typ light mit Titel Licht, usw. Gültige Typen: overview, light, climate, leveling, fridge, sensors.",
         "data": {
           "page_plan_json": "Seitenplan (JSON)"
         }
