@@ -295,6 +295,9 @@ interval:
   - interval: 10s
     then:
       - script.execute: sync_kuehlbox
+  - interval: 15s
+    then:
+      - script.execute: sync_uhrzeit
 
 ### ------------------------------------------------------------------
 ### Wetter-Icons: SVGs aus esphome/images/weather/, von ESPHome per
@@ -889,6 +892,17 @@ button:
 ### und eine nicht eingerichtete Heizung werden auf dem Display versteckt
 ### ------------------------------------------------------------------
 script:
+  ### Uhrzeit + Datum für die Übersicht (deutsches Format, kein
+  ### locale-abhängiges strftime nötig)
+  - id: sync_uhrzeit
+    then:
+      - lambda: |-
+          static const char *const wochentag[8] = {"", "So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"};
+          auto t = id(ha_time).now();
+          if (!t.is_valid()) return;
+          lv_label_set_text_fmt(id(lbl_uhrzeit), "%02u:%02u", t.hour, t.minute);
+          lv_label_set_text_fmt(id(lbl_datum), "%s, %02u.%02u.", wochentag[t.day_of_week], t.day_of_month, t.month);
+
   - id: sync_kuehlbox
     then:
       - lambda: |-
@@ -1002,113 +1016,181 @@ lvgl:
                 widgets:
                   - label:
                       text: "Fridolin"
-                      text_font: montserrat_28
+                      text_font: montserrat_20
                       align: TOP_MID
-                      y: 12
-                  - label:
-                      id: lbl_wetter_ort
-                      text: "Übersicht"
-                      text_font: montserrat_14
-                      align: TOP_MID
-                      y: 44
+                      y: 10
 
-                  - image:
-                      id: img_wetter_gross
-                      src: img_w_cloudy
-                      align: TOP_MID
-                      x: -150
-                      y: 90
-                      width: 72
-                      height: 72
-                  - label:
-                      id: lbl_wetter_zustand
-                      text: "—"
-                      align: TOP_MID
-                      y: 74
-                  - label:
-                      id: lbl_wetter_temp
-                      text: "--.- °C"
-                      text_font: montserrat_40
-                      align: TOP_MID
-                      y: 100
-
-                  ### Vorschau für die nächsten Stunden, vier Slots nebeneinander
+                  ### Vier Felder: oben links Wetter + Stundenvorhersage, oben rechts
+                  ### Uhrzeit/Datum/Standort + Morgen-Ausblick. Unten bleibt erstmal frei.
                   - obj:
                       align: TOP_MID
-                      y: 170
-                      width: 620
-                      height: 76
+                      y: 42
+                      width: 980
+                      height: 300
                       bg_opa: TRANSP
                       border_opa: TRANSP
                       layout:
                         type: FLEX
                         flex_flow: ROW
-                        flex_align_main: SPACE_EVENLY
-                        flex_align_cross: CENTER
+                        flex_align_main: SPACE_BETWEEN
+                        flex_align_cross: START
                       widgets:
+                        ### Oben links: aktuelles Wetter + die vier Stunden-Slots
                         - obj:
-                            width: 130
-                            height: 76
+                            width: 470
+                            height: 300
                             bg_opa: TRANSP
                             border_opa: TRANSP
-                            layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER }
+                            layout:
+                              type: FLEX
+                              flex_flow: COLUMN
+                              flex_align_main: START
+                              flex_align_cross: CENTER
+                              pad_row: 14
                             widgets:
-                              - label: { id: lbl_h0_zeit, text: "--:--", text_font: montserrat_14 }
-                              - image: { id: img_h0_icon, src: img_w_cloudy_s, width: 28, height: 28 }
-                              - label: { id: lbl_h0_temp, text: "--°", text_font: montserrat_20 }
-                        - obj:
-                            width: 130
-                            height: 76
-                            bg_opa: TRANSP
-                            border_opa: TRANSP
-                            layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER }
-                            widgets:
-                              - label: { id: lbl_h1_zeit, text: "--:--", text_font: montserrat_14 }
-                              - image: { id: img_h1_icon, src: img_w_cloudy_s, width: 28, height: 28 }
-                              - label: { id: lbl_h1_temp, text: "--°", text_font: montserrat_20 }
-                        - obj:
-                            width: 130
-                            height: 76
-                            bg_opa: TRANSP
-                            border_opa: TRANSP
-                            layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER }
-                            widgets:
-                              - label: { id: lbl_h2_zeit, text: "--:--", text_font: montserrat_14 }
-                              - image: { id: img_h2_icon, src: img_w_cloudy_s, width: 28, height: 28 }
-                              - label: { id: lbl_h2_temp, text: "--°", text_font: montserrat_20 }
-                        - obj:
-                            width: 130
-                            height: 76
-                            bg_opa: TRANSP
-                            border_opa: TRANSP
-                            layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER }
-                            widgets:
-                              - label: { id: lbl_h3_zeit, text: "--:--", text_font: montserrat_14 }
-                              - image: { id: img_h3_icon, src: img_w_cloudy_s, width: 28, height: 28 }
-                              - label: { id: lbl_h3_temp, text: "--°", text_font: montserrat_20 }
+                              - obj:
+                                  width: 440
+                                  height: 84
+                                  bg_opa: TRANSP
+                                  border_opa: TRANSP
+                                  layout:
+                                    type: FLEX
+                                    flex_flow: ROW
+                                    flex_align_main: CENTER
+                                    flex_align_cross: CENTER
+                                    pad_column: 16
+                                  widgets:
+                                    - image:
+                                        id: img_wetter_gross
+                                        src: img_w_cloudy
+                                        width: 72
+                                        height: 72
+                                    - obj:
+                                        width: 220
+                                        height: 84
+                                        bg_opa: TRANSP
+                                        border_opa: TRANSP
+                                        layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: START }
+                                        widgets:
+                                          - label:
+                                              id: lbl_wetter_temp
+                                              text: "--.- °C"
+                                              text_font: montserrat_40
+                                          - label:
+                                              id: lbl_wetter_zustand
+                                              text: "—"
+                                              text_font: montserrat_14
+                              ### Vorschau für die nächsten Stunden, vier Slots nebeneinander
+                              - obj:
+                                  width: 440
+                                  height: 84
+                                  bg_opa: TRANSP
+                                  border_opa: TRANSP
+                                  layout:
+                                    type: FLEX
+                                    flex_flow: ROW
+                                    flex_align_main: SPACE_EVENLY
+                                    flex_align_cross: CENTER
+                                  widgets:
+                                    - obj:
+                                        width: 100
+                                        height: 84
+                                        bg_opa: TRANSP
+                                        border_opa: TRANSP
+                                        layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER }
+                                        widgets:
+                                          - label: { id: lbl_h0_zeit, text: "--:--", text_font: montserrat_14 }
+                                          - image: { id: img_h0_icon, src: img_w_cloudy_s, width: 28, height: 28 }
+                                          - label: { id: lbl_h0_temp, text: "--°", text_font: montserrat_20 }
+                                    - obj:
+                                        width: 100
+                                        height: 84
+                                        bg_opa: TRANSP
+                                        border_opa: TRANSP
+                                        layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER }
+                                        widgets:
+                                          - label: { id: lbl_h1_zeit, text: "--:--", text_font: montserrat_14 }
+                                          - image: { id: img_h1_icon, src: img_w_cloudy_s, width: 28, height: 28 }
+                                          - label: { id: lbl_h1_temp, text: "--°", text_font: montserrat_20 }
+                                    - obj:
+                                        width: 100
+                                        height: 84
+                                        bg_opa: TRANSP
+                                        border_opa: TRANSP
+                                        layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER }
+                                        widgets:
+                                          - label: { id: lbl_h2_zeit, text: "--:--", text_font: montserrat_14 }
+                                          - image: { id: img_h2_icon, src: img_w_cloudy_s, width: 28, height: 28 }
+                                          - label: { id: lbl_h2_temp, text: "--°", text_font: montserrat_20 }
+                                    - obj:
+                                        width: 100
+                                        height: 84
+                                        bg_opa: TRANSP
+                                        border_opa: TRANSP
+                                        layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER }
+                                        widgets:
+                                          - label: { id: lbl_h3_zeit, text: "--:--", text_font: montserrat_14 }
+                                          - image: { id: img_h3_icon, src: img_w_cloudy_s, width: 28, height: 28 }
+                                          - label: { id: lbl_h3_temp, text: "--°", text_font: montserrat_20 }
 
-                  ### Kurzer Ausblick auf morgen
-                  - image:
-                      id: img_morgen_icon
-                      src: img_w_cloudy_s
-                      align: TOP_MID
-                      x: -95
-                      y: 258
-                      width: 28
-                      height: 28
-                  - label:
-                      id: lbl_morgen_range
-                      text: "Morgen: --° – --°"
-                      text_font: montserrat_20
-                      align: TOP_MID
-                      x: 15
-                      y: 262
-                  - label:
-                      id: lbl_morgen_zustand
-                      text: "—"
-                      text_font: montserrat_14
-                      align: TOP_MID
-                      y: 292
+                        ### Oben rechts: Uhrzeit, Datum, Standort - darunter der Morgen-Ausblick
+                        - obj:
+                            width: 470
+                            height: 300
+                            bg_opa: TRANSP
+                            border_opa: TRANSP
+                            layout:
+                              type: FLEX
+                              flex_flow: COLUMN
+                              flex_align_main: START
+                              flex_align_cross: CENTER
+                              pad_row: 4
+                            widgets:
+                              - label:
+                                  id: lbl_uhrzeit
+                                  text: "--:--"
+                                  text_font: montserrat_40
+                              - label:
+                                  id: lbl_datum
+                                  text: "--, --.--."
+                                  text_font: montserrat_20
+                              - label:
+                                  id: lbl_wetter_ort
+                                  text: "—"
+                                  text_font: montserrat_14
+                              - obj:
+                                  width: 440
+                                  height: 60
+                                  bg_opa: TRANSP
+                                  border_opa: TRANSP
+                                  y: 20
+                                  layout:
+                                    type: FLEX
+                                    flex_flow: ROW
+                                    flex_align_main: CENTER
+                                    flex_align_cross: CENTER
+                                    pad_column: 10
+                                  widgets:
+                                    - image:
+                                        id: img_morgen_icon
+                                        src: img_w_cloudy_s
+                                        width: 28
+                                        height: 28
+                                    - obj:
+                                        width: 300
+                                        height: 60
+                                        bg_opa: TRANSP
+                                        border_opa: TRANSP
+                                        layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: START }
+                                        widgets:
+                                          - label:
+                                              id: lbl_morgen_range
+                                              text: "Morgen: --° – --°"
+                                              text_font: montserrat_20
+                                          - label:
+                                              id: lbl_morgen_zustand
+                                              text: "—"
+                                              text_font: montserrat_14
 
                   - label:
                       text: "Nach links wischen: Licht"

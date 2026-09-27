@@ -149,31 +149,40 @@
   /* --- Seite 1: Übersicht --- */
   .fridolin-name {
     text-align: center;
-    font-size: 32px;
+    font-size: 20px;
     font-weight: 700;
     margin: 0;
     letter-spacing: 0.5px;
+    color: var(--dev-muted);
   }
+
+  /* --- Vier-Felder-Übersicht: oben links Wetter, oben rechts Zeit/Ort, unten frei --- */
+  .ov-grid {
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    margin-top: 14px;
+    padding: 0 4px;
+  }
+  .ov-col { width: 47%; display: flex; flex-direction: column; }
+
   .weather-row {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 16px;
-    margin-top: 14px;
+    gap: 14px;
   }
-  .weather-icon.wicon { width: 58px; height: 58px; }
+  .weather-icon.wicon { width: 56px; height: 56px; flex-shrink: 0; }
   .weather-temp {
     font-family: "IBM Plex Mono", monospace;
-    font-size: 44px;
+    font-size: 38px;
     font-variant-numeric: tabular-nums;
     line-height: 1;
   }
-  .weather-cond { color: var(--dev-muted); font-size: 14px; margin-top: 3px; }
+  .weather-cond { color: var(--dev-muted); font-size: 13px; margin-top: 3px; }
   .forecast-row {
     display: flex;
     justify-content: space-between;
-    margin-top: 22px;
-    padding: 0 20px;
+    margin-top: 18px;
   }
   .forecast-item {
     display: flex;
@@ -183,19 +192,37 @@
     font-size: 12px;
     color: var(--dev-muted);
   }
-  .forecast-item .wicon { width: 24px; height: 24px; }
-  .forecast-item .val { color: var(--dev-text); font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; font-size: 15px; }
+  .forecast-item .wicon { width: 22px; height: 22px; }
+  .forecast-item .val { color: var(--dev-text); font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; font-size: 14px; }
+
+  .ov-uhrzeit {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 38px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .ov-datum { font-size: 15px; color: var(--dev-text); margin-top: 4px; }
+  .ov-standort { font-size: 12px; color: var(--dev-muted); margin-top: 2px; }
   .tomorrow {
     display: flex;
     align-items: center;
-    justify-content: center;
     gap: 8px;
-    margin-top: 20px;
+    margin-top: 22px;
     font-size: 13px;
     color: var(--dev-muted);
   }
-  .tomorrow .wicon { width: 20px; height: 20px; }
+  .tomorrow .wicon { width: 20px; height: 20px; flex-shrink: 0; }
+  .tomorrow-col { display: flex; flex-direction: column; }
   .tomorrow b { color: var(--dev-text); font-weight: 600; }
+
+  .ov-empty-hint {
+    margin-top: 18px;
+    text-align: center;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    color: var(--dev-muted);
+    opacity: 0.55;
+  }
 
   /* --- Seite 2: Licht --- */
   .light-grid {
@@ -570,24 +597,41 @@
         <div class="page">
           <button class="gear-btn" id="gearBtn" aria-label="Einstellungen öffnen">⚙</button>
           <p class="fridolin-name">Fridolin</p>
-          <p class="page-title" style="margin-top:2px;" id="wetterOrt">Übersicht</p>
-          <div class="weather-row">
-            <div class="weather-icon wicon" id="wetterIconGross"></div>
-            <div>
-              <div class="weather-temp" id="wetterTemp">18.4°C</div>
-              <div class="weather-cond" id="wetterZustand">Leicht bewölkt</div>
+
+          <div class="ov-grid">
+            <!-- Oben links: aktuelles Wetter + die vier Stunden-Slots -->
+            <div class="ov-col">
+              <div class="weather-row">
+                <div class="weather-icon wicon" id="wetterIconGross"></div>
+                <div>
+                  <div class="weather-temp" id="wetterTemp">18.4°C</div>
+                  <div class="weather-cond" id="wetterZustand">Leicht bewölkt</div>
+                </div>
+              </div>
+              <div class="forecast-row" id="forecastRow">
+                <div class="forecast-item" data-zeit="14:00" data-temp="19" data-icon="sunny"></div>
+                <div class="forecast-item" data-zeit="17:00" data-temp="17" data-icon="partlycloudy"></div>
+                <div class="forecast-item" data-zeit="20:00" data-temp="15" data-icon="cloudy"></div>
+                <div class="forecast-item" data-zeit="23:00" data-temp="13" data-icon="clear-night"></div>
+              </div>
+            </div>
+
+            <!-- Oben rechts: Uhrzeit, Datum, Standort - darunter der Morgen-Ausblick -->
+            <div class="ov-col">
+              <div class="ov-uhrzeit" id="ovUhrzeit">--:--</div>
+              <div class="ov-datum" id="ovDatum">--, --.--.</div>
+              <div class="ov-standort" id="ovStandort">Freiburg, DE</div>
+              <div class="tomorrow">
+                <div class="wicon" id="morgenIcon"></div>
+                <div class="tomorrow-col">
+                  <span>Morgen: <b>13° – 20°</b></span>
+                  <span>wechselnd bewölkt</span>
+                </div>
+              </div>
             </div>
           </div>
-          <div class="forecast-row" id="forecastRow">
-            <div class="forecast-item" data-zeit="14:00" data-temp="19" data-icon="sunny"></div>
-            <div class="forecast-item" data-zeit="17:00" data-temp="17" data-icon="partlycloudy"></div>
-            <div class="forecast-item" data-zeit="20:00" data-temp="15" data-icon="cloudy"></div>
-            <div class="forecast-item" data-zeit="23:00" data-temp="13" data-icon="clear-night"></div>
-          </div>
-          <div class="tomorrow">
-            <div class="wicon" id="morgenIcon"></div>
-            <span>Morgen: <b>13° – 20°</b> · wechselnd bewölkt</span>
-          </div>
+
+          <p class="ov-empty-hint">unten: noch frei</p>
         </div>
 
         <!-- Seite 2: Licht -->
@@ -776,6 +820,18 @@
     item.append(zeit, ic, temp);
   });
   setIcon(document.getElementById("morgenIcon"), "cloudy");
+
+  /* ---------- Uhrzeit + Datum (echte Uhrzeit des Betrachters, wie am echten Gerät über die Home-Assistant-Zeit) ---------- */
+  var WOCHENTAG = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
+  var uhrzeitEl = document.getElementById("ovUhrzeit");
+  var datumEl = document.getElementById("ovDatum");
+  function renderUhrzeit() {
+    var now = new Date();
+    uhrzeitEl.textContent = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
+    datumEl.textContent = WOCHENTAG[now.getDay()] + ", " + String(now.getDate()).padStart(2, "0") + "." + String(now.getMonth() + 1).padStart(2, "0") + ".";
+  }
+  renderUhrzeit();
+  setInterval(renderUhrzeit, 15000);
 
   /* ---------- Seiten-Swipe ---------- */
   var track = document.getElementById("track");
