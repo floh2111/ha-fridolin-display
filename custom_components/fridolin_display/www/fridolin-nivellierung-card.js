@@ -40,8 +40,6 @@ const WASSERWAAGE_SVG_BODY = `
   </defs>
   <rect x="30" y="55" width="350" height="170" rx="45" fill="#17212C" stroke="#3A4250" stroke-width="4"/>
   <path d="M380,120 L432,140 L380,160 Z" fill="#55606F"/>
-  <path d="M100,225 q20,16 40,0" fill="none" stroke="#0D141C" stroke-width="3"/>
-  <path d="M300,225 q20,16 40,0" fill="none" stroke="#0D141C" stroke-width="3"/>
   <line x1="150" y1="65" x2="150" y2="215" stroke="#202836" stroke-width="2" opacity="0.6"/>
   <line x1="260" y1="65" x2="260" y2="215" stroke="#202836" stroke-width="2" opacity="0.6"/>
   <rect x="80" y="113" width="150" height="54" rx="27" fill="#3A4250" stroke="#55606F" stroke-width="2"/>
@@ -116,7 +114,81 @@ const CARD_STYLE = `
   }
 `;
 
+// Editor für die Karten-Konfiguration im UI-Karteneditor ("Karte bearbeiten"),
+// statt die Entity-IDs und den Titel nur per YAML setzen zu können. Nutzt
+// <ha-form>, das im Home-Assistant-Frontend bereits global registriert ist
+// (kein eigener Import nötig) - derselbe Ansatz wie bei den meisten anderen
+// Custom Cards.
+class FridolinNivellierungCardEditor extends HTMLElement {
+  setConfig(config) {
+    this._config = { ...config };
+    this._render();
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    this._render();
+  }
+
+  get _schema() {
+    return [
+      { name: "title", selector: { text: {} } },
+      { name: "entity_lr", selector: { entity: { domain: "sensor" } } },
+      { name: "entity_vh", selector: { entity: { domain: "sensor" } } },
+      { name: "entity_zero_button", selector: { entity: { domain: "button" } } },
+    ];
+  }
+
+  _computeLabel(schema) {
+    const labels = {
+      title: "Titel",
+      entity_lr: "Sensor Links/Rechts",
+      entity_vh: "Sensor Vorne/Hinten",
+      entity_zero_button: "Nullen-Button",
+    };
+    return labels[schema.name] || schema.name;
+  }
+
+  _render() {
+    if (!this._hass || !this._config) return;
+    if (!this._form) {
+      this._form = document.createElement("ha-form");
+      this._form.addEventListener("value-changed", (ev) => {
+        ev.stopPropagation();
+        this._config = ev.detail.value;
+        this.dispatchEvent(
+          new CustomEvent("config-changed", {
+            detail: { config: this._config },
+            bubbles: true,
+            composed: true,
+          })
+        );
+      });
+      this.appendChild(this._form);
+    }
+    this._form.hass = this._hass;
+    this._form.data = this._config;
+    this._form.schema = this._schema;
+    this._form.computeLabel = this._computeLabel;
+  }
+}
+
+customElements.define("fridolin-nivellierung-card-editor", FridolinNivellierungCardEditor);
+
 class FridolinNivellierungCard extends HTMLElement {
+  static getConfigElement() {
+    return document.createElement("fridolin-nivellierung-card-editor");
+  }
+
+  static getStubConfig() {
+    return {
+      title: "Nivellierung",
+      entity_lr: "sensor.fridolin_display_neigung_links_rechts",
+      entity_vh: "sensor.fridolin_display_neigung_vorne_hinten",
+      entity_zero_button: "button.fridolin_display_neigung_nullen",
+    };
+  }
+
   setConfig(config) {
     this._config = {
       entity_lr: "sensor.fridolin_display_neigung_links_rechts",
@@ -125,7 +197,8 @@ class FridolinNivellierungCard extends HTMLElement {
       title: "Nivellierung",
       ...config,
     };
-    this._build();
+    if (this._built) this._render();
+    else this._build();
   }
 
   getCardSize() {
@@ -171,6 +244,7 @@ class FridolinNivellierungCard extends HTMLElement {
     this.appendChild(card);
 
     this._els = {
+      title: card.querySelector(".fw-title"),
       svg: card.querySelector("#fwSvg"),
       inner: card.querySelector(".fw-inner"),
       outer: card.querySelector(".fw-outer"),
@@ -215,6 +289,7 @@ class FridolinNivellierungCard extends HTMLElement {
 
   _render() {
     if (!this._hass || !this._els) return;
+    this._els.title.textContent = this._config.title;
     const lrState = this._hass.states[this._config.entity_lr];
     const vhState = this._hass.states[this._config.entity_vh];
 

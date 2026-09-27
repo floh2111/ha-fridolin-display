@@ -78,18 +78,20 @@ Einrichtung:
 2. Einstellungen → Dashboards → oben rechts ⋮ → Ressourcen → Ressource
    hinzufügen. URL: `/fridolin_display/fridolin-nivellierung-card.js`,
    Ressourcentyp: JavaScript-Modul.
-3. Karte hinzufügen, z.B. per YAML:
+3. Karte hinzufügen → "Benutzerdefiniert" → "Fridolin Nivellierung".
+   Titel und die drei Entity-IDs lassen sich direkt im **visuellen
+   Karteneditor** einstellen (kein YAML nötig) – die Voreinstellungen
+   sind nur eine **Annahme** (abgeleitet aus dem ESPHome-Gerätenamen
+   "Fridolin Display"/"Fridolin Test"), prüfe sie unter Einstellungen →
+   Geräte & Dienste → dein ESP32-Gerät → Entitäten und korrigiere sie
+   bei Abweichung im Editor. Alternativ per YAML:
    ```yaml
    type: custom:fridolin-nivellierung-card
-   # Nur nötig, falls deine Entity-IDs abweichen (z.B. anderer Gerätename):
+   title: Nivellierung
    entity_lr: sensor.fridolin_display_neigung_links_rechts
    entity_vh: sensor.fridolin_display_neigung_vorne_hinten
    entity_zero_button: button.fridolin_display_neigung_nullen
    ```
-   Die drei Entity-IDs oben sind nur eine **Annahme** (abgeleitet aus dem
-   ESPHome-Gerätenamen "Fridolin Display"/"Fridolin Test") – prüfe sie
-   unter Einstellungen → Geräte & Dienste → dein ESP32-Gerät → Entitäten,
-   und trag bei Abweichung die echten IDs in der Karten-Konfiguration ein.
 
 Die Karte ist rein anzeigend (nicht ziehbar) und aktualisiert sich live,
 sobald sich die beiden Neigungs-Sensoren ändern.
