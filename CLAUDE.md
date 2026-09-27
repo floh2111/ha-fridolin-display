@@ -150,10 +150,26 @@ bestehenden Seite nicht (wie bisher).
   - **Kombiniert weglassen** (Nivellierung + Kühlbox gleichzeitig, nur
     Übersicht/Licht/Klimaanlage übrig) - besteht `esphome config`.
   - Licht/Klimaanlage einzeln weglassen - bestehen `esphome config`.
-- Mehrfach-Instanzen (2. Klimaanlage) im Generator: **weiterhin nicht
-  unterstützt** - würde Widget-ID-Kollisionen geben, wenn derselbe Block
-  zweimal eingefügt wird. Nur die Python/HA-Seite (Entities) unterstützt
-  Mehrfach-Instanzen bereits, siehe oben.
+- **Mehrfach-Instanzen (2. Klimaanlage, 2. Licht-Seite) im Generator:
+  fertig und verifiziert.** `render_extra_instance()` extrahiert für die
+  ERSTE (Legacy-)Instanz eines Typs nichts Neues (bleibt exakt wie
+  bisher, Byte-für-Byte-Test bleibt gültig) - für jede WEITERE Instanz:
+  sammelt alle `id:`-Definitionen und `id(...)`-Lambda-Referenzen
+  innerhalb des `tile_*`-Blocks + seiner verstreuten Header-Fragmente
+  (`_collect_ids`), hängt an JEDE davon `__inst<instance>` an
+  (`_suffix_ids`, längste IDs zuerst wegen möglicher Teilstring-
+  Überschneidungen), und mappt die Legacy-Entity-ID-Strings
+  (`light.fridolin_licht_N`/`climate.fridolin_heizung`) auf die
+  instanz-parametrisierte Variante (`_remap_entity_ids` - muss exakt zu
+  `light_entity_id()`/`climate_entity_id()` in `const.py` passen).
+  `MULTI_INSTANCE_SECTIONS` ordnet jedem Fragment seine Ziel-Sektion zu
+  (`text_sensor:`/`sensor:`/`script:` - climate ist auf alle drei
+  verteilt), die duplizierten Fragmente werden über das schon für
+  `sensors` gebaute `_insert_into_section()` eingefügt.
+  - **Verifiziert mit echtem `esphome compile`**: Plan mit 2 Klimaanlagen-
+    Seiten kompiliert (RAM/Flash minimal höher, 47,0 % / 35,5 % statt
+    46,7 % / 35,4 %), ebenso 2 Licht-Seiten (46,9 % / 35,4 %). Keine
+    ID-Kollisionen (`esphome config` hätte sie sofort gemeldet).
 - `esphome/page_plan.example.json` reproduziert nachweislich exakt das
   aktuelle Display (Standardtitel, Original-Reihenfolge).
 - Nutzung aktuell manuell: Seitenplan (aus dem Options-Flow-JSON-Feld
@@ -200,11 +216,12 @@ verifiziert, funktioniert grundlegend ANDERS als die 5 Bestandsseiten:
   Widget-Eigenschaften auf das `obj:` selbst.
 
 **Noch offen**:
-1. Mehrfach-Instanzen (2. Klimaanlage etc.) im Generator selbst -
-   Widget-IDs pro Instanz suffixieren.
-2. Komfort: Export/Import-Knopf in der Integration statt manuellem
+1. Komfort: Export/Import-Knopf in der Integration statt manuellem
    JSON-Kopieren; Seitenplan-Editor als Multi-Step-Wizard statt
    JSON-Textfeld.
+2. Mehrfach-Instanzen für `fridge` (2. Kühlbox) - bisher nicht in
+   `MULTI_INSTANCE_SECTIONS`, da nur eine Kühlbox am Wohnwagen hängt;
+   technisch analog zu light/climate nachrüstbar, falls je gebraucht.
 3. **Explizit nicht gewünscht**: Kartenansicht mit dauerhaft
    gespeicherten Standort-Pins (Florian hat das abgelehnt) und eine
    separate "Heizung"-Seite (ist inhaltlich dasselbe wie eine zweite

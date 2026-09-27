@@ -169,6 +169,31 @@ REMOVE_KEY_BLOCK_ANCHORS: dict[str, list[tuple[re.Pattern, int]]] = {
     "leveling": [(re.compile(r"^  on_boot:\s*$"), 2)],
 }
 
+# Fuer Mehrfach-Instanzen (2., 3., ... Licht-/Klimaanlagen-Seite):
+# dieselben Fragmente wie REMOVE_ITEM_ANCHORS, zusaetzlich annotiert mit
+# der Ziel-Sektion, in die eine instanz-suffixierte Kopie eingefuegt
+# werden muss (text_sensor:/sensor:/script: - climate ist auf alle drei
+# verteilt). Siehe render_extra_instance().
+# Instanz-Kennung der ersten (unsuffixierten) light/climate-Seite - muss
+# zum gleichnamigen Wert in custom_components/fridolin_display/const.py
+# passen.
+LEGACY_INSTANCE = "1"
+
+MULTI_INSTANCE_SECTIONS: dict[str, list[tuple[re.Pattern, int, str]]] = {
+    "light": [
+        (re.compile(rf"^{_FIELD_INDENT}id: ha_licht_{n}\s*$"), ITEM_INDENT, "text_sensor")
+        for n in range(1, 5)
+    ]
+    + [(re.compile(r"^\s*- id: sync_lichter\s*$"), ITEM_INDENT, "script")],
+    "climate": [
+        (re.compile(rf"^{_FIELD_INDENT}id: ha_heizung_modus\s*$"), ITEM_INDENT, "text_sensor"),
+        (re.compile(rf"^{_FIELD_INDENT}id: ha_klima_preset\s*$"), ITEM_INDENT, "text_sensor"),
+        (re.compile(rf"^{_FIELD_INDENT}id: ha_zieltemperatur\s*$"), ITEM_INDENT, "sensor"),
+        (re.compile(rf"^{_FIELD_INDENT}id: ha_klima_ist\s*$"), ITEM_INDENT, "sensor"),
+        (re.compile(r"^\s*- id: sync_klima\s*$"), ITEM_INDENT, "script"),
+    ],
+}
+
 # Seitentypen, deren verstreute Abhaengigkeiten (noch) nicht erfasst sind -
 # ein Plan ohne diese Typen wird abgelehnt statt eine kaputte Datei zu
 # erzeugen. overview hat ein komplettes Wettersystem, Uhrzeit und Standort
@@ -381,6 +406,82 @@ def _insert_into_section(text: str, section_name: str, new_items: str) -> str:
     return "".join(lines[:end]) + new_items + "".join(lines[end:])
 
 
+# Erkennt YAML-Schluessel "id: xxx" (Definition) und C++-Lambda-Referenzen
+# "id(xxx)" - beides IDs, die bei einer Mehrfach-Instanz umbenannt werden
+# muessen, damit zwei Kopien desselben Blocks (z.B. zwei Klimaanlagen-
+# Seiten) nicht auf dieselben Widgets/Sensoren zeigen.
+_ID_DEF_RE = re.compile(r"\bid:\s*(\w+)")
+_ID_REF_RE = re.compile(r"\bid\((\w+)\)")
+
+
+def _collect_ids(text: str) -> set[str]:
+    return set(_ID_DEF_RE.findall(text)) | set(_ID_REF_RE.findall(text))
+
+
+def _suffix_ids(text: str, ids: set[str], suffix: str) -> str:
+    """Haengt suffix an jedes Vorkommen jeder ID in ids an (Wortgrenzen,
+    laengste IDs zuerst ersetzt, um Teilstring-Ueberschneidungen bei
+    aehnlich benannten IDs zu vermeiden)."""
+    for old_id in sorted(ids, key=len, reverse=True):
+        text = re.sub(rf"\b{re.escape(old_id)}\b", old_id + suffix, text)
+    return text
+
+
+def _remap_entity_ids(text: str, page_type: str, instance: str) -> str:
+    """Ersetzt die Legacy-Entity-ID-Strings (light.fridolin_licht_N /
+    climate.fridolin_heizung) durch die instanz-parametrisierte Variante
+    - muss exakt zu den Helpern light_entity_id()/climate_entity_id() in
+    custom_components/fridolin_display/const.py passen."""
+    if page_type == "light":
+        return re.sub(
+            r"light\.fridolin_licht_(\d+)\b",
+            rf"light.fridolin_licht_{instance}_\1",
+            text,
+        )
+    if page_type == "climate":
+        return text.replace("climate.fridolin_heizung", f"climate.fridolin_climate_{instance}")
+    return text
+
+
+def render_extra_instance(
+    page_type: str, instance: str, original_header_lines: list[str], tile_block: str
+) -> tuple[str, dict[str, str]]:
+    """Baut eine instanz-suffixierte Kopie eines Licht-/Klimaanlagen-
+    Blocks fuer eine ZUSAETZLICHE (nicht-Legacy) Instanz: alle internen
+    Widget-/Sensor-IDs bekommen "__inst<instance>" angehaengt, die
+    Legacy-Entity-ID-Strings werden auf die Instanz umgemappt. Gibt
+    (neuer_tile_block, {sektion: einzufuegender_text}) zurueck - die
+    Fragmente muessen von generate() noch in ihre jeweilige Sektion
+    (text_sensor:/sensor:/script:) eingefuegt werden."""
+    fragment_specs = MULTI_INSTANCE_SECTIONS.get(page_type)
+    if not fragment_specs:
+        raise ParseError(
+            f"Mehrfach-Instanzen fuer Seitentyp {page_type!r} werden vom "
+            "Generator noch nicht unterstuetzt (siehe MULTI_INSTANCE_SECTIONS)."
+        )
+
+    by_section: dict[str, list[str]] = {}
+    for anchor_re, item_indent, section in fragment_specs:
+        matches = [i for i, line in enumerate(original_header_lines) if anchor_re.match(line)]
+        if len(matches) != 1:
+            raise ParseError(
+                f"Anker {anchor_re.pattern!r} fuer Mehrfach-Instanz von "
+                f"{page_type!r} ist nicht eindeutig ({len(matches)} Treffer)."
+            )
+        start, end = _find_item_bounds(original_header_lines, matches[0], item_indent)
+        by_section.setdefault(section, []).append("".join(original_header_lines[start:end]))
+
+    suffix = f"__inst{instance}"
+    ids = _collect_ids(tile_block + "".join("".join(v) for v in by_section.values()))
+
+    new_tile = _remap_entity_ids(_suffix_ids(tile_block, ids, suffix), page_type, instance)
+    new_sections = {
+        section: _remap_entity_ids(_suffix_ids("".join(texts), ids, suffix), page_type, instance)
+        for section, texts in by_section.items()
+    }
+    return new_tile, new_sections
+
+
 def _find_item_bounds(lines: list[str], anchor_idx: int, item_indent: int = ITEM_INDENT) -> tuple[int, int]:
     """Start/Ende (Zeilenindizes, [start, end)) des "- "-Listen-Elements
     (bei Einrueckung item_indent), das die Zeile bei anchor_idx enthaelt."""
@@ -579,6 +680,45 @@ def generate(plan: list[dict], source_text: str | None = None) -> str:
                 header, "text_sensor", render_sensors_header_fragment(page, page_index)
             )
 
+    # Instanz je light/climate-Seite bestimmen (aus dem Plan uebernehmen,
+    # sonst wie page_plan.py automatisch vergeben: erstes Vorkommen eines
+    # Typs = LEGACY_INSTANCE, jedes weitere "2", "3", ...) - Mehrfach-
+    # Instanzen von light/climate brauchen instanz-suffixierte Kopien
+    # ihrer Bloecke/Fragmente, sonst kollidieren ihre Widget-/Sensor-IDs.
+    instance_counts: dict[str, int] = {}
+    instances: list[str | None] = []
+    for page in plan:
+        page_type = page["type"]
+        if page_type not in MULTI_INSTANCE_SECTIONS:
+            instances.append(None)
+            continue
+        instance_counts[page_type] = instance_counts.get(page_type, 0) + 1
+        instance = str(page.get("instance") or "")
+        if not instance:
+            instance = LEGACY_INSTANCE if instance_counts[page_type] == 1 else str(instance_counts[page_type])
+        instances.append(instance)
+
+    # Original-Header VOR jeder Mehrfach-Instanz-Einfuegung einfrieren -
+    # die Legacy-Fragmente (instance == "1") bleiben dort unveraendert
+    # liegen, jede weitere Instanz wird aus dieser Momentaufnahme extrahiert
+    # (die exakten Anker matchen nur die unsuffixierte Legacy-Kopie, siehe
+    # render_extra_instance - ein bereits eingefuegtes __instN wuerde also
+    # ohnehin nie versehentlich erneut aufgegriffen).
+    original_header_lines = header.splitlines(keepends=True)
+    tile_overrides: dict[int, str] = {}
+    for i, (page, instance) in enumerate(zip(plan, instances)):
+        page_type = page["type"]
+        if instance is None or instance == LEGACY_INSTANCE:
+            continue
+        if page_type not in blocks:
+            raise ParseError(f"Seitentyp {page_type!r} hat keinen Block fuer Mehrfach-Instanzen")
+        new_tile, new_sections = render_extra_instance(
+            page_type, instance, original_header_lines, blocks[page_type]
+        )
+        tile_overrides[i] = new_tile
+        for section, text in new_sections.items():
+            header = _insert_into_section(header, section, text)
+
     rendered_tiles = []
     for column, page in enumerate(plan):
         page_type = page["type"]
@@ -592,7 +732,7 @@ def generate(plan: list[dict], source_text: str | None = None) -> str:
                 "'Seitenplan / Seiten-Baukasten': neue Seitentypen brauchen "
                 "zuerst ein eigenes Widget-Template."
             )
-        block = blocks[page_type]
+        block = tile_overrides.get(column, blocks[page_type])
         block = set_column(block, column)
         title = page.get("title")
         if page_type != "overview" and title:
