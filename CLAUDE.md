@@ -162,17 +162,50 @@ bestehenden Seite nicht (wie bisher).
   esphome/wohnwagen-display.yaml` und neu flashen. Kein Automatismus
   (Download-Button in der Integration o.ä.) bisher vorhanden.
 
+**Neuer Seitentyp `sensors`** (generische Sensor-Anzeige) - fertig und
+verifiziert, funktioniert grundlegend ANDERS als die 5 Bestandsseiten:
+- Kein fester Block in der Block-Bibliothek (kann es auch nicht geben -
+  beliebig viele/wählbare Entities pro Seite). Stattdessen rendert
+  `render_sensors_tile(page, column, page_index)` den `tile_*`-Block bei
+  jedem Aufruf frisch aus der `entities`-Liste des Plan-Eintrags: pro
+  Entity eine Zeile (Label + Wert) in einer vertikalen Flex-Liste, ohne
+  Entities ein Platzhaltertext "Keine Sensoren eingerichtet".
+- `render_sensors_header_fragment(page, page_index)` baut dazu passende
+  `text_sensor: platform: homeassistant`-Einträge (ein Sensor pro
+  Entity, `on_value` aktualisiert das Wert-Label) - referenziert die in
+  der `entities`-Liste angegebenen **echten HA-Entity-IDs direkt**, ganz
+  ohne Mirror-Entity über die Integration (anders als light/climate):
+  da eine Änderung der Seite ohnehin einen Reflash braucht, lohnt die
+  Indirektion hier nicht. `_insert_into_section(header, "text_sensor",
+  fragment)` fügt das Fragment in die bestehende `text_sensor:`-Sektion
+  ein (neue, generische Hilfsfunktion, nicht auf sensors beschränkt).
+- Plan-Eintrag-Format: `{"type": "sensors", "title": "...", "entities":
+  [{"entity_id": "sensor.x", "label": "...", "unit": "..."}]}` -
+  `entities` akzeptiert auch bloße Entity-ID-Strings (Label = Entity-ID,
+  kein Unit-Suffix). `page_plan.py`s `_normalize_sensor_entities`
+  normalisiert beides einheitlich (Python/HA-Seite bisher rein
+  strukturell - keine eigenen Mirror-Entities für sensors, siehe oben).
+- Widget-/Sensor-IDs werden mit dem Plan-Index der Seite suffixiert
+  (`tile_sensorseite_<i>`, `lbl_sensorseite_<i>_<j>`), eindeutig auch
+  bei mehreren sensors-Seiten im selben Plan.
+- **Verifiziert mit echtem `esphome compile`**: Plan mit einer
+  3-Zeilen-sensors-Seite (Batterie/Frischwasser/Abwasser, %) neben den
+  5 Bestandsseiten kompiliert, RAM/Flash praktisch identisch zum
+  Original (46,8 % / 35,4 %). Zwei sensors-Seiten gleichzeitig (eine
+  davon mit leerer `entities`-Liste) bestehen `esphome config`, IDs
+  bleiben eindeutig.
+- Ein Bug beim Bauen gefunden+behoben: `pad_left`/`pad_right` gehören
+  bei ESPHome-LVGL NICHT in den `layout:`-Block (dort nur
+  `pad_row`/`pad_column` für Flex-Abstände), sondern als eigene
+  Widget-Eigenschaften auf das `obj:` selbst.
+
 **Noch offen**:
 1. Mehrfach-Instanzen (2. Klimaanlage etc.) im Generator selbst -
    Widget-IDs pro Instanz suffixieren.
-2. Neuer Seiten-Typ `sensors` (generische Sensor-Anzeige): Datenmodell
-   ist vorbereitet (`PAGE_TYPE_SENSORS`, `entities`-Liste im Plan-Eintrag),
-   aber weder eine HA-Entity-Erzeugung noch ein LVGL-Seitentemplate
-   noch ein Block in der Generator-Bibliothek existieren dafür bisher.
-3. Komfort: Export/Import-Knopf in der Integration statt manuellem
+2. Komfort: Export/Import-Knopf in der Integration statt manuellem
    JSON-Kopieren; Seitenplan-Editor als Multi-Step-Wizard statt
    JSON-Textfeld.
-4. **Explizit nicht gewünscht**: Kartenansicht mit dauerhaft
+3. **Explizit nicht gewünscht**: Kartenansicht mit dauerhaft
    gespeicherten Standort-Pins (Florian hat das abgelehnt) und eine
    separate "Heizung"-Seite (ist inhaltlich dasselbe wie eine zweite
    Klimaanlagen-Seite, kein eigener Typ nötig).

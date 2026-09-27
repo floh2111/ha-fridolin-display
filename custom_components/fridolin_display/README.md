@@ -29,14 +29,35 @@ Seit Version 0.3.0 legt ein **Seitenplan** fest, welche Seiten das
 Display in welcher Reihenfolge zeigt – einstellbar über "Konfigurieren"
 → erster Schritt (JSON-Liste, siehe `page_plan.py`). Mögliche
 Seiten-Typen: `overview`, `light`, `climate`, `leveling`, `fridge`,
-`sensors` (`sensors` ist als Typ bereits vorbereitet, hat aber noch
-keine eigene Entity-Erzeugung/Display-Seite – folgt später). `light`
-und `climate` können **mehrfach** im Plan vorkommen (z.B. zwei
-Klimazonen) – jede weitere Instanz bekommt eigene, instanz-
+`sensors`. `light` und `climate` können **mehrfach** im Plan vorkommen
+(z.B. zwei Klimazonen) – jede weitere Instanz bekommt eigene, instanz-
 parametrisierte Entity-IDs (`climate.fridolin_climate_2`,
 `light.fridolin_licht_2_1` usw.), die erste Instanz behält aus
 Kompatibilitätsgründen die alten IDs (`climate.fridolin_heizung`,
 `light.fridolin_licht_1`).
+
+**`sensors`** zeigt eine frei wählbare Liste echter HA-Sensoren (z.B.
+Batterie, Frischwasser-/Abwassertank) – keine feste Anzahl Slots wie bei
+Licht, sondern pro Seite eine eigene `entities`-Liste im Plan-Eintrag:
+
+```json
+{
+  "type": "sensors",
+  "title": "Tank & Batterie",
+  "entities": [
+    { "entity_id": "sensor.batterie_soc", "label": "Batterie", "unit": "%" },
+    { "entity_id": "sensor.frischwasser", "label": "Frischwasser", "unit": "%" }
+  ]
+}
+```
+
+`label`/`unit` sind optional (ein Eintrag darf auch nur die Entity-ID
+als String sein). Anders als Licht/Klimaanlage legt `sensors` **keine**
+Mirror-Entity in dieser Integration an, sondern die generierte
+ESPHome-YAML liest die angegebene HA-Entity direkt – eine Änderung der
+Sensor-Auswahl braucht ohnehin einen Reflash (siehe unten), die übliche
+Mirror-Entity-Indirektion (Entity-Zuordnung ohne Reflash ändern) bringt
+hier also keinen Vorteil.
 
 **Auf der Display-Firmware anwenden**: `esphome/generate_display_yaml.py`
 baut aus einem Seitenplan (JSON, z.B. den Text aus Schritt 1 oben in
@@ -47,14 +68,15 @@ python3 esphome/generate_display_yaml.py --plan mein_plan.json --out esphome/woh
 ```
 
 Danach wie gewohnt flashen. **Aktueller Stand**: Umsortieren, Titel
-ändern und Licht-/Klimaanlagen-/Kühlbox-/Nivellierungs-Seite weglassen
-funktioniert und ist mit echtem `esphome compile` verifiziert (beim
-Weglassen der Nivellierung verschwindet automatisch auch der
-Wohnwagen/Wohnmobil-Umschalter der Einstellungsseite mit, der sonst
-keinen Sinn mehr ergäbe). **Nur die Übersicht muss im Plan bleiben.**
-Mehrfach-Instanzen (2. Klimaanlage) in der erzeugten YAML funktionieren
-noch nicht. Solange du den Seitenplan nicht änderst (Standard entspricht
-genau dem bisherigen Display), ändert sich
+ändern, Licht-/Klimaanlagen-/Kühlbox-/Nivellierungs-Seite weglassen und
+`sensors`-Seiten hinzufügen funktioniert und ist mit echtem `esphome
+compile` verifiziert (beim Weglassen der Nivellierung verschwindet
+automatisch auch der Wohnwagen/Wohnmobil-Umschalter der
+Einstellungsseite mit, der sonst keinen Sinn mehr ergäbe). **Nur die
+Übersicht muss im Plan bleiben.** Mehrfach-Instanzen (2. Klimaanlage) in
+der erzeugten YAML funktionieren noch nicht. Solange du den Seitenplan
+nicht änderst (Standard entspricht genau dem bisherigen Display), ändert
+sich
 für dich ohnehin nichts.
 
 Die Entity-Zuordnung (welches echte Licht/welche echte Klimaanlage

@@ -58,16 +58,41 @@ def _normalize(raw: list[dict[str, Any]]) -> list[dict[str, str]]:
             normalized["instance"] = instance
 
         if page_type == "sensors":
-            entities = entry.get("entities") or []
-            if isinstance(entities, list):
-                normalized_entities = [str(e) for e in entities if e]
-            else:
-                normalized_entities = []
-            normalized["entities"] = normalized_entities  # type: ignore[assignment]
+            normalized["entities"] = _normalize_sensor_entities(entry.get("entities"))  # type: ignore[assignment]
 
         plan.append(normalized)
 
     return plan
+
+
+def _normalize_sensor_entities(raw: Any) -> list[dict[str, str]]:
+    """Normalisiert die 'entities'-Liste einer sensors-Seite.
+
+    Jeder Eintrag ist entweder eine blosse Entity-ID (String, z.B.
+    "sensor.batterie_soc" - label wird dann von der Entity-ID abgeleitet)
+    oder ein Objekt {"entity_id", "label"?, "unit"?} - "label" ist der
+    Zeilentext auf dem Display, "unit" wird hinter den Rohwert der
+    HA-Entity gehaengt (ESPHome kennt die Einheit der Ziel-Entity zur
+    Kompilierzeit nicht, siehe esphome/generate_display_yaml.py).
+    """
+    if not isinstance(raw, list):
+        return []
+    entities: list[dict[str, str]] = []
+    for item in raw:
+        if isinstance(item, str):
+            entity_id = item
+            label = entity_id
+            unit = ""
+        elif isinstance(item, dict):
+            entity_id = str(item.get("entity_id") or "")
+            if not entity_id:
+                continue
+            label = str(item.get("label") or entity_id)
+            unit = str(item.get("unit") or "")
+        else:
+            continue
+        entities.append({"entity_id": entity_id, "label": label, "unit": unit})
+    return entities
 
 
 def light_pages(config: dict[str, Any]) -> list[dict[str, str]]:

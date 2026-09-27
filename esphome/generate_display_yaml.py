@@ -274,6 +274,113 @@ def set_title(block_text: str, title: str) -> str:
     raise ParseError("Block hat keine Titel-Zeile (text: \"...\") gefunden")
 
 
+def _yaml_dq(text: str) -> str:
+    """Escaped Text fuer eine doppelt-gequotete YAML-Zeichenkette."""
+    return text.replace("\\", "\\\\").replace('"', '\\"')
+
+
+def render_sensors_tile(page: dict, column: int, page_index: int) -> str:
+    """Baut den tile_*-Block einer generischen Sensor-Seite (Seitentyp
+    'sensors'). Anders als die anderen Seitentypen NICHT aus der
+    Block-Bibliothek kopiert, sondern aus der 'entities'-Liste des
+    Plan-Eintrags frisch gerendert - die Anzahl/Auswahl der Sensoren ist
+    beliebig, dafuer gibt es keinen festen vorkompilierten Block."""
+    title = _yaml_dq(page.get("title") or "Sensoren")
+    entities = page.get("entities") or []
+
+    if entities:
+        rows = "".join(
+            f'                        - obj:\n'
+            f'                            width: 560\n'
+            f'                            height: 50\n'
+            f'                            radius: 12\n'
+            f'                            bg_color: 0x1D2733\n'
+            f'                            border_color: 0x3A4250\n'
+            f'                            border_width: 2\n'
+            f'                            pad_left: 20\n'
+            f'                            pad_right: 20\n'
+            f'                            layout: {{ type: FLEX, flex_flow: ROW, flex_align_main: SPACE_BETWEEN, flex_align_cross: CENTER }}\n'
+            f'                            widgets:\n'
+            f'                              - label:\n'
+            f'                                  text: "{_yaml_dq(ent.get("label") or ent.get("entity_id", ""))}"\n'
+            f'                                  text_font: montserrat_20\n'
+            f'                              - label:\n'
+            f'                                  id: lbl_sensorseite_{page_index}_{i}\n'
+            f'                                  text: "--"\n'
+            f'                                  text_font: montserrat_20\n'
+            for i, ent in enumerate(entities)
+        )
+    else:
+        rows = (
+            '                        - label:\n'
+            '                            text: "Keine Sensoren eingerichtet"\n'
+            '                            text_font: montserrat_14\n'
+        )
+
+    return (
+        f'              ### Seite "{title}" (generische Sensor-Anzeige, per Seitenplan erzeugt)\n'
+        f'              - id: tile_sensorseite_{page_index}\n'
+        f'                row: 0\n'
+        f'                column: {column}\n'
+        f'                dir: HOR\n'
+        f'                widgets:\n'
+        f'                  - label:\n'
+        f'                      text: "{title}"\n'
+        f'                      text_font: montserrat_28\n'
+        f'                      align: TOP_MID\n'
+        f'                      y: 16\n'
+        f'                  - obj:\n'
+        f'                      align: CENTER\n'
+        f'                      y: 10\n'
+        f'                      width: 600\n'
+        f'                      height: 360\n'
+        f'                      bg_opa: TRANSP\n'
+        f'                      border_opa: TRANSP\n'
+        f'                      layout: {{ type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER, pad_row: 14 }}\n'
+        f'                      widgets:\n'
+        f'{rows}'
+    )
+
+
+def render_sensors_header_fragment(page: dict, page_index: int) -> str:
+    """Baut die text_sensor:-Eintraege (ein Eintrag pro Entity), die eine
+    generische Sensor-Seite mit HA-Werten fuettern - werden von generate()
+    in die bestehende text_sensor:-Sektion des Headers eingefuegt."""
+    entities = page.get("entities") or []
+    parts = []
+    for i, ent in enumerate(entities):
+        entity_id = ent.get("entity_id", "")
+        unit = ent.get("unit") or ""
+        suffix = f" {_yaml_dq(unit)}" if unit else ""
+        parts.append(
+            f'  ### Seitenplan-generiert: "{_yaml_dq(page.get("title") or "")}"\n'
+            f'  - platform: homeassistant\n'
+            f'    id: sensorseite_{page_index}_wert_{i}\n'
+            f'    entity_id: "{_yaml_dq(entity_id)}"\n'
+            f'    on_value:\n'
+            f'      - lvgl.label.update:\n'
+            f'          id: lbl_sensorseite_{page_index}_{i}\n'
+            f'          text: !lambda |-\n'
+            f'            return x + "{suffix}";\n'
+        )
+    return "".join(parts)
+
+
+def _insert_into_section(text: str, section_name: str, new_items: str) -> str:
+    """Fuegt new_items (fertig formatierte YAML-Listen-Elemente, 2 Leerzeichen
+    eingerueckt) am Ende der Top-Level-Sektion 'section_name:' ein (z.B.
+    'text_sensor:'). Die Sektion muss bereits existieren."""
+    if not new_items:
+        return text
+    lines = text.splitlines(keepends=True)
+    section_re = re.compile(rf"^{re.escape(section_name)}:\s*$")
+    idx = next((i for i, line in enumerate(lines) if section_re.match(line)), None)
+    if idx is None:
+        raise ParseError(f"Sektion {section_name!r} nicht gefunden - kann sensors-Seite nicht einfuegen")
+    end = _find_block_end(lines, idx, 0)
+    return "".join(lines[:end]) + new_items + "".join(lines[end:])
+
+
 def _find_item_bounds(lines: list[str], anchor_idx: int, item_indent: int = ITEM_INDENT) -> tuple[int, int]:
     """Start/Ende (Zeilenindizes, [start, end)) des "- "-Listen-Elements
     (bei Einrueckung item_indent), das die Zeile bei anchor_idx enthaelt."""
@@ -462,15 +569,28 @@ def generate(plan: list[dict], source_text: str | None = None) -> str:
     if missing_types:
         header, footer = strip_page_fragments(header, footer, missing_types)
 
+    # sensors-Seiten werden nicht aus der Block-Bibliothek kopiert,
+    # sondern aus ihrer 'entities'-Liste frisch gerendert (siehe
+    # render_sensors_tile) - ihre text_sensor:-Eintraege muessen VOR dem
+    # Zusammenbau der tiles-Liste in den Header eingefuegt werden.
+    for page_index, page in enumerate(plan):
+        if page["type"] == "sensors":
+            header = _insert_into_section(
+                header, "text_sensor", render_sensors_header_fragment(page, page_index)
+            )
+
     rendered_tiles = []
     for column, page in enumerate(plan):
         page_type = page["type"]
+        if page_type == "sensors":
+            rendered_tiles.append(render_sensors_tile(page, column, column))
+            continue
         if page_type not in blocks:
             raise ParseError(
                 f"Seitentyp {page_type!r} hat (noch) keinen Block in der "
                 f"Block-Bibliothek ({sorted(blocks)}) - siehe CLAUDE.md, "
-                "'Seitenplan / Seiten-Baukasten': neue Seitentypen (z.B. "
-                "'sensors') brauchen zuerst ein eigenes Widget-Template."
+                "'Seitenplan / Seiten-Baukasten': neue Seitentypen brauchen "
+                "zuerst ein eigenes Widget-Template."
             )
         block = blocks[page_type]
         block = set_column(block, column)
