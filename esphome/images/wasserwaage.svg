@@ -18,13 +18,15 @@
   <line x1="150" y1="65" x2="150" y2="215" stroke="#202836" stroke-width="2" opacity="0.6"/>
   <line x1="260" y1="65" x2="260" y2="215" stroke="#202836" stroke-width="2" opacity="0.6"/>
 
-  <!-- Libelle "Vorne / Hinten" (liegt in Fahrtrichtung -> waagerecht) -->
-  <rect x="64" y="116" width="182" height="54" rx="27" fill="#3A4250" stroke="#55606F" stroke-width="2"/>
-  <rect x="70" y="122" width="170" height="42" rx="21" fill="url(#gradV)"/>
-  <circle cx="155" cy="143" r="14" fill="none" stroke="#2F3B0A" stroke-width="3"/>
+  <!-- Libelle "Vorne / Hinten" (liegt in Fahrtrichtung -> waagerecht), Mitte y=140 -->
+  <rect x="64" y="113" width="182" height="54" rx="27" fill="#3A4250" stroke="#55606F" stroke-width="2"/>
+  <rect x="70" y="119" width="170" height="42" rx="21" fill="url(#gradV)"/>
+  <line x1="148" y1="129" x2="148" y2="151" stroke="#101a05" stroke-width="3" stroke-linecap="round"/>
+  <line x1="162" y1="129" x2="162" y2="151" stroke="#101a05" stroke-width="3" stroke-linecap="round"/>
 
-  <!-- Libelle "Links / Rechts" (quer zur Fahrtrichtung -> senkrecht, im rechten Winkel) -->
-  <rect x="270" y="75" width="54" height="150" rx="27" fill="#3A4250" stroke="#55606F" stroke-width="2"/>
-  <rect x="276" y="81" width="42" height="138" rx="21" fill="url(#gradH)"/>
-  <circle cx="297" cy="150" r="14" fill="none" stroke="#2F3B0A" stroke-width="3"/>
+  <!-- Libelle "Links / Rechts" (quer zur Fahrtrichtung -> senkrecht, im rechten Winkel), Mitte y=140 -->
+  <rect x="270" y="65" width="54" height="150" rx="27" fill="#3A4250" stroke="#55606F" stroke-width="2"/>
+  <rect x="276" y="71" width="42" height="138" rx="21" fill="url(#gradH)"/>
+  <line x1="286" y1="133" x2="308" y2="133" stroke="#101a05" stroke-width="3" stroke-linecap="round"/>
+  <line x1="286" y1="147" x2="308" y2="147" stroke="#101a05" stroke-width="3" stroke-linecap="round"/>
 </svg>

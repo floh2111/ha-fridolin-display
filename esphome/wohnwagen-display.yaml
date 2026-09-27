@@ -873,11 +873,11 @@ sensor:
             args: ["x"]
       ### Blase in der senkrechten Libelle (quer zur Fahrtrichtung) nach oben/unten
       ### bewegen: +-8 Grad Vollausschlag (reale Wasserwaagen sind sehr empfindlich),
-      ### darüber bleibt sie am Rand stehen. y-Bereich siehe images/wasserwaage.svg
-      ### (Ring bei y=150 im SVG, ×1.5 gerastert -> Bildmitte y=225, Hub ±80px).
+      ### darüber bleibt sie am Rand stehen. Mitte bei y=140 im SVG, ×1.5 gerastert
+      ### -> Bildmitte y=210, minus halbe Blasenhöhe (45/2≈22) -> 188, Hub ±52px.
       - lambda: |-
           float clamped = std::max(-8.0f, std::min(8.0f, x));
-          lv_obj_set_y(id(bubble_lr), 225 - 17 + (int) (-clamped / 8.0f * 80.0f));
+          lv_obj_set_y(id(bubble_lr), 188 + (int) (clamped / 8.0f * 52.0f));
           bool eben = fabsf(x) < 1.0f;
           lv_obj_set_style_border_color(id(bubble_lr), eben ? lv_color_hex(0x3FA34D) : lv_color_hex(0xB9AE63), 0);
           lv_obj_set_style_border_width(id(bubble_lr), eben ? 3 : 1, 0);
@@ -899,10 +899,11 @@ sensor:
             format: "%.1f°"
             args: ["x"]
       ### Blase in der waagerechten Libelle (in Fahrtrichtung) seitlich bewegen.
-      ### Ring bei x=155 im SVG, ×1.5 gerastert -> Bildmitte x=232, Hub ±76px.
+      ### Mitte bei x=155 im SVG, ×1.5 gerastert -> Bildmitte x=232.5, minus halbe
+      ### Blasenbreite (45/2≈22) -> 210, Hub ±76px.
       - lambda: |-
           float clamped = std::max(-8.0f, std::min(8.0f, x));
-          lv_obj_set_x(id(bubble_vh), 232 - 17 + (int) (clamped / 8.0f * 76.0f));
+          lv_obj_set_x(id(bubble_vh), 210 + (int) (clamped / 8.0f * 76.0f));
           bool eben = fabsf(x) < 1.0f;
           lv_obj_set_style_border_color(id(bubble_vh), eben ? lv_color_hex(0x3FA34D) : lv_color_hex(0xB9AE63), 0);
           lv_obj_set_style_border_width(id(bubble_vh), eben ? 3 : 1, 0);
@@ -1446,26 +1447,30 @@ lvgl:
                       align: CENTER
                       y: -4
                       widgets:
+                        ### Ovale Blase (wie bei einer echten Wasserwaage), liegend -
+                        ### bewegt sich waagerecht in der Vorne/Hinten-Röhre
                         - obj:
                             id: bubble_vh
                             align: TOP_LEFT
-                            x: 215
-                            y: 198
-                            width: 34
-                            height: 34
+                            x: 210
+                            y: 193
+                            width: 45
+                            height: 33
                             radius: 100
                             bg_color: 0xFFFDE7
                             bg_grad_color: 0xE6DFA0
                             bg_grad_dir: VER
                             border_color: 0xB9AE63
                             border_width: 1
+                        ### Ovale Blase, stehend - bewegt sich senkrecht in der
+                        ### Links/Rechts-Röhre
                         - obj:
                             id: bubble_lr
                             align: TOP_LEFT
-                            x: 428
-                            y: 208
-                            width: 34
-                            height: 34
+                            x: 429
+                            y: 188
+                            width: 33
+                            height: 45
                             radius: 100
                             bg_color: 0xFFFDE7
                             bg_grad_color: 0xE6DFA0

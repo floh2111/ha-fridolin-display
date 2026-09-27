@@ -309,10 +309,10 @@
     margin: 14px auto 0;
   }
   .level-plan svg { display: block; width: 100%; height: auto; }
+  /* Ovale Blase wie bei einer echten Wasserwaage: liegend in der waagerechten
+     Röhre, stehend in der senkrechten - jeweils in Bewegungsrichtung gestreckt */
   .level-plan .bubble {
     position: absolute;
-    width: 7.4%; /* ~34 / 460 */
-    aspect-ratio: 1;
     border-radius: 50%;
     background: radial-gradient(circle at 35% 30%, #fffef2, #e6dfa0 75%);
     border: 1px solid #b9ae63;
@@ -322,6 +322,8 @@
     cursor: grab;
     touch-action: none;
   }
+  .level-plan .bubble-h { width: 9.8%; height: 7.2%; } /* ~45x33 / 460x300 */
+  .level-plan .bubble-v { width: 7.2%; height: 11%; } /* ~33x45 / 460x300 */
   .level-plan .bubble.level { border-color: var(--dev-btn-good); border-width: 3px; }
   .level-values {
     display: flex;
@@ -684,15 +686,17 @@
               <path d="M300,225 q20,16 40,0" fill="none" stroke="#0D141C" stroke-width="3"/>
               <line x1="150" y1="65" x2="150" y2="215" stroke="#202836" stroke-width="2" opacity="0.6"/>
               <line x1="260" y1="65" x2="260" y2="215" stroke="#202836" stroke-width="2" opacity="0.6"/>
-              <rect x="64" y="116" width="182" height="54" rx="27" fill="#3A4250" stroke="#55606F" stroke-width="2"/>
-              <rect x="70" y="122" width="170" height="42" rx="21" fill="url(#pgradV)"/>
-              <circle cx="155" cy="143" r="14" fill="none" stroke="#2F3B0A" stroke-width="3"/>
-              <rect x="270" y="75" width="54" height="150" rx="27" fill="#3A4250" stroke="#55606F" stroke-width="2"/>
-              <rect x="276" y="81" width="42" height="138" rx="21" fill="url(#pgradH)"/>
-              <circle cx="297" cy="150" r="14" fill="none" stroke="#2F3B0A" stroke-width="3"/>
+              <rect x="64" y="113" width="182" height="54" rx="27" fill="#3A4250" stroke="#55606F" stroke-width="2"/>
+              <rect x="70" y="119" width="170" height="42" rx="21" fill="url(#pgradV)"/>
+              <line x1="148" y1="129" x2="148" y2="151" stroke="#101a05" stroke-width="3" stroke-linecap="round"/>
+              <line x1="162" y1="129" x2="162" y2="151" stroke="#101a05" stroke-width="3" stroke-linecap="round"/>
+              <rect x="270" y="65" width="54" height="150" rx="27" fill="#3A4250" stroke="#55606F" stroke-width="2"/>
+              <rect x="276" y="71" width="42" height="138" rx="21" fill="url(#pgradH)"/>
+              <line x1="286" y1="133" x2="308" y2="133" stroke="#101a05" stroke-width="3" stroke-linecap="round"/>
+              <line x1="286" y1="147" x2="308" y2="147" stroke="#101a05" stroke-width="3" stroke-linecap="round"/>
             </svg>
-            <div class="bubble" id="bubbleVH"></div>
-            <div class="bubble" id="bubbleLR"></div>
+            <div class="bubble bubble-h" id="bubbleVH"></div>
+            <div class="bubble bubble-v" id="bubbleLR"></div>
           </div>
           <div class="level-values">
             <span>Links/Rechts:<span class="level-value" id="valLR">0,0°</span></span>
@@ -1003,10 +1007,10 @@
     render();
     return { zero: function () { angle = 0; render(); } };
   }
-  // Waagerechte Röhre (Vorne/Hinten, in Fahrtrichtung): Blase bewegt sich in X, Ring bei x=155,y=143
-  var levelVH = setupLevel("bubbleVH", "valVH", "x", 143, 104, 206);
-  // Senkrechte Röhre (Links/Rechts, quer zur Fahrtrichtung): Blase bewegt sich in Y, Ring bei x=297,y=150
-  var levelLR = setupLevel("bubbleLR", "valLR", "y", 297, 115, 185);
+  // Waagerechte Röhre (Vorne/Hinten, in Fahrtrichtung): Blase bewegt sich in X, Mitte bei x=155,y=140
+  var levelVH = setupLevel("bubbleVH", "valVH", "x", 140, 104, 206);
+  // Senkrechte Röhre (Links/Rechts, quer zur Fahrtrichtung): Blase bewegt sich in Y, Mitte bei x=297,y=140
+  var levelLR = setupLevel("bubbleLR", "valLR", "y", 297, 105, 175);
   document.getElementById("levelZero").addEventListener("click", function () {
     levelLR.zero();
     levelVH.zero();
