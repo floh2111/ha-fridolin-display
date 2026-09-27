@@ -163,8 +163,9 @@
     gap: 18px;
     margin-top: 14px;
     padding: 0 4px;
+    min-height: 44%;
   }
-  .ov-col { width: 47%; display: flex; flex-direction: column; }
+  .ov-col { width: 47%; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 14px; }
 
   .weather-row {
     display: flex;
@@ -181,8 +182,8 @@
   .weather-cond { color: var(--dev-muted); font-size: 13px; margin-top: 3px; }
   .forecast-row {
     display: flex;
-    justify-content: space-between;
-    margin-top: 18px;
+    justify-content: center;
+    gap: 16px;
   }
   .forecast-item {
     display: flex;
@@ -195,6 +196,7 @@
   .forecast-item .wicon { width: 22px; height: 22px; }
   .forecast-item .val { color: var(--dev-text); font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; font-size: 14px; }
 
+  .ov-info-block { display: flex; flex-direction: column; align-items: center; }
   .ov-uhrzeit {
     font-family: "IBM Plex Mono", monospace;
     font-size: 38px;
@@ -207,7 +209,6 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-top: 22px;
     font-size: 13px;
     color: var(--dev-muted);
   }
@@ -303,49 +304,60 @@
   /* --- Seite 4: Nivellierung --- */
   .level-row {
     display: flex;
-    justify-content: space-around;
-    margin-top: 22px;
-    gap: 10px;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 16px;
+    gap: 14px;
   }
-  .level-col { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 44%; }
+  .level-col { display: flex; flex-direction: column; align-items: center; gap: 8px; }
   .level-label { font-size: 12px; color: var(--dev-muted); letter-spacing: 0.06em; text-transform: uppercase; }
-  .level-track {
+
+  /* --- Echte Libellen-Optik: Gehäuse + Flüssigkeit + bewegliche Luftblase --- */
+  .level-case {
     position: relative;
-    width: 100%;
-    height: 34px;
-    background: var(--dev-panel);
+    width: 340px;
+    height: 52px;
+    background: linear-gradient(180deg, #4a5468, #333c4c);
     border-radius: 999px;
-    border: 1px solid rgba(255,255,255,0.06);
+    border: 2px solid #5c6779;
     cursor: grab;
     touch-action: none;
+    box-shadow: inset 0 1px 2px rgba(255,255,255,0.08), 0 3px 8px rgba(0,0,0,0.35);
   }
-  .level-track::before {
-    content: "";
+  .level-liquid {
     position: absolute;
-    left: 50%; top: 4px; bottom: 4px;
-    width: 2px;
-    background: rgba(255,255,255,0.18);
-    translate: -50% 0;
+    inset: 6px 8px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #d7ea82, #7fa119);
   }
+  .level-tick {
+    position: absolute;
+    top: 10px; bottom: 10px;
+    width: 2px;
+    background: #2f3b0a;
+    opacity: 0.65;
+  }
+  .level-tick.a { left: calc(50% - 6px); }
+  .level-tick.b { left: calc(50% + 4px); }
   .bubble {
     position: absolute;
-    top: 3px;
-    width: 28px; height: 28px;
+    top: 9px;
+    width: 34px; height: 34px;
     border-radius: 50%;
-    background: var(--dev-btn-good);
+    background: radial-gradient(circle at 35% 30%, #fffef2, #e6dfa0 75%);
+    border: 1px solid #b9ae63;
     left: 50%;
     translate: -50% 0;
-    transition: background 120ms ease;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    transition: border-color 150ms ease, border-width 150ms ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
   }
-  .bubble.warn { background: #f6c453; }
-  .bubble.bad { background: var(--dev-btn-active); }
+  .bubble.level { border-color: var(--dev-btn-good); border-width: 3px; }
   .level-value {
     font-family: "IBM Plex Mono", monospace;
     font-size: 18px;
     font-variant-numeric: tabular-nums;
   }
-  .level-hint { font-size: 11px; color: var(--dev-muted); text-align: center; margin-top: 14px; max-width: 380px; margin-inline: auto; }
+  .level-hint { font-size: 11px; color: var(--dev-muted); text-align: center; margin-top: 10px; max-width: 380px; margin-inline: auto; }
   .level-zero {
     display: block;
     margin: 16px auto 0;
@@ -604,7 +616,7 @@
               <div class="weather-row">
                 <div class="weather-icon wicon" id="wetterIconGross"></div>
                 <div>
-                  <div class="weather-temp" id="wetterTemp">18.4°C</div>
+                  <div class="weather-temp" id="wetterTemp">18,4°C</div>
                   <div class="weather-cond" id="wetterZustand">Leicht bewölkt</div>
                 </div>
               </div>
@@ -618,9 +630,11 @@
 
             <!-- Oben rechts: Uhrzeit, Datum, Standort - darunter der Morgen-Ausblick -->
             <div class="ov-col">
-              <div class="ov-uhrzeit" id="ovUhrzeit">--:--</div>
-              <div class="ov-datum" id="ovDatum">--, --.--.</div>
-              <div class="ov-standort" id="ovStandort">Freiburg, DE</div>
+              <div class="ov-info-block">
+                <div class="ov-uhrzeit" id="ovUhrzeit">--:--</div>
+                <div class="ov-datum" id="ovDatum">--, --.--.</div>
+                <div class="ov-standort" id="ovStandort">Freiburg, DE</div>
+              </div>
               <div class="tomorrow">
                 <div class="wicon" id="morgenIcon"></div>
                 <div class="tomorrow-col">
@@ -660,7 +674,7 @@
         <!-- Seite 3: Heizung -->
         <div class="page">
           <p class="page-title">Heizung</p>
-          <div class="target-temp" id="targetTemp">21.0°C</div>
+          <div class="target-temp" id="targetTemp">21,0°C</div>
           <div class="target-label">Zieltemperatur</div>
           <div class="temp-controls">
             <button class="temp-btn" id="tempDown">−</button>
@@ -675,13 +689,23 @@
           <div class="level-row">
             <div class="level-col">
               <div class="level-label">Links / Rechts</div>
-              <div class="level-track" id="trackLR"><div class="bubble" id="bubbleLR"></div></div>
-              <div class="level-value" id="valLR">0.0°</div>
+              <div class="level-case" id="trackLR">
+                <div class="level-liquid"></div>
+                <div class="level-tick a"></div>
+                <div class="level-tick b"></div>
+                <div class="bubble" id="bubbleLR"></div>
+              </div>
+              <div class="level-value" id="valLR">0,0°</div>
             </div>
             <div class="level-col">
               <div class="level-label">Vorne / Hinten</div>
-              <div class="level-track" id="trackVH"><div class="bubble" id="bubbleVH"></div></div>
-              <div class="level-value" id="valVH">0.0°</div>
+              <div class="level-case" id="trackVH">
+                <div class="level-liquid"></div>
+                <div class="level-tick a"></div>
+                <div class="level-tick b"></div>
+                <div class="bubble" id="bubbleVH"></div>
+              </div>
+              <div class="level-value" id="valVH">0,0°</div>
             </div>
           </div>
           <button class="level-zero" id="levelZero">Nullen</button>
@@ -866,7 +890,7 @@
   screen.tabIndex = 0;
 
   function onPointerDown(e) {
-    if (e.target.closest(".light-card, .temp-btn, .heat-toggle, .level-track, .level-zero, .pill, .fridge-power, .arrow, .dot")) return;
+    if (e.target.closest(".light-card, .temp-btn, .heat-toggle, .level-case, .level-zero, .pill, .fridge-power, .arrow, .dot")) return;
     dragging = true;
     startX = (e.touches ? e.touches[0].clientX : e.clientX);
     startTranslate = -current * 20;
@@ -915,7 +939,7 @@
   var heatBtn = document.getElementById("heatToggle");
 
   function renderTemp() {
-    tempEl.textContent = targetTemp.toFixed(1) + "°C";
+    tempEl.textContent = targetTemp.toFixed(1).replace(".", ",") + "°C";
   }
   document.getElementById("tempDown").addEventListener("click", function () {
     targetTemp = Math.max(10, targetTemp - 0.5);
@@ -937,18 +961,17 @@
     var trackEl = document.getElementById(trackId);
     var bubbleEl = document.getElementById(bubbleId);
     var valueEl = document.getElementById(valueId);
-    var angle = 0; // -45..45
+    var RANGE = 8; // Grad Vollausschlag - echte Wasserwaagen sind sehr empfindlich
+    var angle = 0; // -8..8
 
     function render() {
       var w = trackEl.getBoundingClientRect().width;
-      var usable = w - 28;
-      var pos = ((angle + 45) / 90) * usable;
+      var usable = w - 34; // Kugeldurchmesser
+      var pos = ((angle + RANGE) / (2 * RANGE)) * usable;
       bubbleEl.style.left = pos + "px";
       bubbleEl.style.translate = "0 0";
-      valueEl.textContent = angle.toFixed(1) + "°";
-      var abs = Math.abs(angle);
-      bubbleEl.classList.toggle("warn", abs > 5 && abs <= 15);
-      bubbleEl.classList.toggle("bad", abs > 15);
+      valueEl.textContent = angle.toFixed(1).replace(".", ",") + "°";
+      bubbleEl.classList.toggle("level", Math.abs(angle) < 1);
     }
 
     var draggingLevel = false;
@@ -956,7 +979,7 @@
       var rect = trackEl.getBoundingClientRect();
       var ratio = (clientX - rect.left) / rect.width;
       ratio = Math.max(0, Math.min(1, ratio));
-      return (ratio * 90) - 45;
+      return (ratio * 2 * RANGE) - RANGE;
     }
     function down(e) {
       draggingLevel = true;

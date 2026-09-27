@@ -767,9 +767,11 @@ sensor:
     on_value:
       - lvgl.label.update:
           id: lbl_zieltemperatur
-          text:
-            format: "%.1f °C"
-            args: ["x"]
+          ### Komma statt Punkt als Dezimaltrennzeichen (deutsche Schreibweise)
+          text: !lambda |-
+            std::string s = str_sprintf("%.1f °C", x);
+            for (auto &c : s) if (c == '.') c = ',';
+            return s;
 
   ### Aktuelle Außentemperatur (großer Wert auf der Übersicht)
   - platform: homeassistant
@@ -778,9 +780,11 @@ sensor:
     on_value:
       - lvgl.label.update:
           id: lbl_wetter_temp
-          text:
-            format: "%.1f °C"
-            args: ["x"]
+          ### Komma statt Punkt als Dezimaltrennzeichen (deutsche Schreibweise)
+          text: !lambda |-
+            std::string s = str_sprintf("%.1f °C", x);
+            for (auto &c : s) if (c == '.') c = ',';
+            return s;
 
   ### Temperaturen der vier Stunden-Slots
   - platform: homeassistant
@@ -856,9 +860,14 @@ sensor:
           text:
             format: "%.1f°"
             args: ["x"]
-      - lvgl.arc.update:
-          id: arc_lr
-          value: !lambda return (int) x;
+      ### Blase in der Libelle bewegen: +-8 Grad Vollausschlag (reale
+      ### Wasserwaagen sind sehr empfindlich), darüber bleibt sie am Rand stehen
+      - lambda: |-
+          float clamped = std::max(-8.0f, std::min(8.0f, x));
+          lv_obj_set_x(id(bubble_lr), (int) (clamped / 8.0f * 150.0f));
+          bool eben = fabsf(x) < 1.0f;
+          lv_obj_set_style_border_color(id(bubble_lr), eben ? lv_color_hex(0x3FA34D) : lv_color_hex(0xB9AE63), 0);
+          lv_obj_set_style_border_width(id(bubble_lr), eben ? 3 : 1, 0);
 
   ### Kippwinkel vorne/hinten (Pitch) aus den Beschleunigungswerten berechnet
   - platform: template
@@ -876,9 +885,12 @@ sensor:
           text:
             format: "%.1f°"
             args: ["x"]
-      - lvgl.arc.update:
-          id: arc_vh
-          value: !lambda return (int) x;
+      - lambda: |-
+          float clamped = std::max(-8.0f, std::min(8.0f, x));
+          lv_obj_set_x(id(bubble_vh), (int) (clamped / 8.0f * 150.0f));
+          bool eben = fabsf(x) < 1.0f;
+          lv_obj_set_style_border_color(id(bubble_vh), eben ? lv_color_hex(0x3FA34D) : lv_color_hex(0xB9AE63), 0);
+          lv_obj_set_style_border_width(id(bubble_vh), eben ? 3 : 1, 0);
 
 ### Nullt die Neigungsanzeige auf die aktuelle Lage (auch aus Home Assistant bedienbar)
 button:
@@ -1044,7 +1056,7 @@ lvgl:
                             layout:
                               type: FLEX
                               flex_flow: COLUMN
-                              flex_align_main: START
+                              flex_align_main: CENTER
                               flex_align_cross: CENTER
                               pad_row: 14
                             widgets:
@@ -1074,7 +1086,7 @@ lvgl:
                                         widgets:
                                           - label:
                                               id: lbl_wetter_temp
-                                              text: "--.- °C"
+                                              text: "--,- °C"
                                               text_font: montserrat_40
                                           - label:
                                               id: lbl_wetter_zustand
@@ -1089,11 +1101,12 @@ lvgl:
                                   layout:
                                     type: FLEX
                                     flex_flow: ROW
-                                    flex_align_main: SPACE_EVENLY
+                                    flex_align_main: CENTER
                                     flex_align_cross: CENTER
+                                    pad_column: 8
                                   widgets:
                                     - obj:
-                                        width: 100
+                                        width: 78
                                         height: 84
                                         bg_opa: TRANSP
                                         border_opa: TRANSP
@@ -1103,7 +1116,7 @@ lvgl:
                                           - image: { id: img_h0_icon, src: img_w_cloudy_s, width: 28, height: 28 }
                                           - label: { id: lbl_h0_temp, text: "--°", text_font: montserrat_20 }
                                     - obj:
-                                        width: 100
+                                        width: 78
                                         height: 84
                                         bg_opa: TRANSP
                                         border_opa: TRANSP
@@ -1113,7 +1126,7 @@ lvgl:
                                           - image: { id: img_h1_icon, src: img_w_cloudy_s, width: 28, height: 28 }
                                           - label: { id: lbl_h1_temp, text: "--°", text_font: montserrat_20 }
                                     - obj:
-                                        width: 100
+                                        width: 78
                                         height: 84
                                         bg_opa: TRANSP
                                         border_opa: TRANSP
@@ -1123,7 +1136,7 @@ lvgl:
                                           - image: { id: img_h2_icon, src: img_w_cloudy_s, width: 28, height: 28 }
                                           - label: { id: lbl_h2_temp, text: "--°", text_font: montserrat_20 }
                                     - obj:
-                                        width: 100
+                                        width: 78
                                         height: 84
                                         bg_opa: TRANSP
                                         border_opa: TRANSP
@@ -1142,9 +1155,9 @@ lvgl:
                             layout:
                               type: FLEX
                               flex_flow: COLUMN
-                              flex_align_main: START
+                              flex_align_main: CENTER
                               flex_align_cross: CENTER
-                              pad_row: 4
+                              pad_row: 10
                             widgets:
                               - label:
                                   id: lbl_uhrzeit
@@ -1163,7 +1176,6 @@ lvgl:
                                   height: 60
                                   bg_opa: TRANSP
                                   border_opa: TRANSP
-                                  y: 20
                                   layout:
                                     type: FLEX
                                     flex_flow: ROW
@@ -1322,7 +1334,7 @@ lvgl:
                   - label:
                       id: lbl_zieltemperatur
                       hidden: true
-                      text: "21.0 °C"
+                      text: "21,0 °C"
                       text_font: montserrat_40
                       align: CENTER
                       y: -60
@@ -1408,72 +1420,150 @@ lvgl:
                       text_font: montserrat_28
                       align: TOP_MID
                       y: 16
+                  ### Zwei "echte" Wasserwaagen-Röhrchen mit beweglicher Luftblase,
+                  ### untereinander (Links/Rechts oben, Vorne/Hinten unten)
                   - obj:
                       align: CENTER
-                      width: 760
-                      height: 320
+                      y: -6
+                      width: 480
+                      height: 300
                       bg_opa: TRANSP
                       border_opa: TRANSP
-                      layout:
-                        type: FLEX
-                        flex_flow: ROW
-                        flex_align_main: SPACE_EVENLY
-                        flex_align_cross: CENTER
+                      layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER, pad_row: 10 }
                       widgets:
-                        - obj:
-                            width: 340
-                            height: 300
-                            bg_opa: TRANSP
-                            border_opa: TRANSP
-                            layout:
-                              type: FLEX
-                              flex_flow: COLUMN
-                              flex_align_main: CENTER
-                              flex_align_cross: CENTER
-                            widgets:
-                              - label:
-                                  text: "Links / Rechts"
-                              - arc:
-                                  id: arc_lr
-                                  width: 220
-                                  height: 220
-                                  min_value: -45
-                                  max_value: 45
-                                  value: 0
-                                  start_angle: 135
-                                  end_angle: 45
-                                  adjustable: false
-                              - label:
-                                  id: lbl_neigung_lr
-                                  text: "0.0°"
-                                  text_font: montserrat_28
-                        - obj:
-                            width: 340
-                            height: 300
-                            bg_opa: TRANSP
-                            border_opa: TRANSP
-                            layout:
-                              type: FLEX
-                              flex_flow: COLUMN
-                              flex_align_main: CENTER
-                              flex_align_cross: CENTER
-                            widgets:
-                              - label:
-                                  text: "Vorne / Hinten"
-                              - arc:
-                                  id: arc_vh
-                                  width: 220
-                                  height: 220
-                                  min_value: -45
-                                  max_value: 45
-                                  value: 0
-                                  start_angle: 135
-                                  end_angle: 45
-                                  adjustable: false
-                              - label:
-                                  id: lbl_neigung_vh
-                                  text: "0.0°"
-                                  text_font: montserrat_28
+                          - obj:
+                              width: 460
+                              height: 142
+                              bg_opa: TRANSP
+                              border_opa: TRANSP
+                              layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER, pad_row: 8 }
+                              widgets:
+                                - label:
+                                    text: "Links / Rechts"
+                                    text_font: montserrat_14
+                                ### Gehäuse der Libelle
+                                - obj:
+                                    width: 420
+                                    height: 64
+                                    radius: 32
+                                    bg_color: 0x3A4250
+                                    bg_opa: COVER
+                                    border_color: 0x55606F
+                                    border_width: 2
+                                    pad_all: 0
+                                    widgets:
+                                      ### Flüssigkeit im Röhrchen
+                                      - obj:
+                                          align: CENTER
+                                          width: 380
+                                          height: 40
+                                          radius: 20
+                                          bg_color: 0xC8E070
+                                          bg_grad_color: 0x7FA119
+                                          bg_grad_dir: VER
+                                          border_opa: TRANSP
+                                      ### Zwei Mittelstriche: liegt die Blase dazwischen, steht es eben
+                                      - obj:
+                                          align: CENTER
+                                          x: -5
+                                          width: 2
+                                          height: 26
+                                          radius: 0
+                                          bg_color: 0x2F3B0A
+                                          bg_opa: COVER
+                                          border_opa: TRANSP
+                                      - obj:
+                                          align: CENTER
+                                          x: 5
+                                          width: 2
+                                          height: 26
+                                          radius: 0
+                                          bg_color: 0x2F3B0A
+                                          bg_opa: COVER
+                                          border_opa: TRANSP
+                                      ### Die Luftblase selbst, wird per Lambda seitlich verschoben
+                                      - obj:
+                                          id: bubble_lr
+                                          align: CENTER
+                                          width: 34
+                                          height: 34
+                                          radius: 100
+                                          bg_color: 0xFFFDE7
+                                          bg_grad_color: 0xE6DFA0
+                                          bg_grad_dir: VER
+                                          border_color: 0xB9AE63
+                                          border_width: 1
+                                - label:
+                                    id: lbl_neigung_lr
+                                    text: "0,0°"
+                                    text_font: montserrat_20
+                          - obj:
+                              width: 460
+                              height: 142
+                              bg_opa: TRANSP
+                              border_opa: TRANSP
+                              layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER, pad_row: 8 }
+                              widgets:
+                                - label:
+                                    text: "Vorne / Hinten"
+                                    text_font: montserrat_14
+                                ### Gehäuse der Libelle
+                                - obj:
+                                    width: 420
+                                    height: 64
+                                    radius: 32
+                                    bg_color: 0x3A4250
+                                    bg_opa: COVER
+                                    border_color: 0x55606F
+                                    border_width: 2
+                                    pad_all: 0
+                                    widgets:
+                                      ### Flüssigkeit im Röhrchen
+                                      - obj:
+                                          align: CENTER
+                                          width: 380
+                                          height: 40
+                                          radius: 20
+                                          bg_color: 0xC8E070
+                                          bg_grad_color: 0x7FA119
+                                          bg_grad_dir: VER
+                                          border_opa: TRANSP
+                                      ### Zwei Mittelstriche: liegt die Blase dazwischen, steht es eben
+                                      - obj:
+                                          align: CENTER
+                                          x: -5
+                                          width: 2
+                                          height: 26
+                                          radius: 0
+                                          bg_color: 0x2F3B0A
+                                          bg_opa: COVER
+                                          border_opa: TRANSP
+                                      - obj:
+                                          align: CENTER
+                                          x: 5
+                                          width: 2
+                                          height: 26
+                                          radius: 0
+                                          bg_color: 0x2F3B0A
+                                          bg_opa: COVER
+                                          border_opa: TRANSP
+                                      ### Die Luftblase selbst, wird per Lambda seitlich verschoben
+                                      - obj:
+                                          id: bubble_vh
+                                          align: CENTER
+                                          width: 34
+                                          height: 34
+                                          radius: 100
+                                          bg_color: 0xFFFDE7
+                                          bg_grad_color: 0xE6DFA0
+                                          bg_grad_dir: VER
+                                          border_color: 0xB9AE63
+                                          border_width: 1
+                                - label:
+                                    id: lbl_neigung_vh
+                                    text: "0,0°"
+                                    text_font: montserrat_20
+
                   - button:
                       align: BOTTOM_MID
                       y: -8
