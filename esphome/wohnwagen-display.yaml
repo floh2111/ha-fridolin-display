@@ -10,6 +10,12 @@ esphome:
     build_flags: "-DBOARD_HAS_PSRAM"
     board_build.arduino.memory_type: qio_opi
     board_build.flash_mode: dio
+  ### Gespeicherten Fahrzeugtyp (Wohnwagen/Wohnmobil) nach dem Hochfahren
+  ### auf Bild + Auswahl-Knoepfe der Nivellierungs-/Einstellungsseite anwenden
+  on_boot:
+    priority: -100
+    then:
+      - script.execute: sync_fahrzeugtyp
 
 psram:
   mode: octal
@@ -37,6 +43,12 @@ globals:
     type: float
     restore_value: true
     initial_value: '0'
+  ### Fahrzeugtyp fuer die Nivellierungs-Seite (false=Wohnwagen, true=Wohnmobil),
+  ### bleibt nach Neustart erhalten - umschaltbar in den Einstellungen
+  - id: g_fahrzeugtyp_wohnmobil
+    type: bool
+    restore_value: true
+    initial_value: 'false'
   - id: g_roh_lr
     type: float
     restore_value: false
@@ -290,6 +302,16 @@ image:
   - platform: file
     id: img_wasserwaage
     file: images/wasserwaage.svg
+    resize: 460x300
+    type: RGB565
+    transparency: alpha_channel
+
+  ### Alternative Grafik fuer die Nivellierungs-Seite (Wohnmobil statt
+  ### Wohnwagen), gleiche Libellen-Position wie img_wasserwaage - siehe
+  ### Einstellungsseite (g_fahrzeugtyp_wohnmobil) und sync_fahrzeugtyp
+  - platform: file
+    id: img_wohnmobil
+    file: images/wohnmobil.svg
     resize: 460x300
     type: RGB565
     transparency: alpha_channel
@@ -981,6 +1003,31 @@ script:
           id(g_offset_vh) = id(g_roh_vh);
       - component.update: neigung_links_rechts
       - component.update: neigung_vorne_hinten
+
+  ### Schaltet die Grundriss-Grafik der Nivellierungs-Seite um (Wohnwagen/
+  ### Wohnmobil) und synchronisiert die beiden Auswahl-Knoepfe auf der
+  ### Einstellungsseite. Die Libellen-Bubbles bleiben unberuehrt, weil
+  ### beide Bilder dieselben Roehren-Koordinaten verwenden.
+  - id: sync_fahrzeugtyp
+    then:
+      - if:
+          condition:
+            lambda: 'return id(g_fahrzeugtyp_wohnmobil);'
+          then:
+            - lvgl.image.update:
+                id: img_wasserwaage_widget
+                src: img_wohnmobil
+          else:
+            - lvgl.image.update:
+                id: img_wasserwaage_widget
+                src: img_wasserwaage
+      - lambda: |-
+          auto setzen = [](lv_obj_t *o, bool an) {
+            if (an) lv_obj_add_state(o, LV_STATE_CHECKED);
+            else lv_obj_clear_state(o, LV_STATE_CHECKED);
+          };
+          setzen(id(btn_fahrzeug_wohnwagen), !id(g_fahrzeugtyp_wohnmobil));
+          setzen(id(btn_fahrzeug_wohnmobil), id(g_fahrzeugtyp_wohnmobil));
 
   - id: sync_lichter
     then:
@@ -1932,11 +1979,52 @@ lvgl:
                 y: 16
 
             - label:
+                text: "Fahrzeugtyp für die Nivellierungs-Seite:"
+                text_font: montserrat_14
+                text_align: CENTER
+                align: TOP_MID
+                y: 66
+
+            - obj:
+                align: TOP_MID
+                y: 96
+                width: 340
+                height: 50
+                bg_opa: TRANSP
+                border_opa: TRANSP
+                layout: { type: FLEX, flex_flow: ROW, flex_align_main: SPACE_EVENLY, flex_align_cross: CENTER }
+                widgets:
+                  - button:
+                      id: btn_fahrzeug_wohnwagen
+                      checkable: true
+                      width: 155
+                      height: 50
+                      widgets:
+                        - label:
+                            text: "Wohnwagen"
+                            align: CENTER
+                      on_click:
+                        - lambda: 'id(g_fahrzeugtyp_wohnmobil) = false;'
+                        - script.execute: sync_fahrzeugtyp
+                  - button:
+                      id: btn_fahrzeug_wohnmobil
+                      checkable: true
+                      width: 155
+                      height: 50
+                      widgets:
+                        - label:
+                            text: "Wohnmobil"
+                            align: CENTER
+                      on_click:
+                        - lambda: 'id(g_fahrzeugtyp_wohnmobil) = true;'
+                        - script.execute: sync_fahrzeugtyp
+
+            - label:
                 text: "Fridolins aktuellen Standort für die\nWetteranzeige übernehmen:"
                 text_font: montserrat_14
                 text_align: CENTER
                 align: CENTER
-                y: -60
+                y: -50
 
             - button:
                 id: btn_standort_uebernehmen

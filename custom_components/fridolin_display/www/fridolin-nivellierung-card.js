@@ -2,9 +2,11 @@
  * Fridolin Nivellierung - Lovelace-Karte
  *
  * Zeigt dieselbe Kreuzlibelle wie die Nivellierungs-Seite auf dem
- * Wohnwagen-Display, aber auf einem Wohnwagen-Grundriss mit der Deichsel
+ * Wohnwagen-Display, aber auf einem Fahrzeug-Grundriss mit der Front
  * NACH OBEN (statt nach rechts wie im Display) - passend zur klassischen
- * "Draufsicht von vorne" auf einem Dashboard.
+ * "Draufsicht von vorne" auf einem Dashboard. Wahlweise als Wohnwagen
+ * (Deichsel) oder Wohnmobil (Frontscheibe) darstellbar, einstellbar im
+ * Karteneditor (vehicle_type).
  *
  * Bindet an zwei bestehende ESPHome-Sensoren (Neigung links/rechts,
  * Neigung vorne/hinten) und einen "Neigung nullen"-Knopf - alle drei
@@ -21,27 +23,37 @@
  *      Typ: JavaScript-Modul
  *   2. Karte hinzufügen:
  *        type: custom:fridolin-nivellierung-card
+ *        vehicle_type: caravan   # oder: motorhome
  *        # Optional, falls deine Entity-IDs abweichen:
  *        entity_lr: sensor.fridolin_display_neigung_links_rechts
  *        entity_vh: sensor.fridolin_display_neigung_vorne_hinten
  *        entity_zero_button: button.fridolin_display_neigung_nullen
  */
 
-const WASSERWAAGE_SVG_BODY = `
+const CARAVAN_SVG_BODY = `
   <defs>
     <linearGradient id="fwGradV" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#D7EA82"/>
-      <stop offset="1" stop-color="#7FA119"/>
+      <stop offset="0" stop-color="#D7EA82"/><stop offset="1" stop-color="#7FA119"/>
     </linearGradient>
     <linearGradient id="fwGradH" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#D7EA82"/>
-      <stop offset="1" stop-color="#7FA119"/>
+      <stop offset="0" stop-color="#D7EA82"/><stop offset="1" stop-color="#7FA119"/>
     </linearGradient>
   </defs>
   <rect x="30" y="55" width="350" height="170" rx="45" fill="#17212C" stroke="#3A4250" stroke-width="4"/>
   <path d="M380,120 L432,140 L380,160 Z" fill="#55606F"/>
+  <circle cx="432" cy="140" r="7" fill="#C9D2DC" stroke="#3A4250" stroke-width="2"/>
   <line x1="150" y1="65" x2="150" y2="215" stroke="#202836" stroke-width="2" opacity="0.6"/>
   <line x1="260" y1="65" x2="260" y2="215" stroke="#202836" stroke-width="2" opacity="0.6"/>
+
+  <circle cx="58" cy="92" r="11" fill="#2B3542" stroke="#55606F" stroke-width="2"/>
+  <line x1="49" y1="88" x2="67" y2="88" stroke="#55606F" stroke-width="1.5"/>
+  <line x1="49" y1="96" x2="67" y2="96" stroke="#55606F" stroke-width="1.5"/>
+  <circle cx="58" cy="196" r="11" fill="#2B3542" stroke="#55606F" stroke-width="2"/>
+  <line x1="49" y1="192" x2="67" y2="192" stroke="#55606F" stroke-width="1.5"/>
+  <line x1="49" y1="200" x2="67" y2="200" stroke="#55606F" stroke-width="1.5"/>
+  <rect x="130" y="188" width="50" height="24" rx="6" fill="#2B3542" stroke="#55606F" stroke-width="2"/>
+  <line x1="155" y1="196" x2="155" y2="204" stroke="#55606F" stroke-width="2"/>
+
   <rect x="80" y="113" width="150" height="54" rx="27" fill="#3A4250" stroke="#55606F" stroke-width="2"/>
   <rect x="86" y="119" width="138" height="42" rx="21" fill="url(#fwGradV)"/>
   <line x1="134" y1="129" x2="134" y2="151" stroke="#101a05" stroke-width="3" stroke-linecap="round"/>
@@ -52,23 +64,72 @@ const WASSERWAAGE_SVG_BODY = `
   <line x1="286" y1="161" x2="308" y2="161" stroke="#101a05" stroke-width="3" stroke-linecap="round"/>
 `;
 
-// Bewegungsbereich in SVG-Einheiten (0..460 x 0..300), identisch zum Display
-// und zur Vorschau (esphome/wohnwagen-display.yaml bzw. fridolin-vorschau.html).
+const MOTORHOME_SVG_BODY = `
+  <defs>
+    <linearGradient id="fwGradV" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#D7EA82"/><stop offset="1" stop-color="#7FA119"/>
+    </linearGradient>
+    <linearGradient id="fwGradH" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#D7EA82"/><stop offset="1" stop-color="#7FA119"/>
+    </linearGradient>
+    <linearGradient id="fwGradGlass" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#8FD6F2"/><stop offset="1" stop-color="#3FA8DC"/>
+    </linearGradient>
+  </defs>
+  <rect x="10" y="10" width="360" height="150" rx="26" fill="#17212C" stroke="#3A4250" stroke-width="4"/>
+
+  <path d="M322,18 L364,42 L364,128 L322,150 Z" fill="url(#fwGradGlass)" stroke="#17212C" stroke-width="3"/>
+  <line x1="343" y1="22" x2="343" y2="148" stroke="#17212C" stroke-width="2" opacity="0.7"/>
+  <rect x="364" y="30" width="6" height="10" rx="3" fill="#55606F"/>
+  <rect x="364" y="110" width="6" height="10" rx="3" fill="#55606F"/>
+
+  <rect x="30" y="16" width="90" height="32" rx="8" fill="#3A4250" stroke="#55606F" stroke-width="2"/>
+  <circle cx="55" cy="32" r="7" fill="#17212C" stroke="#55606F" stroke-width="2"/>
+  <circle cx="80" cy="32" r="7" fill="#17212C" stroke="#55606F" stroke-width="2"/>
+  <rect x="95" y="22" width="18" height="18" rx="4" fill="#17212C" stroke="#55606F" stroke-width="2"/>
+
+  <rect x="70" y="63" width="150" height="44" rx="22" fill="#3A4250" stroke="#55606F" stroke-width="2"/>
+  <rect x="76" y="69" width="138" height="32" rx="16" fill="url(#fwGradV)"/>
+  <line x1="124" y1="74" x2="124" y2="96" stroke="#101a05" stroke-width="3" stroke-linecap="round"/>
+  <line x1="166" y1="74" x2="166" y2="96" stroke="#101a05" stroke-width="3" stroke-linecap="round"/>
+
+  <rect x="255" y="20" width="44" height="130" rx="22" fill="#3A4250" stroke="#55606F" stroke-width="2"/>
+  <rect x="261" y="26" width="32" height="118" rx="16" fill="url(#fwGradH)"/>
+  <line x1="266" y1="64" x2="288" y2="64" stroke="#101a05" stroke-width="3" stroke-linecap="round"/>
+  <line x1="266" y1="106" x2="288" y2="106" stroke="#101a05" stroke-width="3" stroke-linecap="round"/>
+`;
+
 const RANGE_DEG = 8;
-const H_CENTER = { x: 155, y: 140 };
-const H_RANGE = [118, 192]; // Vorne/Hinten-Röhre, Blase bewegt sich in X
-const V_CENTER = { x: 297, y: 140 };
-const V_RANGE = [103, 177]; // Links/Rechts-Röhre, Blase bewegt sich in Y
+
+// Pro Fahrzeugtyp: eigenes SVG, sein viewBox (für die Prozent-Positionierung
+// der Blasen) und die Bewegungsbereiche der beiden Röhren in SVG-Einheiten.
+const VEHICLE_ART = {
+  caravan: {
+    svg: CARAVAN_SVG_BODY,
+    viewBox: { x: 10, y: 35, w: 449, h: 210 },
+    hCenter: { x: 155, y: 140 },
+    hRange: [118, 192], // Vorne/Hinten-Röhre, Blase bewegt sich in X
+    vCenter: { x: 297, y: 140 },
+    vRange: [103, 177], // Links/Rechts-Röhre, Blase bewegt sich in Y
+  },
+  motorhome: {
+    svg: MOTORHOME_SVG_BODY,
+    viewBox: { x: -10, y: -10, w: 400, h: 190 },
+    hCenter: { x: 145, y: 85 },
+    hRange: [108, 182],
+    vCenter: { x: 277, y: 85 },
+    vRange: [58, 112],
+  },
+};
 
 const CARD_STYLE = `
   :host { display: block; }
   ha-card { padding: 16px 16px 20px; }
-  .fw-title { font-size: 1.1em; font-weight: 500; margin: 0 0 10px; }
+  .fw-title { font-size: 1.5em; font-weight: 600; margin: 4px 0 18px; }
   .fw-outer {
     position: relative;
     width: 100%;
-    /* Grundriss ist 460x300 (Querformat); um 90° gedreht wird daraus 300x460
-       (Hochformat) - das Padding hält genau dieses Seitenverhältnis frei. */
+    /* Seitenverhältnis wird pro Fahrzeugtyp in _layout() gesetzt (padding-top). */
     padding-top: 153.33%;
     max-width: 340px;
     margin: 0 auto;
@@ -107,6 +168,24 @@ const CARD_STYLE = `
     justify-content: center;
     margin-top: 14px;
   }
+  .fw-zero-btn {
+    appearance: none;
+    border: none;
+    border-radius: 20px;
+    padding: 10px 32px;
+    font-size: 0.95em;
+    font-weight: 600;
+    font-family: inherit;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: #fff;
+    background: var(--primary-color, #3fa8dc);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    cursor: pointer;
+    transition: filter 150ms ease, box-shadow 150ms ease, transform 100ms ease;
+  }
+  .fw-zero-btn:hover { filter: brightness(1.08); box-shadow: 0 3px 8px rgba(0,0,0,0.3); }
+  .fw-zero-btn:active { filter: brightness(0.95); transform: translateY(1px); box-shadow: 0 1px 3px rgba(0,0,0,0.25); }
   .fw-unavailable {
     text-align: center;
     color: var(--secondary-text-color);
@@ -133,6 +212,18 @@ class FridolinNivellierungCardEditor extends HTMLElement {
   get _schema() {
     return [
       { name: "title", selector: { text: {} } },
+      {
+        name: "vehicle_type",
+        selector: {
+          select: {
+            mode: "dropdown",
+            options: [
+              { value: "caravan", label: "Wohnwagen" },
+              { value: "motorhome", label: "Wohnmobil" },
+            ],
+          },
+        },
+      },
       { name: "entity_lr", selector: { entity: { domain: "sensor" } } },
       { name: "entity_vh", selector: { entity: { domain: "sensor" } } },
       { name: "entity_zero_button", selector: { entity: { domain: "button" } } },
@@ -142,6 +233,7 @@ class FridolinNivellierungCardEditor extends HTMLElement {
   _computeLabel(schema) {
     const labels = {
       title: "Titel",
+      vehicle_type: "Fahrzeugtyp",
       entity_lr: "Sensor Links/Rechts",
       entity_vh: "Sensor Vorne/Hinten",
       entity_zero_button: "Nullen-Button",
@@ -183,6 +275,7 @@ class FridolinNivellierungCard extends HTMLElement {
   static getStubConfig() {
     return {
       title: "Nivellierung",
+      vehicle_type: "caravan",
       entity_lr: "sensor.fridolin_display_neigung_links_rechts",
       entity_vh: "sensor.fridolin_display_neigung_vorne_hinten",
       entity_zero_button: "button.fridolin_display_neigung_nullen",
@@ -195,6 +288,7 @@ class FridolinNivellierungCard extends HTMLElement {
       entity_vh: "sensor.fridolin_display_neigung_vorne_hinten",
       entity_zero_button: "button.fridolin_display_neigung_nullen",
       title: "Nivellierung",
+      vehicle_type: "caravan",
       ...config,
     };
     if (this._built) this._render();
@@ -211,6 +305,10 @@ class FridolinNivellierungCard extends HTMLElement {
     this._render();
   }
 
+  _art() {
+    return VEHICLE_ART[this._config.vehicle_type] || VEHICLE_ART.caravan;
+  }
+
   _build() {
     if (this._built || !this._config) return;
     this._built = true;
@@ -218,13 +316,16 @@ class FridolinNivellierungCard extends HTMLElement {
     const style = document.createElement("style");
     style.textContent = CARD_STYLE;
 
+    const art = this._art();
+    const vb = art.viewBox;
+
     const card = document.createElement("ha-card");
     card.innerHTML = `
       <div class="fw-title">${this._config.title}</div>
       <div class="fw-outer">
         <div class="fw-inner">
-          <svg id="fwSvg" viewBox="0 0 460 300" width="300" height="196" xmlns="http://www.w3.org/2000/svg">
-            ${WASSERWAAGE_SVG_BODY}
+          <svg id="fwSvg" viewBox="${vb.x} ${vb.y} ${vb.w} ${vb.h}" xmlns="http://www.w3.org/2000/svg">
+            ${art.svg}
           </svg>
           <div class="fw-bubble" id="fwBubbleVh" style="width:30px;height:22px;"></div>
           <div class="fw-bubble" id="fwBubbleLr" style="width:22px;height:30px;"></div>
@@ -235,7 +336,7 @@ class FridolinNivellierungCard extends HTMLElement {
         <span>Vorne/Hinten:<b id="fwValVh">--</b></span>
       </div>
       <div class="fw-footer">
-        <mwc-button id="fwZeroBtn" raised>Nullen</mwc-button>
+        <button class="fw-zero-btn" id="fwZeroBtn">Nullen</button>
       </div>
     `;
 
@@ -255,6 +356,7 @@ class FridolinNivellierungCard extends HTMLElement {
       zeroBtn: card.querySelector("#fwZeroBtn"),
     };
 
+    this._currentVehicleType = this._config.vehicle_type;
     this._els.zeroBtn.addEventListener("click", () => this._pressZero());
 
     // Größe des gedrehten Grundrisses an die tatsächliche Kartenbreite anpassen
@@ -263,14 +365,28 @@ class FridolinNivellierungCard extends HTMLElement {
     this._layout();
   }
 
+  // Wechselt SVG-Grafik + viewBox, falls der Fahrzeugtyp im Editor geändert wurde
+  _syncVehicleArt() {
+    if (!this._els || this._currentVehicleType === this._config.vehicle_type) return;
+    this._currentVehicleType = this._config.vehicle_type;
+    const art = this._art();
+    const vb = art.viewBox;
+    this._els.svg.setAttribute("viewBox", `${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
+    this._els.svg.innerHTML = art.svg;
+    this._layout();
+  }
+
   _layout() {
     if (!this._els) return;
+    const vb = this._art().viewBox;
     const outerWidth = this._els.outer.clientWidth;
+    // Seitenverhältnis nach der 90°-Drehung passend zu diesem Fahrzeugtyp setzen
+    this._els.outer.style.paddingTop = (vb.w / vb.h * 100) + "%";
     if (!outerWidth) return;
-    // Nach der Drehung um 90° wird aus der Breite des Grundrisses (460 SVG-
-    // Einheiten) die Höhe im Kartenlayout, und umgekehrt - daher hier
-    // getauscht: die "unrotierte" Breite richtet sich nach der Kartenhöhe.
-    const outerHeight = outerWidth * (460 / 300);
+    // Nach der Drehung um 90° wird aus der Breite des Grundrisses die Höhe
+    // im Kartenlayout, und umgekehrt - daher hier getauscht: die
+    // "unrotierte" Breite richtet sich nach der Kartenhöhe.
+    const outerHeight = outerWidth * (vb.w / vb.h);
     const innerWidth = outerHeight;
     const innerHeight = outerWidth;
     this._els.inner.style.width = innerWidth + "px";
@@ -290,6 +406,8 @@ class FridolinNivellierungCard extends HTMLElement {
   _render() {
     if (!this._hass || !this._els) return;
     this._els.title.textContent = this._config.title;
+    this._syncVehicleArt();
+
     const lrState = this._hass.states[this._config.entity_lr];
     const vhState = this._hass.states[this._config.entity_vh];
 
@@ -306,6 +424,8 @@ class FridolinNivellierungCard extends HTMLElement {
 
   _positionBubbles() {
     if (!this._els || this._angleLr === undefined) return;
+    const art = this._art();
+    const vb = art.viewBox;
 
     const place = (el, center, range, axis, angle) => {
       const clamped = Math.max(-RANGE_DEG, Math.min(RANGE_DEG, angle));
@@ -313,15 +433,15 @@ class FridolinNivellierungCard extends HTMLElement {
       const moving = range[0] + frac * (range[1] - range[0]);
       const svgX = axis === "x" ? moving : center.x;
       const svgY = axis === "y" ? moving : center.y;
-      // Prozentwerte statt Pixel: bleiben korrekt, egal wie groß .fw-inner
-      // gerade skaliert ist (siehe _layout()).
-      el.style.left = (svgX / 460 * 100) + "%";
-      el.style.top = (svgY / 300 * 100) + "%";
+      // Prozentwerte relativ zum viewBox-Ursprung: bleiben korrekt, egal wie
+      // groß .fw-inner gerade skaliert ist (siehe _layout()).
+      el.style.left = ((svgX - vb.x) / vb.w * 100) + "%";
+      el.style.top = ((svgY - vb.y) / vb.h * 100) + "%";
       el.classList.toggle("level", Math.abs(angle) < 1);
     };
 
-    place(this._els.bubbleVh, H_CENTER, H_RANGE, "x", this._angleVh);
-    place(this._els.bubbleLr, V_CENTER, V_RANGE, "y", this._angleLr);
+    place(this._els.bubbleVh, art.hCenter, art.hRange, "x", this._angleVh);
+    place(this._els.bubbleLr, art.vCenter, art.vRange, "y", this._angleLr);
   }
 
   disconnectedCallback() {
@@ -336,5 +456,5 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: "fridolin-nivellierung-card",
   name: "Fridolin Nivellierung",
-  description: "Kreuzlibelle auf dem Wohnwagen-Grundriss (Deichsel oben), wie auf dem Display.",
+  description: "Kreuzlibelle auf dem Fahrzeug-Grundriss (Wohnwagen oder Wohnmobil, Front oben), wie auf dem Display.",
 });

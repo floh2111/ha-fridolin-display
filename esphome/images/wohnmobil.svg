@@ -8,34 +8,43 @@
       <stop offset="0" stop-color="#D7EA82"/>
       <stop offset="1" stop-color="#7FA119"/>
     </linearGradient>
+    <linearGradient id="gradGlass" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#8FD6F2"/>
+      <stop offset="1" stop-color="#3FA8DC"/>
+    </linearGradient>
   </defs>
 
-  <!-- Schematischer Wohnwagen-Grundriss (Draufsicht) -->
-  <rect x="30" y="55" width="350" height="170" rx="45" fill="#17212C" stroke="#3A4250" stroke-width="4"/>
-  <path d="M380,120 L432,140 L380,160 Z" fill="#55606F"/>
-  <circle cx="432" cy="140" r="7" fill="#C9D2DC" stroke="#3A4250" stroke-width="2"/>
+  <!-- Schematischer Wohnmobil-Grundriss (Draufsicht): eckigere Karosserie,
+       Frontscheibe statt Deichsel - dieselbe Aussenkontur/Libellen-Position
+       wie beim Wohnwagen (wasserwaage.svg), damit die Blasen-Logik identisch
+       bleibt und nur per lvgl.image.update umgeschaltet werden muss. -->
+  <rect x="30" y="55" width="350" height="170" rx="26" fill="#17212C" stroke="#3A4250" stroke-width="4"/>
   <line x1="150" y1="65" x2="150" y2="215" stroke="#202836" stroke-width="2" opacity="0.6"/>
   <line x1="260" y1="65" x2="260" y2="215" stroke="#202836" stroke-width="2" opacity="0.6"/>
 
-  <!-- Dachluken + Gasklappe, fuers Auge (Draufsicht-Details) -->
-  <circle cx="58" cy="92" r="11" fill="#2B3542" stroke="#55606F" stroke-width="2"/>
-  <line x1="49" y1="88" x2="67" y2="88" stroke="#55606F" stroke-width="1.5"/>
-  <line x1="49" y1="96" x2="67" y2="96" stroke="#55606F" stroke-width="1.5"/>
-  <circle cx="58" cy="196" r="11" fill="#2B3542" stroke="#55606F" stroke-width="2"/>
-  <line x1="49" y1="192" x2="67" y2="192" stroke="#55606F" stroke-width="1.5"/>
-  <line x1="49" y1="200" x2="67" y2="200" stroke="#55606F" stroke-width="1.5"/>
+  <!-- Frontscheibe (Fahrerhaus) -->
+  <path d="M340,70 L376,90 L376,190 L340,210 Z" fill="url(#gradGlass)" stroke="#17212C" stroke-width="3"/>
+  <line x1="358" y1="76" x2="358" y2="204" stroke="#17212C" stroke-width="2" opacity="0.7"/>
+  <rect x="376" y="85" width="6" height="10" rx="3" fill="#55606F"/>
+  <rect x="376" y="195" width="6" height="10" rx="3" fill="#55606F"/>
+
+  <!-- Kuechenzeile (Draufsicht-Detail) -->
+  <rect x="45" y="64" width="95" height="32" rx="8" fill="#3A4250" stroke="#55606F" stroke-width="2"/>
+  <circle cx="70" cy="80" r="7" fill="#17212C" stroke="#55606F" stroke-width="2"/>
+  <circle cx="95" cy="80" r="7" fill="#17212C" stroke="#55606F" stroke-width="2"/>
+  <rect x="112" y="70" width="18" height="18" rx="4" fill="#17212C" stroke="#55606F" stroke-width="2"/>
+
+  <!-- Gasklappe -->
   <rect x="130" y="188" width="50" height="24" rx="6" fill="#2B3542" stroke="#55606F" stroke-width="2"/>
   <line x1="155" y1="196" x2="155" y2="204" stroke="#55606F" stroke-width="2"/>
 
-  <!-- Libelle "Vorne / Hinten" (liegt in Fahrtrichtung -> waagerecht), Mitte (155,140).
-       Gleiche Maße wie die senkrechte Libelle (nur gedreht) - beide gleich oval. -->
+  <!-- Libelle "Vorne / Hinten", identisch zu wasserwaage.svg -->
   <rect x="80" y="113" width="150" height="54" rx="27" fill="#3A4250" stroke="#55606F" stroke-width="2"/>
   <rect x="86" y="119" width="138" height="42" rx="21" fill="url(#gradV)"/>
-  <!-- Mittelstriche mit Abstand zur Blase (Radius 15), bei Nulllage frei sichtbar -->
   <line x1="134" y1="129" x2="134" y2="151" stroke="#101a05" stroke-width="3" stroke-linecap="round"/>
   <line x1="176" y1="129" x2="176" y2="151" stroke="#101a05" stroke-width="3" stroke-linecap="round"/>
 
-  <!-- Libelle "Links / Rechts" (quer zur Fahrtrichtung -> senkrecht, im rechten Winkel), Mitte (297,140) -->
+  <!-- Libelle "Links / Rechts", identisch zu wasserwaage.svg -->
   <rect x="270" y="65" width="54" height="150" rx="27" fill="#3A4250" stroke="#55606F" stroke-width="2"/>
   <rect x="276" y="71" width="42" height="138" rx="21" fill="url(#gradH)"/>
   <line x1="286" y1="119" x2="308" y2="119" stroke="#101a05" stroke-width="3" stroke-linecap="round"/>

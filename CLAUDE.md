@@ -51,8 +51,12 @@ Proxy-/Spiegel-Schicht:
   (`custom_components/fridolin_display/www/fridolin-nivellierung-card.js`,
   automatisch unter `/fridolin_display/...` servierbar über
   `hass.http.async_register_static_paths` in `__init__.py`), die die
-  Nivellierung im selben Stil wie das Display zeigt, nur auf einem
-  Wohnwagen-Grundriss mit der Deichsel nach oben.
+  Nivellierung im selben Stil wie das Display zeigt, mit der Front nach
+  oben statt nach rechts. Im Karteneditor wählbar: Wohnwagen (Deichsel)
+  oder Wohnmobil (Frontscheibe) – eigenes `VEHICLE_ART`-Objekt mit
+  eigenem SVG/viewBox/Röhren-Geometrie je Typ, per `ha-form`-Editor
+  (`vehicle_type`) umschaltbar, inkl. visuellem UI-Karteneditor für
+  Titel + alle Entity-IDs.
 
 Genaue Entity-ID-Tabelle, Klimaanlagen-Details und die Einrichtung der
 Lovelace-Karte stehen in `custom_components/fridolin_display/README.md`.
@@ -66,6 +70,7 @@ esphome/test-esp32-ohne-display.yaml – Testkonfig ohne Display: GY-521 + HA-AP
 esphome/fridolin-vorschau.html       – interaktive Browser-Vorschau der UI (auch als Artifact veröffentlicht)
 esphome/images/weather/*.svg         – 16 Wetter-Icons (von Florian geliefert), von ESPHome per resvg gerastert
 esphome/images/wasserwaage.svg       – Wohnwagen-Grundriss + Kreuzlibelle für die Nivellierungs-Seite
+esphome/images/wohnmobil.svg         – Alternative Grafik (Wohnmobil), gleiche Röhren-Koordinaten wie wasserwaage.svg
 custom_components/fridolin_display/  – die Home-Assistant-Integration (ConfigFlow, OptionsFlow, Coordinator, Entities, Lovelace-Karte)
 .github/workflows/validate.yml       – CI: `esphome config` + echter `esphome compile` beider Configs, hassfest für die Integration
 ```
@@ -87,12 +92,16 @@ der Übersichtsseite erreichbar ist (LVGL `top_layer:`):
    der aktuellen Ist-Temperatur, blauer Teil oberhalb), −/+, Modus-Knöpfe
    Aus/Heizen/Kühlen, Programm-Knöpfe Eco/Normal/Max (fester `preset_mode`,
    1:1 an die Zielentität durchgereicht). Vom Aufbau wie die Kühlbox-Seite.
-4. **Nivellierung** – Wohnwagen-Grundriss (Draufsicht, Deichsel rechts) mit
+4. **Nivellierung** – Fahrzeug-Grundriss (Draufsicht, Front rechts) mit
    einer echten Kreuzlibelle: waagerechte ovale Libelle in Fahrtrichtung
    (Vorne/Hinten), senkrechte im rechten Winkel dazu (Links/Rechts), je mit
    zwei Mittelstrichen statt eines Rings. Werte aus dem GY-521 per `atan2`,
    "Nullen"-Knopf speichert den Nullpunkt lokal im Flash des ESP. Braucht
-   keine Internet-/HA-Verbindung, läuft komplett lokal auf dem ESP.
+   keine Internet-/HA-Verbindung, läuft komplett lokal auf dem ESP. Grafik
+   umschaltbar zwischen Wohnwagen (`img_wasserwaage`, Deichsel) und
+   Wohnmobil (`img_wohnmobil`, Frontscheibe) – Einstellung dazu auf der
+   Einstellungsseite (siehe Punkt 6), beide Bilder nutzen exakt dieselben
+   Röhren-Koordinaten, daher keine Änderung an der Blasen-Logik nötig.
 5. **Kühlbox** – runde Zieltemperatur-Anzeige mit −/+, Ein/Aus, Modus MAX/ECO,
    Batterieschutz L/M/H. Die Kühlbox (Euhomy Car Fridge CF, Tuya-BLE, Kategorie
    `xbx`) wird **direkt vom ESP** per Bluetooth gelesen/gesteuert, ohne Home
@@ -100,7 +109,10 @@ der Übersichtsseite erreichbar ist (LVGL `top_layer:`):
    (Fork von Noneawe/BillyNate, auf einen Commit gepinnt, mit Schreibzugriff
    erweitert). Nur eine BLE-Verbindung zur Kühlbox möglich: Tuya-App und
    HA-Integration "Tuya BLE" müssen aus sein.
-6. **Einstellungen (Overlay, nicht wischbar)** – Button "Standort
+6. **Einstellungen (Overlay, nicht wischbar)** – Fahrzeugtyp-Umschalter
+   für die Nivellierungs-Seite (Wohnwagen/Wohnmobil, zwei checkbare
+   Knöpfe, persistiert in `g_fahrzeugtyp_wohnmobil`, angewendet über
+   `sync_fahrzeugtyp` inkl. `on_boot`), Button "Standort
    übernehmen" (nimmt die Koordinaten vom `device_tracker` und setzt sie
    als festen Wetter-Standort), Anzeige des letzten Übernahme-Zeitpunkts,
    "Zurück"-Button.
@@ -119,10 +131,12 @@ der Übersichtsseite erreichbar ist (LVGL `top_layer:`):
   YAML-Dateien, Python-Syntax + JSON-Validität der Integration, sowie
   `hassfest` (offizielle HA-Validierung). **Alle Checks sind aktuell grün.**
 - ✅ Integration erfolgreich über **HACS** (als custom repository) bei
-  Florian installiert, aktuell Version 0.1.5 (Klimaanlage mit Heizen/
-  Kühlen/Presets + Lovelace-Karte), Release-Tags bis `v0.1.3` angelegt –
-  **für 0.1.4/0.1.5 fehlt noch ein Git-Tag/Release**, siehe "Offene
-  Aufgaben" unten.
+  Florian installiert, aktuell Version 0.1.7 (Klimaanlage mit Heizen/
+  Kühlen/Presets, Lovelace-Karte mit Wohnwagen/Wohnmobil-Auswahl +
+  UI-Karteneditor). Seit `v0.1.6` liegt ein `hacs.json` im Repo-Root
+  (Pflichtdatei, fehlte vorher – HACS las sie aus dem jeweiligen
+  Release-Tag und lehnte Versionen ohne sie ab). Jede Version braucht
+  weiterhin einen echten Git-Tag/Release (`gh release create vX.Y.Z`).
 - ✅ Test-Config (`test-esp32-ohne-display.yaml`) fasst inzwischen ALLES
   Nicht-Display-Testbare in einer Firmware zusammen: GY-521-Neigung, die
   Fridolin-Display-Integration (Licht/Klimaanlage/Wetter, rein lesend zur
@@ -147,12 +161,18 @@ der Übersichtsseite erreichbar ist (LVGL `top_layer:`):
   eine echte Klimaanlagen-Entity in Home Assistant. Die drei Presets
   (`eco`/`normal`/`max`) werden 1:1 an die Zielentität durchgereicht;
   ob die echte Klimaanlage genau diese drei Werte kennt, ist offen.
-- ⏳ **Lovelace-Karte (Nivellierung) ist neu und ungetestet** – weder in
-  einem echten Dashboard gerendert noch die vermuteten Entity-IDs
-  (`sensor.fridolin_display_neigung_links_rechts` usw.) gegen die echte
-  Home Assistant-Instanz geprüft. Die Karte ist so gebaut, dass falsche
-  IDs einfach nichts anzeigen (kein Absturz), per Karten-Konfiguration
-  überschreibbar.
+- ⏳ **Lovelace-Karte (Nivellierung)**: Visuell in einer lokalen Browser-
+  Vorschau (Fake-`hass`-Objekt, kein echtes Home Assistant) durchgetestet
+  – Wohnwagen- und Wohnmobil-Grafik, Live-Umschalten per Editor, Blasen-
+  Bewegung, "Nullen"-Button-Service-Call, UI-Karteneditor (`ha-form`)
+  funktionieren dort alle. **Noch nicht in einem echten HA-Dashboard
+  gerendert**, und die vermuteten Entity-IDs
+  (`sensor.fridolin_display_neigung_links_rechts` usw.) sind gegen die
+  echte Home-Assistant-Instanz ungeprüft. Falsche IDs zeigen einfach
+  nichts an (kein Absturz), per Karten-Editor korrigierbar.
+- ⏳ **Wohnmobil-Grafik auf dem Display** (`img_wohnmobil`,
+  Einstellungen-Umschalter) ist neu und nur lokal kompiliert – noch nicht
+  auf echter Hardware gesehen.
 - ❌ Noch nicht gegen eine echte Home-Assistant-Instanz mit echten
   Lichtern/Klimaanlage/Wetterdaten *im Livebetrieb* durchgetestet (nur
   Kühlbox + Neigungssensor bestätigt) – der Rest nur syntaktisch/per
@@ -211,14 +231,14 @@ der Übersichtsseite erreichbar ist (LVGL `top_layer:`):
    prüfen, ob weiterhin alles funktioniert – insbesondere, dass
    `bluetooth_proxy` fehlt jetzt niemanden fehlt, den Florian eigentlich
    noch wollte.
-2. Home-Assistant-Integration Version 0.1.5: neuen Git-Tag/Release
-   anlegen, damit HACS das Update (Klimaanlage + Lovelace-Karte) zieht.
-3. Klimaanlagen-Seite gegen eine echte `climate`-Entity mit Heizen/Kühlen
+2. Klimaanlagen-Seite gegen eine echte `climate`-Entity mit Heizen/Kühlen
    und Eco/Normal/Max-Presets testen; ggf. Preset-Namen anpassen, falls
    die echte Klimaanlage andere Bezeichnungen erwartet.
-4. Lovelace-Karte einbinden (siehe README) und prüfen, ob die
-   angenommenen Entity-IDs stimmen; bei Abweichung in der Karten-
-   Konfiguration korrigieren.
+3. Lovelace-Karte in einem echten Dashboard einbinden (siehe README) und
+   prüfen, ob die angenommenen Entity-IDs stimmen; bei Abweichung im
+   Karteneditor korrigieren.
+4. Wohnwagen/Wohnmobil-Umschalter auf der Einstellungsseite des Displays
+   auf echter Hardware testen (Grafik-Wechsel, Persistenz nach Neustart).
 5. Sobald das alles läuft: reales 800×480-Waveshare-Display besorgen,
    verkabeln, `wohnwagen-display.yaml` flashen, komplette UI live testen.
 6. Ggf. Kleinigkeiten aus dem Livetest nachjustieren (Pinbelegung,

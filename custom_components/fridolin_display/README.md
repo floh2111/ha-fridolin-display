@@ -63,9 +63,11 @@ gelöscht werden, sobald die Integration läuft.
 
 Die Integration liefert außerdem eine eigene Dashboard-Karte
 (`www/fridolin-nivellierung-card.js`), die dieselbe Kreuzlibelle wie die
-Nivellierungs-Seite auf dem Display zeigt – nur auf einem Wohnwagen-
-Grundriss mit der **Deichsel nach oben** statt nach rechts (die passendere
-Ausrichtung für ein Dashboard). Ein Druck auf "Nullen" in der Karte ruft
+Nivellierungs-Seite auf dem Display zeigt – nur mit der **Front nach oben**
+statt nach rechts (die passendere Ausrichtung für ein Dashboard). Im
+Karteneditor wählbar: **Wohnwagen** (Deichsel) oder **Wohnmobil**
+(Frontscheibe) – beide mit derselben Libellen-Anzeige. Ein Druck auf
+"Nullen" in der Karte ruft
 denselben `button.press`-Service auf wie der Knopf auf dem Display selbst
 – der Nullpunkt wird also **lokal auf dem ESP** gespeichert (übersteht
 auch einen Neustart von Home Assistant, weil er im Flash des ESP liegt,
@@ -79,15 +81,17 @@ Einrichtung:
    hinzufügen. URL: `/fridolin_display/fridolin-nivellierung-card.js`,
    Ressourcentyp: JavaScript-Modul.
 3. Karte hinzufügen → "Benutzerdefiniert" → "Fridolin Nivellierung".
-   Titel und die drei Entity-IDs lassen sich direkt im **visuellen
-   Karteneditor** einstellen (kein YAML nötig) – die Voreinstellungen
-   sind nur eine **Annahme** (abgeleitet aus dem ESPHome-Gerätenamen
-   "Fridolin Display"/"Fridolin Test"), prüfe sie unter Einstellungen →
-   Geräte & Dienste → dein ESP32-Gerät → Entitäten und korrigiere sie
-   bei Abweichung im Editor. Alternativ per YAML:
+   Titel, Fahrzeugtyp (Wohnwagen/Wohnmobil) und die drei Entity-IDs lassen
+   sich direkt im **visuellen Karteneditor** einstellen (kein YAML nötig)
+   – die vorausgewählten Entity-IDs sind nur eine **Annahme** (abgeleitet
+   aus dem ESPHome-Gerätenamen "Fridolin Display"/"Fridolin Test"), prüfe
+   sie unter Einstellungen → Geräte & Dienste → dein ESP32-Gerät →
+   Entitäten und korrigiere sie bei Abweichung im Editor. Alternativ per
+   YAML:
    ```yaml
    type: custom:fridolin-nivellierung-card
    title: Nivellierung
+   vehicle_type: caravan   # oder: motorhome
    entity_lr: sensor.fridolin_display_neigung_links_rechts
    entity_vh: sensor.fridolin_display_neigung_vorne_hinten
    entity_zero_button: button.fridolin_display_neigung_nullen
