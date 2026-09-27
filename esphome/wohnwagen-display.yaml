@@ -874,10 +874,10 @@ sensor:
       ### Blase in der senkrechten Libelle (quer zur Fahrtrichtung) nach oben/unten
       ### bewegen: +-8 Grad Vollausschlag (reale Wasserwaagen sind sehr empfindlich),
       ### darüber bleibt sie am Rand stehen. Mitte bei y=140 im SVG, ×1.5 gerastert
-      ### -> Bildmitte y=210, minus halbe Blasenhöhe (45/2≈22) -> 188, Hub ±52px.
+      ### -> Bildmitte y=210, minus halbe Blasenhöhe (45/2≈22) -> 188, Hub ±55px.
       - lambda: |-
           float clamped = std::max(-8.0f, std::min(8.0f, x));
-          lv_obj_set_y(id(bubble_lr), 188 + (int) (clamped / 8.0f * 52.0f));
+          lv_obj_set_y(id(bubble_lr), 188 + (int) (clamped / 8.0f * 55.0f));
           bool eben = fabsf(x) < 1.0f;
           lv_obj_set_style_border_color(id(bubble_lr), eben ? lv_color_hex(0x3FA34D) : lv_color_hex(0xB9AE63), 0);
           lv_obj_set_style_border_width(id(bubble_lr), eben ? 3 : 1, 0);
@@ -900,10 +900,10 @@ sensor:
             args: ["x"]
       ### Blase in der waagerechten Libelle (in Fahrtrichtung) seitlich bewegen.
       ### Mitte bei x=155 im SVG, ×1.5 gerastert -> Bildmitte x=232.5, minus halbe
-      ### Blasenbreite (45/2≈22) -> 210, Hub ±76px.
+      ### Blasenbreite (45/2≈22) -> 210, Hub ±55px.
       - lambda: |-
           float clamped = std::max(-8.0f, std::min(8.0f, x));
-          lv_obj_set_x(id(bubble_vh), 210 + (int) (clamped / 8.0f * 76.0f));
+          lv_obj_set_x(id(bubble_vh), 210 + (int) (clamped / 8.0f * 55.0f));
           bool eben = fabsf(x) < 1.0f;
           lv_obj_set_style_border_color(id(bubble_vh), eben ? lv_color_hex(0x3FA34D) : lv_color_hex(0xB9AE63), 0);
           lv_obj_set_style_border_width(id(bubble_vh), eben ? 3 : 1, 0);
