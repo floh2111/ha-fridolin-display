@@ -14,14 +14,22 @@ Integration:
 |---|---|
 | `light.fridolin_licht_1` … `_4` | Licht-Slots (nur belegte Slots werden angelegt) |
 | `climate.fridolin_heizung` | Heizung |
-| `sensor.fridolin_wetter_zustand` / `_temperatur` | aktuelles Wetter |
-| `sensor.fridolin_wetter_h0_zeit/_temp/_zustand` … `h3_*` | Stunden-Vorhersage |
-| `sensor.fridolin_wetter_morgen_min/_max/_zustand` | Ausblick auf morgen |
+| `sensor.fridolin_wetter_zustand` / `_temperatur` / `_icon` | aktuelles Wetter |
+| `sensor.fridolin_wetter_h0_zeit/_temp/_zustand/_icon` … `h3_*` | Stunden-Vorhersage |
+| `sensor.fridolin_wetter_morgen_min/_max/_zustand/_icon` | Ausblick auf morgen |
 | `sensor.fridolin_standort_status` | Zeitpunkt der letzten Standortübernahme |
 | `button.fridolin_standort_uebernehmen` | von der Einstellungsseite aufgerufen |
 
 Änderst du in den Integrations-Optionen, welches echte Licht z.B.
 hinter "Licht 1" steckt, wirkt sich das sofort aufs Display aus.
+
+Die `_icon`-Sensoren liefern einen von 16 festen Schlüsseln (`sunny`,
+`clear-night`, `partlycloudy`, `partly-cloudy-night`, `cloudy`, `rainy`,
+`pouring`, `snowy`, `snowy-rainy`, `lightning`, `lightning-rainy`, `fog`,
+`hail`, `windy`, `windy-variant`, `exceptional`), abgeleitet aus dem
+OpenWeatherMap-Wettercode (`coordinator.py`, `_map_icon`). Sie dienen nur
+dem Display: Das ESP32 wählt darüber sein Icon aus `esphome/images/weather/`
+(gleichnamige SVG-Dateien). Für Home Assistant selbst ändert sich nichts.
 
 ## Installation
 

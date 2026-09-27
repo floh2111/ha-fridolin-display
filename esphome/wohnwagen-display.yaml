@@ -296,6 +296,251 @@ interval:
     then:
       - script.execute: sync_kuehlbox
 
+### ------------------------------------------------------------------
+### Wetter-Icons: SVGs aus esphome/images/weather/, von ESPHome per
+### resvg beim Kompilieren in zwei Größen gerastert (groß: Übersicht,
+### klein: Stunden-Slots und Morgen-Ausblick). Auswahl über die beiden
+### mapping:-Blöcke unten, gefüttert von den *_icon-Sensoren aus der
+### Fridolin-Display-Integration (icon-Schlüssel = Dateiname ohne .svg).
+### ------------------------------------------------------------------
+image:
+  - platform: file
+    id: img_w_sunny
+    file: images/weather/sunny.svg
+    resize: 72x72
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_w_clear_night
+    file: images/weather/clear-night.svg
+    resize: 72x72
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_w_partlycloudy
+    file: images/weather/partlycloudy.svg
+    resize: 72x72
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_w_partly_cloudy_night
+    file: images/weather/partly-cloudy-night.svg
+    resize: 72x72
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_w_cloudy
+    file: images/weather/cloudy.svg
+    resize: 72x72
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_w_rainy
+    file: images/weather/rainy.svg
+    resize: 72x72
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_w_pouring
+    file: images/weather/pouring.svg
+    resize: 72x72
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_w_snowy
+    file: images/weather/snowy.svg
+    resize: 72x72
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_w_snowy_rainy
+    file: images/weather/snowy-rainy.svg
+    resize: 72x72
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_w_lightning
+    file: images/weather/lightning.svg
+    resize: 72x72
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_w_lightning_rainy
+    file: images/weather/lightning-rainy.svg
+    resize: 72x72
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_w_fog
+    file: images/weather/fog.svg
+    resize: 72x72
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_w_hail
+    file: images/weather/hail.svg
+    resize: 72x72
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_w_windy
+    file: images/weather/windy.svg
+    resize: 72x72
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_w_windy_variant
+    file: images/weather/windy-variant.svg
+    resize: 72x72
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_w_exceptional
+    file: images/weather/exceptional.svg
+    resize: 72x72
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_w_sunny_s
+    file: images/weather/sunny.svg
+    resize: 28x28
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_w_clear_night_s
+    file: images/weather/clear-night.svg
+    resize: 28x28
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_w_partlycloudy_s
+    file: images/weather/partlycloudy.svg
+    resize: 28x28
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_w_partly_cloudy_night_s
+    file: images/weather/partly-cloudy-night.svg
+    resize: 28x28
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_w_cloudy_s
+    file: images/weather/cloudy.svg
+    resize: 28x28
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_w_rainy_s
+    file: images/weather/rainy.svg
+    resize: 28x28
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_w_pouring_s
+    file: images/weather/pouring.svg
+    resize: 28x28
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_w_snowy_s
+    file: images/weather/snowy.svg
+    resize: 28x28
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_w_snowy_rainy_s
+    file: images/weather/snowy-rainy.svg
+    resize: 28x28
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_w_lightning_s
+    file: images/weather/lightning.svg
+    resize: 28x28
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_w_lightning_rainy_s
+    file: images/weather/lightning-rainy.svg
+    resize: 28x28
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_w_fog_s
+    file: images/weather/fog.svg
+    resize: 28x28
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_w_hail_s
+    file: images/weather/hail.svg
+    resize: 28x28
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_w_windy_s
+    file: images/weather/windy.svg
+    resize: 28x28
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_w_windy_variant_s
+    file: images/weather/windy-variant.svg
+    resize: 28x28
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_w_exceptional_s
+    file: images/weather/exceptional.svg
+    resize: 28x28
+    type: RGB565
+    transparency: alpha_channel
+
+mapping:
+  - id: icon_map_gross
+    from: string
+    to: image
+    default_value: img_w_cloudy
+    entries:
+      sunny: img_w_sunny
+      clear-night: img_w_clear_night
+      partlycloudy: img_w_partlycloudy
+      partly-cloudy-night: img_w_partly_cloudy_night
+      cloudy: img_w_cloudy
+      rainy: img_w_rainy
+      pouring: img_w_pouring
+      snowy: img_w_snowy
+      snowy-rainy: img_w_snowy_rainy
+      lightning: img_w_lightning
+      lightning-rainy: img_w_lightning_rainy
+      fog: img_w_fog
+      hail: img_w_hail
+      windy: img_w_windy
+      windy-variant: img_w_windy_variant
+      exceptional: img_w_exceptional
+  - id: icon_map_klein
+    from: string
+    to: image
+    default_value: img_w_cloudy_s
+    entries:
+      sunny: img_w_sunny_s
+      clear-night: img_w_clear_night_s
+      partlycloudy: img_w_partlycloudy_s
+      partly-cloudy-night: img_w_partly_cloudy_night_s
+      cloudy: img_w_cloudy_s
+      rainy: img_w_rainy_s
+      pouring: img_w_pouring_s
+      snowy: img_w_snowy_s
+      snowy-rainy: img_w_snowy_rainy_s
+      lightning: img_w_lightning_s
+      lightning-rainy: img_w_lightning_rainy_s
+      fog: img_w_fog_s
+      hail: img_w_hail_s
+      windy: img_w_windy_s
+      windy-variant: img_w_windy_variant_s
+      exceptional: img_w_exceptional_s
+
 switch:
   ### Kühlbox: Power (direkt per Bluetooth)
   - platform: tuya_ble_node
@@ -371,6 +616,66 @@ text_sensor:
       - lvgl.label.update:
           id: lbl_wetter_ort
           text: !lambda return x;
+
+  - platform: homeassistant
+    id: wetter_icon
+    entity_id: sensor.fridolin_wetter_icon
+    on_value:
+      - lvgl.image.update:
+          id: img_wetter_gross
+          src:
+            mapping: icon_map_gross
+            value: !lambda return x;
+
+  - platform: homeassistant
+    id: h0_icon
+    entity_id: sensor.fridolin_wetter_h0_icon
+    on_value:
+      - lvgl.image.update:
+          id: img_h0_icon
+          src:
+            mapping: icon_map_klein
+            value: !lambda return x;
+
+  - platform: homeassistant
+    id: h1_icon
+    entity_id: sensor.fridolin_wetter_h1_icon
+    on_value:
+      - lvgl.image.update:
+          id: img_h1_icon
+          src:
+            mapping: icon_map_klein
+            value: !lambda return x;
+
+  - platform: homeassistant
+    id: h2_icon
+    entity_id: sensor.fridolin_wetter_h2_icon
+    on_value:
+      - lvgl.image.update:
+          id: img_h2_icon
+          src:
+            mapping: icon_map_klein
+            value: !lambda return x;
+
+  - platform: homeassistant
+    id: h3_icon
+    entity_id: sensor.fridolin_wetter_h3_icon
+    on_value:
+      - lvgl.image.update:
+          id: img_h3_icon
+          src:
+            mapping: icon_map_klein
+            value: !lambda return x;
+
+  - platform: homeassistant
+    id: morgen_icon
+    entity_id: sensor.fridolin_wetter_morgen_icon
+    on_value:
+      - lvgl.image.update:
+          id: img_morgen_icon
+          src:
+            mapping: icon_map_klein
+            value: !lambda return x;
 
   ### Zeitpunkt der letzten Standortübernahme, nur zur Anzeige auf der
   ### Einstellungsseite (Helfer wird von einem HA-Skript gesetzt)
@@ -707,6 +1012,14 @@ lvgl:
                       align: TOP_MID
                       y: 44
 
+                  - image:
+                      id: img_wetter_gross
+                      src: img_w_cloudy
+                      align: TOP_MID
+                      x: -150
+                      y: 90
+                      width: 72
+                      height: 72
                   - label:
                       id: lbl_wetter_zustand
                       text: "—"
@@ -741,6 +1054,7 @@ lvgl:
                             layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER }
                             widgets:
                               - label: { id: lbl_h0_zeit, text: "--:--", text_font: montserrat_14 }
+                              - image: { id: img_h0_icon, src: img_w_cloudy_s, width: 28, height: 28 }
                               - label: { id: lbl_h0_temp, text: "--°", text_font: montserrat_20 }
                         - obj:
                             width: 130
@@ -750,6 +1064,7 @@ lvgl:
                             layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER }
                             widgets:
                               - label: { id: lbl_h1_zeit, text: "--:--", text_font: montserrat_14 }
+                              - image: { id: img_h1_icon, src: img_w_cloudy_s, width: 28, height: 28 }
                               - label: { id: lbl_h1_temp, text: "--°", text_font: montserrat_20 }
                         - obj:
                             width: 130
@@ -759,6 +1074,7 @@ lvgl:
                             layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER }
                             widgets:
                               - label: { id: lbl_h2_zeit, text: "--:--", text_font: montserrat_14 }
+                              - image: { id: img_h2_icon, src: img_w_cloudy_s, width: 28, height: 28 }
                               - label: { id: lbl_h2_temp, text: "--°", text_font: montserrat_20 }
                         - obj:
                             width: 130
@@ -768,14 +1084,24 @@ lvgl:
                             layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER }
                             widgets:
                               - label: { id: lbl_h3_zeit, text: "--:--", text_font: montserrat_14 }
+                              - image: { id: img_h3_icon, src: img_w_cloudy_s, width: 28, height: 28 }
                               - label: { id: lbl_h3_temp, text: "--°", text_font: montserrat_20 }
 
                   ### Kurzer Ausblick auf morgen
+                  - image:
+                      id: img_morgen_icon
+                      src: img_w_cloudy_s
+                      align: TOP_MID
+                      x: -95
+                      y: 258
+                      width: 28
+                      height: 28
                   - label:
                       id: lbl_morgen_range
                       text: "Morgen: --° – --°"
                       text_font: montserrat_20
                       align: TOP_MID
+                      x: 15
                       y: 262
                   - label:
                       id: lbl_morgen_zustand

@@ -112,16 +112,18 @@ class FridolinWeatherCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         hours: list[dict[str, Any]] = []
         for entry in forecast_list[:4]:
+            weather = entry.get("weather", [{}])[0]
             hours.append(
                 {
                     "time": entry.get("dt_txt", "")[11:16],
                     "temperature": round(entry.get("main", {}).get("temp", 0)),
-                    "condition": entry.get("weather", [{}])[0].get("description", "—"),
+                    "condition": weather.get("description", "—"),
+                    "icon": self._map_icon(weather.get("id"), weather.get("icon", "")),
                 }
             )
         # Immer 4 Slots liefern, auch wenn OWM mal weniger zurückgibt
         while len(hours) < 4:
-            hours.append({"time": "--:--", "temperature": None, "condition": "—"})
+            hours.append({"time": "--:--", "temperature": None, "condition": "—", "icon": "cloudy"})
 
         tomorrow = self._extract_tomorrow(forecast_list)
 
@@ -130,9 +132,12 @@ class FridolinWeatherCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         country = current.get("sys", {}).get("country") or ""
         location = ", ".join(part for part in (place, country) if part) or "—"
 
+        current_weather = current.get("weather", [{}])[0]
+
         return {
             "location": location,
-            "condition": current.get("weather", [{}])[0].get("description", "—"),
+            "condition": current_weather.get("description", "—"),
+            "icon": self._map_icon(current_weather.get("id"), current_weather.get("icon", "")),
             "temperature": current.get("main", {}).get("temp"),
             "hours": hours,
             "tomorrow": tomorrow,
@@ -144,13 +149,59 @@ class FridolinWeatherCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         matching = [e for e in forecast_list if e.get("dt_txt", "").startswith(tomorrow_date)]
 
         if not matching:
-            return {"min": None, "max": None, "condition": "—"}
+            return {"min": None, "max": None, "condition": "—", "icon": "cloudy"}
 
         temps = [e.get("main", {}).get("temp") for e in matching if e.get("main")]
         mid_entry = matching[len(matching) // 2]
+        mid_weather = mid_entry.get("weather", [{}])[0]
 
         return {
             "min": round(min(temps)) if temps else None,
             "max": round(max(temps)) if temps else None,
-            "condition": mid_entry.get("weather", [{}])[0].get("description", "—"),
+            "condition": mid_weather.get("description", "—"),
+            "icon": FridolinWeatherCoordinator._map_icon(
+                mid_weather.get("id"), mid_weather.get("icon", "")
+            ),
         }
+
+    @staticmethod
+    def _map_icon(owm_id: int | None, owm_icon: str) -> str:
+        """OpenWeatherMap-Zustand auf einen der Icon-Dateinamen im Display abbilden.
+
+        Folgt derselben Gruppierung wie die offizielle OpenWeatherMap-Integration
+        von Home Assistant (Wettercode-Bereiche -> "condition"), ergänzt um eine
+        eigene Tag-/Nacht-Variante für "partlycloudy" (aus dem 'd'/'n'-Suffix von
+        OWM). Nicht jeder Einzelfall ist gegen echte Wetterlagen geprüft - bei
+        einem offensichtlich falschen Icon im Display hier nachjustieren.
+        """
+        night = owm_icon.endswith("n")
+
+        if owm_id is None:
+            return "cloudy"
+        if owm_id in (200, 201, 202, 230, 231, 232):
+            return "lightning-rainy"
+        if owm_id in (210, 211, 212, 221):
+            return "lightning"
+        if 300 <= owm_id <= 321:
+            return "rainy"
+        if owm_id in (500, 501, 520):
+            return "rainy"
+        if owm_id in (502, 503, 504, 511, 521, 522, 531):
+            return "pouring"
+        if owm_id in (611, 612, 613, 615, 616):
+            return "snowy-rainy"
+        if 600 <= owm_id <= 622:
+            return "snowy"
+        if owm_id == 771:
+            return "windy"
+        if owm_id == 781:
+            return "exceptional"
+        if 701 <= owm_id <= 762:
+            return "fog"
+        if owm_id == 800:
+            return "clear-night" if night else "sunny"
+        if owm_id == 801:
+            return "partly-cloudy-night" if night else "partlycloudy"
+        if 802 <= owm_id <= 804:
+            return "cloudy"
+        return "cloudy"

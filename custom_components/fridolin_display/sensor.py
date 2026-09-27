@@ -28,17 +28,20 @@ async def async_setup_entry(
 
     entities: list[SensorEntity] = [
         FridolinWetterZustandSensor(entry, coordinator),
+        FridolinWetterIconSensor(entry, coordinator),
         FridolinWetterTemperaturSensor(entry, coordinator),
         FridolinWetterOrtSensor(entry, coordinator),
         FridolinMorgenMinSensor(entry, coordinator),
         FridolinMorgenMaxSensor(entry, coordinator),
         FridolinMorgenZustandSensor(entry, coordinator),
+        FridolinMorgenIconSensor(entry, coordinator),
         FridolinStandortStatusSensor(entry, coordinator),
     ]
     for slot in range(4):
         entities.append(FridolinStundeZeitSensor(entry, coordinator, slot))
         entities.append(FridolinStundeTempSensor(entry, coordinator, slot))
         entities.append(FridolinStundeZustandSensor(entry, coordinator, slot))
+        entities.append(FridolinStundeIconSensor(entry, coordinator, slot))
 
     async_add_entities(entities)
 
@@ -82,6 +85,26 @@ class FridolinWetterTemperaturSensor(_FridolinBaseSensor):
     @property
     def native_value(self) -> Any:
         return self.coordinator.data.get("temperature") if self.coordinator.data else None
+
+
+class FridolinWetterIconSensor(_FridolinBaseSensor):
+    """Icon-Schlüssel für das aktuelle Wetter (z.B. "sunny", "cloudy", "rainy").
+
+    Entspricht den Dateinamen der Icons unter esphome/images/weather/ im
+    Display-Repo, damit das ESP32-Display darüber direkt das passende Icon
+    auswählen kann (siehe coordinator.py: _map_icon).
+    """
+
+    _attr_name = "Fridolin Wetter Icon"
+
+    def __init__(self, entry: ConfigEntry, coordinator: FridolinWeatherCoordinator) -> None:
+        super().__init__(entry, coordinator)
+        self._attr_unique_id = f"{entry.entry_id}_wetter_icon"
+        self.entity_id = "sensor.fridolin_wetter_icon"
+
+    @property
+    def native_value(self) -> Any:
+        return self.coordinator.data.get("icon") if self.coordinator.data else None
 
 
 class FridolinWetterOrtSensor(_FridolinBaseSensor):
@@ -146,6 +169,23 @@ class FridolinMorgenZustandSensor(_FridolinBaseSensor):
         return self.coordinator.data.get("tomorrow", {}).get("condition")
 
 
+class FridolinMorgenIconSensor(_FridolinBaseSensor):
+    """Icon-Schlüssel für den Ausblick auf morgen, siehe FridolinWetterIconSensor."""
+
+    _attr_name = "Fridolin Wetter Morgen Icon"
+
+    def __init__(self, entry: ConfigEntry, coordinator: FridolinWeatherCoordinator) -> None:
+        super().__init__(entry, coordinator)
+        self._attr_unique_id = f"{entry.entry_id}_morgen_icon"
+        self.entity_id = "sensor.fridolin_wetter_morgen_icon"
+
+    @property
+    def native_value(self) -> Any:
+        if not self.coordinator.data:
+            return None
+        return self.coordinator.data.get("tomorrow", {}).get("icon")
+
+
 class FridolinStandortStatusSensor(_FridolinBaseSensor):
     """Zeigt an, wann zuletzt 'Standort übernehmen' gedrückt wurde."""
 
@@ -206,3 +246,20 @@ class FridolinStundeZustandSensor(_FridolinBaseSensor):
         if not self.coordinator.data:
             return None
         return self.coordinator.data.get("hours", [])[self._slot].get("condition")
+
+
+class FridolinStundeIconSensor(_FridolinBaseSensor):
+    """Icon-Schlüssel für einen Stunden-Slot, siehe FridolinWetterIconSensor."""
+
+    def __init__(self, entry: ConfigEntry, coordinator: FridolinWeatherCoordinator, slot: int) -> None:
+        super().__init__(entry, coordinator)
+        self._slot = slot
+        self._attr_name = f"Fridolin Wetter Stunde {slot} Icon"
+        self._attr_unique_id = f"{entry.entry_id}_h{slot}_icon"
+        self.entity_id = f"sensor.fridolin_wetter_h{slot}_icon"
+
+    @property
+    def native_value(self) -> Any:
+        if not self.coordinator.data:
+            return None
+        return self.coordinator.data.get("hours", [])[self._slot].get("icon")
