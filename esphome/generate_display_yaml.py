@@ -87,64 +87,95 @@ ITEM_INDENT = 2
 # falsche (umschliessende) Element zurueckfallen.
 _FIELD_INDENT = " " * (ITEM_INDENT + 2)
 
-REMOVE_ITEM_ANCHORS: dict[str, list[re.Pattern]] = {
-    "light": [re.compile(rf"^{_FIELD_INDENT}id: ha_licht_{n}\s*$") for n in range(1, 5)]
-    + [re.compile(r"^\s*- id: sync_lichter\s*$")],
+# Einrueckung der beiden Wohnwagen/Wohnmobil-Umschalter-Widgets im
+# Einstellungen-Overlay (Footer) - siehe REMOVE_ITEM_ANCHORS["leveling"].
+_SETTINGS_WIDGET_INDENT = 12
+
+# Jeder Eintrag: (Regex, die IRGENDEINE Zeile innerhalb des zu entfernenden
+# Elements eindeutig identifiziert, Einrueckung des umschliessenden "- "-
+# Listen-Elements). Das umschliessende Element (naechste "- "-Zeile in
+# dieser Einrueckung davor, naechstes Element/Sektionsende danach) wird
+# automatisch ermittelt (siehe _find_item_bounds). Bewusst exakte
+# Einrueckungen statt "\s*" bei Feldern wie "id:" - manche dieser IDs
+# tauchen auch VERSCHACHTELT in Lambdas/Aktionen anderer Elemente auf
+# (z.B. "id: kb_ziel" innerhalb von kb_ziel_auswahl's set_action), "\s*"
+# wuerde dort faelschlich zuschlagen und auf das falsche (umschliessende)
+# Element zurueckfallen.
+REMOVE_ITEM_ANCHORS: dict[str, list[tuple[re.Pattern, int]]] = {
+    "light": [(re.compile(rf"^{_FIELD_INDENT}id: ha_licht_{n}\s*$"), ITEM_INDENT) for n in range(1, 5)]
+    + [(re.compile(r"^\s*- id: sync_lichter\s*$"), ITEM_INDENT)],
     "climate": [
-        re.compile(rf"^{_FIELD_INDENT}id: ha_heizung_modus\s*$"),
-        re.compile(rf"^{_FIELD_INDENT}id: ha_klima_preset\s*$"),
-        re.compile(rf"^{_FIELD_INDENT}id: ha_zieltemperatur\s*$"),
-        re.compile(rf"^{_FIELD_INDENT}id: ha_klima_ist\s*$"),
-        re.compile(r"^\s*- id: sync_klima\s*$"),
+        (re.compile(rf"^{_FIELD_INDENT}id: ha_heizung_modus\s*$"), ITEM_INDENT),
+        (re.compile(rf"^{_FIELD_INDENT}id: ha_klima_preset\s*$"), ITEM_INDENT),
+        (re.compile(rf"^{_FIELD_INDENT}id: ha_zieltemperatur\s*$"), ITEM_INDENT),
+        (re.compile(rf"^{_FIELD_INDENT}id: ha_klima_ist\s*$"), ITEM_INDENT),
+        (re.compile(r"^\s*- id: sync_klima\s*$"), ITEM_INDENT),
     ],
     "fridge": [
-        re.compile(r"^\s*- id: g_kb_letzte\s*$"),  # Global, nur fuer die Kuehlbox-Anzeige
-        re.compile(r"^\s*- id: kuehlbox\s*$"),  # tuya_ble_node: Geraet selbst
-        re.compile(rf"^{_FIELD_INDENT}id: kb_modus_sel\s*$"),
-        re.compile(rf"^{_FIELD_INDENT}id: kb_batt_sel\s*$"),
-        re.compile(rf"^{_FIELD_INDENT}id: kb_ziel_auswahl\s*$"),
-        re.compile(rf"^{_FIELD_INDENT}id: kb_ziel\s*$"),
-        re.compile(rf"^{_FIELD_INDENT}id: kb_power\s*$"),
-        re.compile(rf"^{_FIELD_INDENT}id: kb_ist\s*$"),
-        re.compile(rf'^{_FIELD_INDENT}name: "Kuehlbox Batterie"\s*$'),
-        re.compile(rf'^{_FIELD_INDENT}name: "Kuehlbox Spannung"\s*$'),
-        re.compile(r"^\s*- id: sync_kuehlbox\s*$"),
+        (re.compile(r"^\s*- id: g_kb_letzte\s*$"), ITEM_INDENT),  # Global, nur fuer die Kuehlbox-Anzeige
+        (re.compile(r"^\s*- id: kuehlbox\s*$"), ITEM_INDENT),  # tuya_ble_node: Geraet selbst
+        (re.compile(rf"^{_FIELD_INDENT}id: kb_modus_sel\s*$"), ITEM_INDENT),
+        (re.compile(rf"^{_FIELD_INDENT}id: kb_batt_sel\s*$"), ITEM_INDENT),
+        (re.compile(rf"^{_FIELD_INDENT}id: kb_ziel_auswahl\s*$"), ITEM_INDENT),
+        (re.compile(rf"^{_FIELD_INDENT}id: kb_ziel\s*$"), ITEM_INDENT),
+        (re.compile(rf"^{_FIELD_INDENT}id: kb_power\s*$"), ITEM_INDENT),
+        (re.compile(rf"^{_FIELD_INDENT}id: kb_ist\s*$"), ITEM_INDENT),
+        (re.compile(rf'^{_FIELD_INDENT}name: "Kuehlbox Batterie"\s*$'), ITEM_INDENT),
+        (re.compile(rf'^{_FIELD_INDENT}name: "Kuehlbox Spannung"\s*$'), ITEM_INDENT),
+        (re.compile(r"^\s*- id: sync_kuehlbox\s*$"), ITEM_INDENT),
         # interval:-Trigger, der sync_kuehlbox alle 10s aufruft (eigenes,
         # von "id: sync_kuehlbox" getrenntes Element - siehe interval:-
         # Sektion; "10s" ist an dieser Stelle eindeutig)
-        re.compile(r"^\s*- interval: 10s\s*$"),
+        (re.compile(r"^\s*- interval: 10s\s*$"), ITEM_INDENT),
+    ],
+    "leveling": [
+        # Header: Fahrzeugtyp-Global, Wohnmobil-Bild-Asset, Umschalt-Script -
+        # alle drei ergeben ohne die Nivellierungs-Seite keinen Sinn mehr.
+        (re.compile(r"^\s*- id: g_fahrzeugtyp_wohnmobil\s*$"), ITEM_INDENT),
+        (re.compile(rf"^{_FIELD_INDENT}id: img_wohnmobil\s*$"), ITEM_INDENT),
+        (re.compile(r"^\s*- id: sync_fahrzeugtyp\s*$"), ITEM_INDENT),
+        # Footer: die beiden Umschalt-Widgets im Einstellungen-Overlay
+        # (Label + der obj mit den beiden Knoepfen) - siehe
+        # _SETTINGS_WIDGET_INDENT.
+        (
+            re.compile(r'^\s*text: "Fahrzeugtyp für die Nivellierungs-Seite:"\s*$'),
+            _SETTINGS_WIDGET_INDENT,
+        ),
+        (re.compile(r"^\s*id: btn_fahrzeug_wohnwagen\s*$"), _SETTINGS_WIDGET_INDENT),
     ],
 }
 
-# Nivellierung ist ein Sonderfall: die beiden Neigungs-Sensoren
+# Nivellierung ist zusaetzlich ein Sonderfall: die beiden Neigungs-Sensoren
 # (neigung_links_rechts/neigung_vorne_hinten) speisen auch die
 # HA-Sensor-Entities hinter der Lovelace-Karte (rv-leveling-card) - die
 # sollen unabhaengig von der Display-Seite weiter funktionieren. Nur ihr
 # on_value:-Unterblock (der die tile_nivellierung-Widgets aktualisiert)
 # wird entfernt, nicht der ganze Sensor.
-STRIP_SUBKEY_ANCHORS: dict[str, list[tuple[re.Pattern, str]]] = {
+STRIP_SUBKEY_ANCHORS: dict[str, list[tuple[re.Pattern, str, int]]] = {
     "leveling": [
-        (re.compile(rf"^{_FIELD_INDENT}id: neigung_links_rechts\s*$"), "on_value"),
-        (re.compile(rf"^{_FIELD_INDENT}id: neigung_vorne_hinten\s*$"), "on_value"),
+        (re.compile(rf"^{_FIELD_INDENT}id: neigung_links_rechts\s*$"), "on_value", ITEM_INDENT),
+        (re.compile(rf"^{_FIELD_INDENT}id: neigung_vorne_hinten\s*$"), "on_value", ITEM_INDENT),
     ],
+}
+
+# Bare "key:"-Bloecke (keine "- "-Listen-Elemente) mit eigenem
+# verschachteltem Inhalt, die komplett entfernt werden, wenn der
+# Seitentyp fehlt. Jeder Eintrag: (Regex fuer die Block-Kopfzeile selbst,
+# ihre Einrueckung).
+REMOVE_KEY_BLOCK_ANCHORS: dict[str, list[tuple[re.Pattern, int]]] = {
+    # on_boot: wendet nach dem Hochfahren nur den gespeicherten
+    # Fahrzeugtyp auf die Nivellierungs-Seite an - ohne die Seite
+    # ueberfluessig.
+    "leveling": [(re.compile(r"^  on_boot:\s*$"), 2)],
 }
 
 # Seitentypen, deren verstreute Abhaengigkeiten (noch) nicht erfasst sind -
 # ein Plan ohne diese Typen wird abgelehnt statt eine kaputte Datei zu
-# erzeugen.
-#   - overview: komplettes Wettersystem, Uhrzeit, Standort - viele, wenig
-#     klar abgrenzbare Abhaengigkeiten, ausserdem die "Startseite" (ein
-#     Plan ohne sie ist ein Sonderfall, der bisher als nicht sinnvoll
-#     eingestuft wurde, siehe CLAUDE.md).
-#   - leveling: die Sensoren selbst waeren einfach zu entfernen (siehe
-#     STRIP_SUBKEY_ANCHORS), ABER der Wohnwagen/Wohnmobil-Umschalter auf
-#     der Einstellungsseite (btn_fahrzeug_*, sync_fahrzeugtyp-Script,
-#     img_wohnmobil-Bild-Asset) ergibt ohne die Nivellierungs-Seite keinen
-#     Sinn mehr und muesste ebenfalls entfernt werden - das liegt aber
-#     TEILWEISE IM FOOTER (Einstellungen-Overlay), den strip_page_fragments
-#     bisher nicht anfasst (nur den Header). Bis das gebaut ist, bleibt
-#     leveling Pflicht.
-REQUIRED_PAGE_TYPES = {"overview", "leveling"}
+# erzeugen. overview hat ein komplettes Wettersystem, Uhrzeit und Standort
+# als Abhaengigkeiten - viele, wenig klar abgrenzbare Fragmente, ausserdem
+# ist es die "Startseite" (ein Plan ohne sie ist ein Sonderfall, der
+# bisher als nicht sinnvoll eingestuft wurde, siehe CLAUDE.md).
+REQUIRED_PAGE_TYPES = {"overview"}
 
 
 class ParseError(RuntimeError):
@@ -243,11 +274,11 @@ def set_title(block_text: str, title: str) -> str:
     raise ParseError("Block hat keine Titel-Zeile (text: \"...\") gefunden")
 
 
-def _find_item_bounds(lines: list[str], anchor_idx: int) -> tuple[int, int]:
-    """Start/Ende (Zeilenindizes, [start, end)) des Top-Level-Elements, das
-    die Zeile bei anchor_idx enthaelt (Einrueckung ITEM_INDENT, siehe oben)."""
-    item_re = re.compile(rf"^ {{{ITEM_INDENT}}}- ")
-    comment_re = re.compile(rf"^ {{{ITEM_INDENT}}}###")
+def _find_item_bounds(lines: list[str], anchor_idx: int, item_indent: int = ITEM_INDENT) -> tuple[int, int]:
+    """Start/Ende (Zeilenindizes, [start, end)) des "- "-Listen-Elements
+    (bei Einrueckung item_indent), das die Zeile bei anchor_idx enthaelt."""
+    item_re = re.compile(rf"^ {{{item_indent}}}- ")
+    comment_re = re.compile(rf"^ {{{item_indent}}}###")
 
     start = None
     for i in range(anchor_idx, -1, -1):
@@ -262,15 +293,34 @@ def _find_item_bounds(lines: list[str], anchor_idx: int) -> tuple[int, int]:
         start = j
         j -= 1
 
-    end = len(lines)
-    for i in range(anchor_idx + 1, len(lines)):
+    end = _find_block_end(lines, anchor_idx, item_indent)
+    return start, end
+
+
+def _find_block_end(lines: list[str], from_idx: int, indent: int) -> int:
+    """Naechste Zeile nach from_idx, die (nicht-leer) hoechstens so tief
+    eingerueckt ist wie indent - das Ende eines bei from_idx beginnenden
+    bzw. es enthaltenden Blocks."""
+    for i in range(from_idx + 1, len(lines)):
         line = lines[i]
         if line.strip() == "":
             continue
-        indent = len(line) - len(line.lstrip(" "))
-        if indent <= ITEM_INDENT:
-            end = i
-            break
+        line_indent = len(line) - len(line.lstrip(" "))
+        if line_indent <= indent:
+            return i
+    return len(lines)
+
+
+def _find_key_block_bounds(lines: list[str], key_idx: int, indent: int) -> tuple[int, int]:
+    """Start/Ende eines bloss durch 'key:' (kein '- ') eingeleiteten
+    Blocks, z.B. 'on_boot:' mit verschachteltem 'priority:'/'then:'."""
+    comment_re = re.compile(rf"^ {{{indent}}}###")
+    start = key_idx
+    j = start - 1
+    while j >= 0 and comment_re.match(lines[j]):
+        start = j
+        j -= 1
+    end = _find_block_end(lines, key_idx, indent)
     return start, end
 
 
@@ -314,53 +364,74 @@ def _maybe_absorb_empty_parent_key(lines: list[str], start: int, end: int) -> tu
     return start, end
 
 
-def strip_page_fragments(header: str, missing_types: set[str]) -> str:
-    """Entfernt die verstreuten Sensor-/Script-Fragmente aller Seitentypen,
-    die NICHT im Seitenplan vorkommen, aus dem statischen Datei-Kopf -
+def strip_page_fragments(header: str, footer: str, missing_types: set[str]) -> tuple[str, str]:
+    """Entfernt die verstreuten Sensor-/Script-/Widget-Fragmente aller
+    Seitentypen, die NICHT im Seitenplan vorkommen, aus Header UND Footer -
     sonst referenzieren sie nach dem Entfernen des zugehoerigen tile_*-
-    Blocks nicht mehr existierende Widget-IDs (Compile-Fehler)."""
-    lines = header.splitlines(keepends=True)
-    spans: list[tuple[int, int]] = []
+    Blocks nicht mehr existierende Widget-IDs (Compile-Fehler). Jeder
+    Anker muss ueber Header+Footer zusammen GENAU EINMAL vorkommen (ein
+    Seitentyp kann Fragmente in beiden haben, z.B. leveling: Header fuer
+    das Wohnmobil-Bild/Script, Footer fuer die Umschalt-Buttons)."""
+    sides = {
+        "header": header.splitlines(keepends=True),
+        "footer": footer.splitlines(keepends=True),
+    }
+    spans: dict[str, list[tuple[int, int]]] = {"header": [], "footer": []}
 
-    def _find_unique(anchor_re: re.Pattern, page_type: str) -> int:
-        matches = [i for i, line in enumerate(lines) if anchor_re.match(line)]
-        if len(matches) == 1:
-            return matches[0]
-        if not matches:
+    def _locate(anchor_re: re.Pattern, page_type: str) -> tuple[str, int]:
+        hits = [
+            (side, i)
+            for side, lines in sides.items()
+            for i, line in enumerate(lines)
+            if anchor_re.match(line)
+        ]
+        if len(hits) == 1:
+            return hits[0]
+        if not hits:
             raise ParseError(
                 f"Anker {anchor_re.pattern!r} fuer Seitentyp {page_type!r} nicht "
-                "gefunden - wurde wohnwagen-display.yaml so veraendert, dass "
-                "REMOVE_ITEM_ANCHORS/STRIP_SUBKEY_ANCHORS nicht mehr stimmen?"
+                "gefunden (weder im Header noch im Footer) - wurde "
+                "wohnwagen-display.yaml so veraendert, dass die "
+                "*_ANCHORS-Zuordnungen nicht mehr stimmen?"
             )
         raise ParseError(
             f"Anker {anchor_re.pattern!r} fuer Seitentyp {page_type!r} ist mehrdeutig "
-            f"({len(matches)} Treffer bei Zeilen {[m + 1 for m in matches]}) - Anker "
-            "muss eindeutig sein, sonst wird versehentlich das falsche Element entfernt."
+            f"({len(hits)} Treffer: {hits}) - Anker muss eindeutig sein, sonst wird "
+            "versehentlich das falsche Element entfernt."
         )
 
     for page_type in missing_types:
-        for anchor_re in REMOVE_ITEM_ANCHORS.get(page_type, []):
-            idx = _find_unique(anchor_re, page_type)
-            item_start, item_end = _find_item_bounds(lines, idx)
-            spans.append(_maybe_absorb_empty_parent_key(lines, item_start, item_end))
+        for anchor_re, item_indent in REMOVE_ITEM_ANCHORS.get(page_type, []):
+            side, idx = _locate(anchor_re, page_type)
+            lines = sides[side]
+            item_start, item_end = _find_item_bounds(lines, idx, item_indent)
+            spans[side].append(_maybe_absorb_empty_parent_key(lines, item_start, item_end))
 
-        for anchor_re, subkey in STRIP_SUBKEY_ANCHORS.get(page_type, []):
-            idx = _find_unique(anchor_re, page_type)
-            item_start, item_end = _find_item_bounds(lines, idx)
-            spans.append(_find_subkey_bounds(lines, item_start, item_end, subkey))
+        for anchor_re, subkey, item_indent in STRIP_SUBKEY_ANCHORS.get(page_type, []):
+            side, idx = _locate(anchor_re, page_type)
+            lines = sides[side]
+            item_start, item_end = _find_item_bounds(lines, idx, item_indent)
+            spans[side].append(_find_subkey_bounds(lines, item_start, item_end, subkey))
 
-    spans.sort()
-    for a, b in zip(spans, spans[1:]):
-        if a[1] > b[0]:
-            raise ParseError(f"Ueberlappende Faegmente beim Entfernen: {a} und {b}")
+        for anchor_re, key_indent in REMOVE_KEY_BLOCK_ANCHORS.get(page_type, []):
+            side, idx = _locate(anchor_re, page_type)
+            spans[side].append(_find_key_block_bounds(sides[side], idx, key_indent))
 
-    keep = []
-    cursor = 0
-    for start, end in spans:
-        keep.append("".join(lines[cursor:start]))
-        cursor = end
-    keep.append("".join(lines[cursor:]))
-    return "".join(keep)
+    def _apply(side: str) -> str:
+        lines = sides[side]
+        side_spans = sorted(spans[side])
+        for a, b in zip(side_spans, side_spans[1:]):
+            if a[1] > b[0]:
+                raise ParseError(f"Ueberlappende Fragmente beim Entfernen ({side}): {a} und {b}")
+        keep = []
+        cursor = 0
+        for start, end in side_spans:
+            keep.append("".join(lines[cursor:start]))
+            cursor = end
+        keep.append("".join(lines[cursor:]))
+        return "".join(keep)
+
+    return _apply("header"), _apply("footer")
 
 
 def generate(plan: list[dict], source_text: str | None = None) -> str:
@@ -376,17 +447,20 @@ def generate(plan: list[dict], source_text: str | None = None) -> str:
             "enthalten sein (verstreute Abhaengigkeiten noch nicht erfasst, "
             "siehe CLAUDE.md 'Seitenplan / Seiten-Baukasten')."
         )
-    missing_types = set(blocks) - plan_types
-    unsupported_removal = missing_types - set(REMOVE_ITEM_ANCHORS) - set(STRIP_SUBKEY_ANCHORS)
+    missing_types = (
+        set(blocks) - plan_types
+    )
+    known_removable = set(REMOVE_ITEM_ANCHORS) | set(STRIP_SUBKEY_ANCHORS) | set(REMOVE_KEY_BLOCK_ANCHORS)
+    unsupported_removal = missing_types - known_removable
     if unsupported_removal:
         raise ParseError(
             f"Seitentyp(en) {sorted(unsupported_removal)} fehlen im Plan, aber der "
             "Generator kennt noch keine Aufraeum-Regeln dafuer (siehe "
-            "REMOVE_ITEM_ANCHORS/STRIP_SUBKEY_ANCHORS) - Weglassen wuerde "
-            "vermutlich eine nicht kompilierende Datei erzeugen."
+            "REMOVE_ITEM_ANCHORS/STRIP_SUBKEY_ANCHORS/REMOVE_KEY_BLOCK_ANCHORS) - "
+            "Weglassen wuerde vermutlich eine nicht kompilierende Datei erzeugen."
         )
     if missing_types:
-        header = strip_page_fragments(header, missing_types)
+        header, footer = strip_page_fragments(header, footer, missing_types)
 
     rendered_tiles = []
     for column, page in enumerate(plan):

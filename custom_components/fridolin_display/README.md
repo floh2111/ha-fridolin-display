@@ -47,13 +47,14 @@ python3 esphome/generate_display_yaml.py --plan mein_plan.json --out esphome/woh
 ```
 
 Danach wie gewohnt flashen. **Aktueller Stand**: Umsortieren, Titel
-ändern und die Licht-/Klimaanlagen-/Kühlbox-Seite weglassen funktioniert
-und ist mit echtem `esphome compile` verifiziert. **Übersicht und
-Nivellierung müssen im Plan bleiben** (Nivellierung hängt am
-Wohnwagen/Wohnmobil-Umschalter der Einstellungsseite, der noch nicht mit
-entfernt wird), ebenso funktionieren Mehrfach-Instanzen (2. Klimaanlage)
-in der erzeugten YAML noch nicht. Solange du den Seitenplan nicht
-änderst (Standard entspricht genau dem bisherigen Display), ändert sich
+ändern und Licht-/Klimaanlagen-/Kühlbox-/Nivellierungs-Seite weglassen
+funktioniert und ist mit echtem `esphome compile` verifiziert (beim
+Weglassen der Nivellierung verschwindet automatisch auch der
+Wohnwagen/Wohnmobil-Umschalter der Einstellungsseite mit, der sonst
+keinen Sinn mehr ergäbe). **Nur die Übersicht muss im Plan bleiben.**
+Mehrfach-Instanzen (2. Klimaanlage) in der erzeugten YAML funktionieren
+noch nicht. Solange du den Seitenplan nicht änderst (Standard entspricht
+genau dem bisherigen Display), ändert sich
 für dich ohnehin nichts.
 
 Die Entity-Zuordnung (welches echte Licht/welche echte Klimaanlage

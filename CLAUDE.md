@@ -106,7 +106,7 @@ bestehenden Seite nicht (wie bisher).
   Legacy-Instanzen enthält.
 
 **YAML-Generator** (`esphome/generate_display_yaml.py`) – Milestone 1 +
-"Seiten weglassen" fertig und verifiziert:
+"Seiten weglassen" (inkl. `leveling`) fertig und verifiziert:
 - Funktionsweise: `wohnwagen-display.yaml` selbst dient als
   "Block-Bibliothek". Die 5 `tile_*`-Blöcke in der `lvgl: -> pages: ->
   tiles:`-Liste werden anhand der `- id: tile_xxx`-Marker (plus ihrer
@@ -114,36 +114,42 @@ bestehenden Seite nicht (wie bisher).
   `generate(plan)` setzt pro Block `column:` (Position im Wisch-
   Karussell) und ersetzt die erste `text: "..."`-Zeile (Titel) -
   Übersicht bleibt unangetastet (hat keine einzelne Titel-Zeile).
-- **Seiten weglassen**: `REMOVE_ITEM_ANCHORS`/`STRIP_SUBKEY_ANCHORS`
-  (im Skript) listen für `light`/`climate`/`fridge` alle VERSTREUTEN
-  Definitionen (HA-Spiegel-`text_sensor`s, Sync-Scripts, bei `fridge`
-  zusätzlich die komplette Tuya-BLE-Anbindung: `tuya_ble_node:`,
-  `select:`/`number:`/`switch:`/`sensor:`-Einträge, ein `interval:`-
-  Trigger) - fehlt einer dieser Typen im Plan, werden seine Fragmente
-  per Regex-Anker + automatischer Element-Grenzenerkennung
-  (`_find_item_bounds`) aus dem Header entfernt, inkl. Spezialfall
-  "jetzt leerer Elternschlüssel" (leeres `tuya_ble_node:` ohne Kinder
-  ist ungültig, wird mit entfernt). Jeder Anker muss GENAU EINMAL
-  matchen (`_find_unique`), sonst bricht der Generator kontrolliert ab,
-  statt versehentlich das falsche Element zu löschen (ist beim Bauen
-  zweimal tatsächlich passiert, siehe Git-Historie/Commit).
-- **`leveling` ist weiterhin Pflicht** (`REQUIRED_PAGE_TYPES`): die
-  Neigungssensoren selbst wären einfach zu entfernen, aber der
-  Wohnwagen/Wohnmobil-Umschalter auf der Einstellungsseite (liegt
-  TEILWEISE IM FOOTER, den `strip_page_fragments` bisher nicht anfasst)
-  hängt an der Nivellierungs-Seite. `overview` bleibt aus denselben
-  Gründen wie zuvor Pflicht.
+- **Seiten weglassen**: `REMOVE_ITEM_ANCHORS`/`STRIP_SUBKEY_ANCHORS`/
+  `REMOVE_KEY_BLOCK_ANCHORS` (im Skript) listen für `light`/`climate`/
+  `fridge`/`leveling` alle VERSTREUTEN Definitionen (HA-Spiegel-
+  `text_sensor`s, Sync-Scripts; bei `fridge` zusätzlich die komplette
+  Tuya-BLE-Anbindung; bei `leveling` das Wohnmobil-Bild-Asset, den
+  `g_fahrzeugtyp_wohnmobil`-Global, das `sync_fahrzeugtyp`-Script, den
+  `on_boot:`-Aufruf - **und die Umschalter-Buttons im FOOTER**
+  (Einstellungen-Overlay)) - fehlt einer dieser Typen im Plan, werden
+  seine Fragmente per Regex-Anker + automatischer Element-
+  Grenzenerkennung (`_find_item_bounds`/`_find_key_block_bounds` für
+  bloße `key:`-Blöcke wie `on_boot:` ohne `- `) aus Header UND Footer
+  entfernt (`strip_page_fragments(header, footer, missing_types)`),
+  inkl. Spezialfall "jetzt leerer Elternschlüssel" (leeres
+  `tuya_ble_node:` ohne Kinder ist ungültig, wird mit entfernt). Jeder
+  Anker muss über Header+Footer zusammen GENAU EINMAL matchen
+  (`_locate`), sonst bricht der Generator kontrolliert ab, statt
+  versehentlich das falsche Element zu löschen (ist beim Bauen mehrfach
+  tatsächlich passiert, siehe Git-Historie/Commits - u.a. `id: kb_ziel`
+  matchte anfangs auch eine verschachtelte Referenz derselben ID in
+  einem anderen Element).
+- Nur `overview` bleibt Pflicht (`REQUIRED_PAGE_TYPES`) - komplettes
+  Wettersystem, Uhrzeit, Standort als viele, wenig klar abgrenzbare
+  Abhängigkeiten, außerdem die "Startseite".
 - **Verifiziert** (alle mit echtem `esphome compile`, nicht nur
   `config`):
   - `--check`-Selbsttest (Byte-für-Byte-Reproduktion) - läuft in CI.
   - Reihenfolge ändern + Umbenennen (alle 5 Seiten) - kompiliert,
     RAM/Flash identisch zum Original.
-  - **Kühlbox-Seite weglassen** - kompiliert erfolgreich, RAM/Flash
-    sogar leicht kleiner (46,2 % / 35,2 % statt 46,7 % / 35,4 %) -
-    ESPHome meldet passend "Components removed (number, tuya_ble_node)".
-  - Licht-Seite weglassen, Klimaanlagen-Seite weglassen - beide
-    bestehen `esphome config` (vollen Compile-Durchlauf nicht extra
-    wiederholt, gleiches Muster wie Kühlbox).
+  - **Kühlbox weglassen** - kompiliert, RAM/Flash sogar kleiner
+    (46,2 % / 35,2 % statt 46,7 % / 35,4 %).
+  - **Nivellierung weglassen** (Header + Footer gemeinsam betroffen) -
+    kompiliert, RAM/Flash noch kleiner (46,5 % / 30,3 %, v.a. weniger
+    Flash durch die wegfallenden Bild-Assets).
+  - **Kombiniert weglassen** (Nivellierung + Kühlbox gleichzeitig, nur
+    Übersicht/Licht/Klimaanlage übrig) - besteht `esphome config`.
+  - Licht/Klimaanlage einzeln weglassen - bestehen `esphome config`.
 - Mehrfach-Instanzen (2. Klimaanlage) im Generator: **weiterhin nicht
   unterstützt** - würde Widget-ID-Kollisionen geben, wenn derselbe Block
   zweimal eingefügt wird. Nur die Python/HA-Seite (Entities) unterstützt
@@ -157,21 +163,16 @@ bestehenden Seite nicht (wie bisher).
   (Download-Button in der Integration o.ä.) bisher vorhanden.
 
 **Noch offen**:
-1. `leveling` weglassbar machen: `strip_page_fragments` müsste auch den
-   FOOTER bearbeiten können (Wohnwagen/Wohnmobil-Umschalter-UI im
-   Einstellungen-Overlay), plus `g_fahrzeugtyp_wohnmobil`-Global,
-   `sync_fahrzeugtyp`-Script, `on_boot`-Aufruf und das
-   `img_wohnmobil`-Bild-Asset im Header entfernen.
-2. Mehrfach-Instanzen (2. Klimaanlage etc.) im Generator selbst -
+1. Mehrfach-Instanzen (2. Klimaanlage etc.) im Generator selbst -
    Widget-IDs pro Instanz suffixieren.
-3. Neuer Seiten-Typ `sensors` (generische Sensor-Anzeige): Datenmodell
+2. Neuer Seiten-Typ `sensors` (generische Sensor-Anzeige): Datenmodell
    ist vorbereitet (`PAGE_TYPE_SENSORS`, `entities`-Liste im Plan-Eintrag),
    aber weder eine HA-Entity-Erzeugung noch ein LVGL-Seitentemplate
    noch ein Block in der Generator-Bibliothek existieren dafür bisher.
-4. Komfort: Export/Import-Knopf in der Integration statt manuellem
+3. Komfort: Export/Import-Knopf in der Integration statt manuellem
    JSON-Kopieren; Seitenplan-Editor als Multi-Step-Wizard statt
    JSON-Textfeld.
-5. **Explizit nicht gewünscht**: Kartenansicht mit dauerhaft
+4. **Explizit nicht gewünscht**: Kartenansicht mit dauerhaft
    gespeicherten Standort-Pins (Florian hat das abgelehnt) und eine
    separate "Heizung"-Seite (ist inhaltlich dasselbe wie eine zweite
    Klimaanlagen-Seite, kein eigener Typ nötig).
