@@ -61,9 +61,14 @@ Mirror-Entity in dieser Integration an, sondern die generierte
 ESPHome-YAML liest die angegebene HA-Entity direkt – eine Änderung der
 Sensor-Auswahl braucht ohnehin einen Reflash (siehe unten), die übliche
 Mirror-Entity-Indirektion (Entity-Zuordnung ohne Reflash ändern) bringt
-hier also keinen Vorteil. Im Menü "Seite hinzufügen" trägst du die
-Sensoren zeilenweise ein (`entity_id|Label|Einheit`, Label/Einheit
-optional, z.B. nur `sensor.batterie_soc`) statt als JSON.
+hier also keinen Vorteil. Im Menü "Seite hinzufügen" wählst du die
+Sensoren über einen normalen Entity-Picker aus (Mehrfachauswahl, wie beim
+Hinzufügen von Entities zu einer Lovelace-Karte) – kein Eintippen von
+Entity-IDs mehr nötig. `label`/`unit` werden dabei automatisch aus dem
+aktuellen Anzeigenamen bzw. der `unit_of_measurement` der jeweiligen
+Entity übernommen (Momentaufnahme zum Auswahlzeitpunkt). Ein davon
+abweichendes Label lässt sich weiterhin nur über "Seitenplan als JSON
+bearbeiten" setzen.
 
 **Seitenplan exportieren**: Einstellungen → Geräte & Dienste →
 Fridolin Display → ⋮ → **Diagnose herunterladen** liefert eine JSON-

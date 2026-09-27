@@ -116,9 +116,9 @@ def _add_page_schema() -> vol.Schema:
             ),
             vol.Required("title"): str,
             vol.Optional("instance", default=""): str,
-            vol.Optional("sensors_entities", default=""): selector.TextSelector(
-                selector.TextSelectorConfig(multiline=True)
-            ),
+            vol.Optional(
+                "sensors_entities", default=[]
+            ): selector.EntitySelector(selector.EntitySelectorConfig(multiple=True)),
         }
     )
 
@@ -167,21 +167,23 @@ def _format_plan_summary(plan: list[dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
-def _parse_sensors_entities(text: str) -> list[dict[str, str]]:
-    """Parst das mehrzeilige Textfeld beim Hinzufuegen einer sensors-Seite:
-    eine Entity pro Zeile, Format 'entity_id|Label|Einheit' (Label/Einheit
-    optional, z.B. nur 'sensor.batterie_soc')."""
+def _sensors_entities_from_selection(
+    hass: Any, entity_ids: list[str]
+) -> list[dict[str, str]]:
+    """Baut die 'entities'-Liste einer sensors-Seite aus per EntitySelector
+    ausgewaehlten Entity-IDs (kein manuelles Eintippen von Entity-ID/Label/
+    Einheit mehr noetig, siehe _add_page_schema). Label = aktueller
+    Anzeigename (State.name, i.d.R. der friendly_name), Einheit = aktuelle
+    unit_of_measurement - beides zum Zeitpunkt der Auswahl aus dem State
+    gelesen (Momentaufnahme, kein Live-Sync). Fehlt der State (z.B. Entity
+    aktuell nicht verfuegbar), wird die Entity-ID selbst als Label
+    verwendet. Ein individuell abweichendes Label laesst sich weiterhin nur
+    ueber "Seitenplan als JSON bearbeiten" setzen."""
     entities: list[dict[str, str]] = []
-    for raw_line in text.splitlines():
-        line = raw_line.strip()
-        if not line:
-            continue
-        parts = [p.strip() for p in line.split("|")]
-        entity_id = parts[0]
-        if not entity_id:
-            continue
-        label = parts[1] if len(parts) > 1 and parts[1] else entity_id
-        unit = parts[2] if len(parts) > 2 and parts[2] else ""
+    for entity_id in entity_ids:
+        state = hass.states.get(entity_id)
+        label = (state.name if state else None) or entity_id
+        unit = (state.attributes.get("unit_of_measurement") if state else None) or ""
         entities.append({"entity_id": entity_id, "label": label, "unit": unit})
     return entities
 
@@ -312,8 +314,8 @@ class FridolinDisplayOptionsFlow(OptionsFlow):
                 # automatisch eine freie Instanz-Nummer
 
             if page_type == "sensors":
-                new_page["entities"] = _parse_sensors_entities(
-                    user_input.get("sensors_entities", "")
+                new_page["entities"] = _sensors_entities_from_selection(
+                    self.hass, user_input.get("sensors_entities") or []
                 )
 
             self._plan().append(new_page)

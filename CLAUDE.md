@@ -239,9 +239,17 @@ durchgetestet, aber **noch nicht in einer echten HA-Instanz gesehen**:
   `self._working_plan` (`page_plan.py`s neue, öffentliche
   `normalize_page_plan()` wird nach jeder Änderung erneut angewendet,
   damit z.B. eine frisch hinzugefügte Licht-/Klimaanlagen-Seite eine
-  `instance` bekommt). Eine `sensors`-Seite trägt ihre Entities beim
-  Hinzufügen zeilenweise ein (`entity_id|Label|Einheit`,
-  `_parse_sensors_entities`) statt als JSON-Array.
+  `instance` bekommt). Eine `sensors`-Seite wählt ihre Entities beim
+  Hinzufügen über einen normalen `selector.EntitySelector(multiple=True)`
+  aus (kein Eintippen von `entity_id|Label|Einheit` mehr, wie ursprünglich
+  gebaut - auf Florians Wunsch durch einen echten Entity-Picker ersetzt,
+  analog zum Hinzufügen von Entities in einer Lovelace-Karte). Label/Einheit
+  werden dabei automatisch aus `hass.states.get(entity_id)` gelesen
+  (`_sensors_entities_from_selection`: Label = `state.name`, i.d.R. der
+  friendly_name; Einheit = `unit_of_measurement`-Attribut; ohne State
+  bleibt die Entity-ID selbst als Label) - eine Momentaufnahme zum
+  Auswahlzeitpunkt, kein Live-Sync. Ein individuell abweichendes Label
+  lässt sich weiterhin nur über "Seitenplan als JSON bearbeiten" setzen.
 - **Getestet ohne echtes Home Assistant**: `homeassistant`/`voluptuous`
   sind in dieser Umgebung nicht installiert - stattdessen minimale
   Stub-Module (`ConfigEntry`/`ConfigFlow`/`OptionsFlow` mit
@@ -251,9 +259,13 @@ durchgetestet, aber **noch nicht in einer echten HA-Instanz gesehen**:
   zwei add_page-Aufrufe → move_page → remove_page → entities) und den
   `self._working_plan`-Zustand nach jedem Schritt prüft - alle
   Mutationen (Hinzufügen inkl. automatischer Instanz-Vergabe,
-  Verschieben, Entfernen) verhalten sich wie erwartet. Ersetzt keinen
-  echten Test in einer laufenden Home-Assistant-Instanz (Übersetzungen/
-  `async_show_menu`-Verhalten/Formular-Rendering ungeprüft).
+  Verschieben, Entfernen) verhalten sich wie erwartet.
+  `_sensors_entities_from_selection` zusätzlich isoliert mit einem
+  Fake-`hass.states`-Objekt getestet (Label/Einheit-Übernahme, Fallback
+  auf Entity-ID ohne State) - alle Assertions grün. Ersetzt keinen echten
+  Test in einer laufenden Home-Assistant-Instanz (Übersetzungen/
+  `async_show_menu`-Verhalten/Formular-Rendering/echtes
+  Entity-Picker-UI ungeprüft).
 
 **Noch offen**:
 1. Mehrfach-Instanzen für `fridge` (2. Kühlbox) - bisher nicht in

@@ -47,7 +47,7 @@
           "type": "Seitentyp",
           "title": "Titel (auf dem Display sichtbar)",
           "instance": "Instanz-Kennung (nur für Licht/Klimaanlage, bei mehreren Seiten desselben Typs - leer lassen für automatische Vergabe)",
-          "sensors_entities": "Nur für Seitentyp \"Sensoren\": eine Entity pro Zeile, Format entity_id|Label|Einheit (Label und Einheit optional, z.B. nur sensor.batterie_soc)"
+          "sensors_entities": "Nur für Seitentyp \"Sensoren\": Entities auswählen, die auf der Seite angezeigt werden sollen. Label und Einheit werden automatisch aus dem aktuellen Zustand der Entity übernommen (ein abweichendes Label laesst sich nur über \"Seitenplan als JSON bearbeiten\" setzen)."
         }
       },
       "remove_page": {
