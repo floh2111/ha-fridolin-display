@@ -301,61 +301,41 @@
   }
   .heat-toggle.on { background: var(--dev-btn-active); }
 
-  /* --- Seite 4: Nivellierung --- */
-  .level-row {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-top: 16px;
-    gap: 14px;
-  }
-  .level-col { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-  .level-label { font-size: 12px; color: var(--dev-muted); letter-spacing: 0.06em; text-transform: uppercase; }
-
-  /* --- Echte Libellen-Optik: Gehäuse + Flüssigkeit + bewegliche Luftblase --- */
-  .level-case {
+  /* --- Seite 4: Nivellierung - schematischer Grundriss mit Kreuzlibelle --- */
+  .level-plan {
     position: relative;
-    width: 340px;
-    height: 52px;
-    background: linear-gradient(180deg, #4a5468, #333c4c);
-    border-radius: 999px;
-    border: 2px solid #5c6779;
-    cursor: grab;
-    touch-action: none;
-    box-shadow: inset 0 1px 2px rgba(255,255,255,0.08), 0 3px 8px rgba(0,0,0,0.35);
+    width: 92%;
+    max-width: 460px;
+    margin: 14px auto 0;
   }
-  .level-liquid {
+  .level-plan svg { display: block; width: 100%; height: auto; }
+  .level-plan .bubble {
     position: absolute;
-    inset: 6px 8px;
-    border-radius: 999px;
-    background: linear-gradient(180deg, #d7ea82, #7fa119);
-  }
-  .level-tick {
-    position: absolute;
-    top: 10px; bottom: 10px;
-    width: 2px;
-    background: #2f3b0a;
-    opacity: 0.65;
-  }
-  .level-tick.a { left: calc(50% - 6px); }
-  .level-tick.b { left: calc(50% + 4px); }
-  .bubble {
-    position: absolute;
-    top: 9px;
-    width: 34px; height: 34px;
+    width: 7.4%; /* ~34 / 460 */
+    aspect-ratio: 1;
     border-radius: 50%;
     background: radial-gradient(circle at 35% 30%, #fffef2, #e6dfa0 75%);
     border: 1px solid #b9ae63;
-    left: 50%;
-    translate: -50% 0;
-    transition: border-color 150ms ease, border-width 150ms ease;
     box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    translate: -50% -50%;
+    transition: border-color 150ms ease, border-width 150ms ease;
+    cursor: grab;
+    touch-action: none;
   }
-  .bubble.level { border-color: var(--dev-btn-good); border-width: 3px; }
-  .level-value {
+  .level-plan .bubble.level { border-color: var(--dev-btn-good); border-width: 3px; }
+  .level-values {
+    display: flex;
+    justify-content: center;
+    gap: 28px;
+    margin-top: 14px;
+    font-size: 13px;
+    color: var(--dev-muted);
+  }
+  .level-values .level-value {
+    color: var(--dev-text);
     font-family: "IBM Plex Mono", monospace;
-    font-size: 18px;
     font-variant-numeric: tabular-nums;
+    margin-left: 4px;
   }
   .level-hint { font-size: 11px; color: var(--dev-muted); text-align: center; margin-top: 10px; max-width: 380px; margin-inline: auto; }
   .level-zero {
@@ -686,30 +666,40 @@
         <!-- Seite 4: Nivellierung -->
         <div class="page">
           <p class="page-title">Nivellierung</p>
-          <div class="level-row">
-            <div class="level-col">
-              <div class="level-label">Links / Rechts</div>
-              <div class="level-case" id="trackLR">
-                <div class="level-liquid"></div>
-                <div class="level-tick a"></div>
-                <div class="level-tick b"></div>
-                <div class="bubble" id="bubbleLR"></div>
-              </div>
-              <div class="level-value" id="valLR">0,0°</div>
-            </div>
-            <div class="level-col">
-              <div class="level-label">Vorne / Hinten</div>
-              <div class="level-case" id="trackVH">
-                <div class="level-liquid"></div>
-                <div class="level-tick a"></div>
-                <div class="level-tick b"></div>
-                <div class="bubble" id="bubbleVH"></div>
-              </div>
-              <div class="level-value" id="valVH">0,0°</div>
-            </div>
+          <div class="level-plan" id="levelPlan">
+            <svg id="planSvg" viewBox="0 0 460 300" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="pgradV" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#D7EA82"/>
+                  <stop offset="1" stop-color="#7FA119"/>
+                </linearGradient>
+                <linearGradient id="pgradH" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0" stop-color="#D7EA82"/>
+                  <stop offset="1" stop-color="#7FA119"/>
+                </linearGradient>
+              </defs>
+              <rect x="30" y="55" width="350" height="170" rx="45" fill="#17212C" stroke="#3A4250" stroke-width="4"/>
+              <path d="M380,120 L432,140 L380,160 Z" fill="#55606F"/>
+              <path d="M100,225 q20,16 40,0" fill="none" stroke="#0D141C" stroke-width="3"/>
+              <path d="M300,225 q20,16 40,0" fill="none" stroke="#0D141C" stroke-width="3"/>
+              <line x1="150" y1="65" x2="150" y2="215" stroke="#202836" stroke-width="2" opacity="0.6"/>
+              <line x1="260" y1="65" x2="260" y2="215" stroke="#202836" stroke-width="2" opacity="0.6"/>
+              <rect x="64" y="116" width="182" height="54" rx="27" fill="#3A4250" stroke="#55606F" stroke-width="2"/>
+              <rect x="70" y="122" width="170" height="42" rx="21" fill="url(#pgradV)"/>
+              <circle cx="155" cy="143" r="14" fill="none" stroke="#2F3B0A" stroke-width="3"/>
+              <rect x="270" y="75" width="54" height="150" rx="27" fill="#3A4250" stroke="#55606F" stroke-width="2"/>
+              <rect x="276" y="81" width="42" height="138" rx="21" fill="url(#pgradH)"/>
+              <circle cx="297" cy="150" r="14" fill="none" stroke="#2F3B0A" stroke-width="3"/>
+            </svg>
+            <div class="bubble" id="bubbleVH"></div>
+            <div class="bubble" id="bubbleLR"></div>
+          </div>
+          <div class="level-values">
+            <span>Links/Rechts:<span class="level-value" id="valLR">0,0°</span></span>
+            <span>Vorne/Hinten:<span class="level-value" id="valVH">0,0°</span></span>
           </div>
           <button class="level-zero" id="levelZero">Nullen</button>
-          <div class="level-hint">Zum Testen an den Reglern ziehen. „Nullen“ setzt die aktuelle Lage als Nullpunkt — am echten Gerät kommen die Werte vom GY-521-Sensor.</div>
+          <div class="level-hint">Zum Testen an den Blasen ziehen. „Nullen“ setzt die aktuelle Lage als Nullpunkt — am echten Gerät kommen die Werte vom GY-521-Sensor. Die waagerechte Röhre liegt in Fahrtrichtung (Vorne/Hinten), die senkrechte quer dazu (Links/Rechts).</div>
         </div>
 
         <!-- Seite 5: Kühlbox -->
@@ -890,7 +880,7 @@
   screen.tabIndex = 0;
 
   function onPointerDown(e) {
-    if (e.target.closest(".light-card, .temp-btn, .heat-toggle, .level-case, .level-zero, .pill, .fridge-power, .arrow, .dot")) return;
+    if (e.target.closest(".light-card, .temp-btn, .heat-toggle, .bubble, .level-zero, .pill, .fridge-power, .arrow, .dot")) return;
     dragging = true;
     startX = (e.touches ? e.touches[0].clientX : e.clientX);
     startTranslate = -current * 20;
@@ -956,58 +946,67 @@
   });
   renderTemp();
 
-  /* ---------- Seite 4: Nivellierung (simulierte Wasserwaagen) ---------- */
-  function setupLevel(trackId, bubbleId, valueId) {
-    var trackEl = document.getElementById(trackId);
+  /* ---------- Seite 4: Nivellierung (Kreuzlibelle auf dem Grundriss) ----------
+     Bubble-Position wird in SVG-Einheiten (viewBox 460x300) berechnet und dann
+     in Prozent des Containers umgerechnet - die SVG füllt den Container 1:1. */
+  function setupLevel(bubbleId, valueId, axis, fixedCoord, svgMin, svgMax) {
+    var planEl = document.getElementById("levelPlan");
     var bubbleEl = document.getElementById(bubbleId);
     var valueEl = document.getElementById(valueId);
     var RANGE = 8; // Grad Vollausschlag - echte Wasserwaagen sind sehr empfindlich
     var angle = 0; // -8..8
 
     function render() {
-      var w = trackEl.getBoundingClientRect().width;
-      var usable = w - 34; // Kugeldurchmesser
-      var pos = ((angle + RANGE) / (2 * RANGE)) * usable;
-      bubbleEl.style.left = pos + "px";
-      bubbleEl.style.translate = "0 0";
+      var frac = (angle + RANGE) / (2 * RANGE);
+      var moving = svgMin + frac * (svgMax - svgMin);
+      var svgX = axis === "x" ? moving : fixedCoord;
+      var svgY = axis === "y" ? moving : fixedCoord;
+      bubbleEl.style.left = (svgX / 460 * 100) + "%";
+      bubbleEl.style.top = (svgY / 300 * 100) + "%";
       valueEl.textContent = angle.toFixed(1).replace(".", ",") + "°";
       bubbleEl.classList.toggle("level", Math.abs(angle) < 1);
     }
 
     var draggingLevel = false;
-    function angleFromClientX(clientX) {
-      var rect = trackEl.getBoundingClientRect();
-      var ratio = (clientX - rect.left) / rect.width;
-      ratio = Math.max(0, Math.min(1, ratio));
-      return (ratio * 2 * RANGE) - RANGE;
+    function angleFromClient(clientX, clientY) {
+      var rect = planEl.getBoundingClientRect();
+      var svgX = (clientX - rect.left) / rect.width * 460;
+      var svgY = (clientY - rect.top) / rect.height * 300;
+      var moving = axis === "x" ? svgX : svgY;
+      var frac = (moving - svgMin) / (svgMax - svgMin);
+      frac = Math.max(0, Math.min(1, frac));
+      return frac * 2 * RANGE - RANGE;
     }
     function down(e) {
       draggingLevel = true;
       var x = e.touches ? e.touches[0].clientX : e.clientX;
-      angle = angleFromClientX(x);
+      var y = e.touches ? e.touches[0].clientY : e.clientY;
+      angle = angleFromClient(x, y);
       render();
     }
     function move(e) {
       if (!draggingLevel) return;
       var x = e.touches ? e.touches[0].clientX : e.clientX;
-      angle = angleFromClientX(x);
+      var y = e.touches ? e.touches[0].clientY : e.clientY;
+      angle = angleFromClient(x, y);
       render();
     }
     function up() { draggingLevel = false; }
 
-    trackEl.addEventListener("mousedown", down);
+    bubbleEl.addEventListener("mousedown", down);
     window.addEventListener("mousemove", move);
     window.addEventListener("mouseup", up);
-    trackEl.addEventListener("touchstart", down, { passive: true });
-    trackEl.addEventListener("touchmove", move, { passive: true });
-    trackEl.addEventListener("touchend", up);
+    bubbleEl.addEventListener("touchstart", down, { passive: true });
+    bubbleEl.addEventListener("touchmove", move, { passive: true });
+    bubbleEl.addEventListener("touchend", up);
 
-    window.addEventListener("resize", render);
     render();
     return { zero: function () { angle = 0; render(); } };
   }
-  var levelLR = setupLevel("trackLR", "bubbleLR", "valLR");
-  var levelVH = setupLevel("trackVH", "bubbleVH", "valVH");
+  // Waagerechte Röhre (Vorne/Hinten, in Fahrtrichtung): Blase bewegt sich in X, Ring bei x=155,y=143
+  var levelVH = setupLevel("bubbleVH", "valVH", "x", 143, 104, 206);
+  // Senkrechte Röhre (Links/Rechts, quer zur Fahrtrichtung): Blase bewegt sich in Y, Ring bei x=297,y=150
+  var levelLR = setupLevel("bubbleLR", "valLR", "y", 297, 115, 185);
   document.getElementById("levelZero").addEventListener("click", function () {
     levelLR.zero();
     levelVH.zero();

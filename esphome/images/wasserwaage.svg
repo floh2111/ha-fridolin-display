@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 300">
+  <defs>
+    <linearGradient id="gradV" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#D7EA82"/>
+      <stop offset="1" stop-color="#7FA119"/>
+    </linearGradient>
+    <linearGradient id="gradH" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#D7EA82"/>
+      <stop offset="1" stop-color="#7FA119"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Schematischer Wohnwagen-Grundriss (Draufsicht) -->
+  <rect x="30" y="55" width="350" height="170" rx="45" fill="#17212C" stroke="#3A4250" stroke-width="4"/>
+  <path d="M380,120 L432,140 L380,160 Z" fill="#55606F"/>
+  <path d="M100,225 q20,16 40,0" fill="none" stroke="#0D141C" stroke-width="3"/>
+  <path d="M300,225 q20,16 40,0" fill="none" stroke="#0D141C" stroke-width="3"/>
+  <line x1="150" y1="65" x2="150" y2="215" stroke="#202836" stroke-width="2" opacity="0.6"/>
+  <line x1="260" y1="65" x2="260" y2="215" stroke="#202836" stroke-width="2" opacity="0.6"/>
+
+  <!-- Libelle "Vorne / Hinten" (liegt in Fahrtrichtung -> waagerecht) -->
+  <rect x="64" y="116" width="182" height="54" rx="27" fill="#3A4250" stroke="#55606F" stroke-width="2"/>
+  <rect x="70" y="122" width="170" height="42" rx="21" fill="url(#gradV)"/>
+  <circle cx="155" cy="143" r="14" fill="none" stroke="#2F3B0A" stroke-width="3"/>
+
+  <!-- Libelle "Links / Rechts" (quer zur Fahrtrichtung -> senkrecht, im rechten Winkel) -->
+  <rect x="270" y="75" width="54" height="150" rx="27" fill="#3A4250" stroke="#55606F" stroke-width="2"/>
+  <rect x="276" y="81" width="42" height="138" rx="21" fill="url(#gradH)"/>
+  <circle cx="297" cy="150" r="14" fill="none" stroke="#2F3B0A" stroke-width="3"/>
+</svg>

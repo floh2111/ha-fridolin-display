@@ -307,6 +307,17 @@ interval:
 ### Fridolin-Display-Integration (icon-Schlüssel = Dateiname ohne .svg).
 ### ------------------------------------------------------------------
 image:
+  ### Schematischer Wohnwagen-Grundriss mit Kreuzlibelle (siehe
+  ### esphome/images/wasserwaage.svg), 1.5-fach gerastert (690x450 statt
+  ### 460x300 aus dem SVG-viewBox) - die Blasen-Overlays unten rechnen
+  ### deshalb mit dem Faktor 1.5 auf die SVG-Koordinaten.
+  - platform: file
+    id: img_wasserwaage
+    file: images/wasserwaage.svg
+    resize: 690x450
+    type: RGB565
+    transparency: alpha_channel
+
   - platform: file
     id: img_w_sunny
     file: images/weather/sunny.svg
@@ -860,11 +871,13 @@ sensor:
           text:
             format: "%.1f°"
             args: ["x"]
-      ### Blase in der Libelle bewegen: +-8 Grad Vollausschlag (reale
-      ### Wasserwaagen sind sehr empfindlich), darüber bleibt sie am Rand stehen
+      ### Blase in der senkrechten Libelle (quer zur Fahrtrichtung) nach oben/unten
+      ### bewegen: +-8 Grad Vollausschlag (reale Wasserwaagen sind sehr empfindlich),
+      ### darüber bleibt sie am Rand stehen. y-Bereich siehe images/wasserwaage.svg
+      ### (Ring bei y=150 im SVG, ×1.5 gerastert -> Bildmitte y=225, Hub ±80px).
       - lambda: |-
           float clamped = std::max(-8.0f, std::min(8.0f, x));
-          lv_obj_set_x(id(bubble_lr), (int) (clamped / 8.0f * 150.0f));
+          lv_obj_set_y(id(bubble_lr), 225 - 17 + (int) (-clamped / 8.0f * 80.0f));
           bool eben = fabsf(x) < 1.0f;
           lv_obj_set_style_border_color(id(bubble_lr), eben ? lv_color_hex(0x3FA34D) : lv_color_hex(0xB9AE63), 0);
           lv_obj_set_style_border_width(id(bubble_lr), eben ? 3 : 1, 0);
@@ -885,9 +898,11 @@ sensor:
           text:
             format: "%.1f°"
             args: ["x"]
+      ### Blase in der waagerechten Libelle (in Fahrtrichtung) seitlich bewegen.
+      ### Ring bei x=155 im SVG, ×1.5 gerastert -> Bildmitte x=232, Hub ±76px.
       - lambda: |-
           float clamped = std::max(-8.0f, std::min(8.0f, x));
-          lv_obj_set_x(id(bubble_vh), (int) (clamped / 8.0f * 150.0f));
+          lv_obj_set_x(id(bubble_vh), 232 - 17 + (int) (clamped / 8.0f * 76.0f));
           bool eben = fabsf(x) < 1.0f;
           lv_obj_set_style_border_color(id(bubble_vh), eben ? lv_color_hex(0x3FA34D) : lv_color_hex(0xB9AE63), 0);
           lv_obj_set_style_border_width(id(bubble_vh), eben ? 3 : 1, 0);
@@ -1420,149 +1435,67 @@ lvgl:
                       text_font: montserrat_28
                       align: TOP_MID
                       y: 16
-                  ### Zwei "echte" Wasserwaagen-Röhrchen mit beweglicher Luftblase,
-                  ### untereinander (Links/Rechts oben, Vorne/Hinten unten)
-                  - obj:
+                  ### Schematischer Wohnwagen-Grundriss mit Kreuzlibelle: die waagerechte
+                  ### Röhre liegt in Fahrtrichtung (Vorne/Hinten), die senkrechte quer dazu
+                  ### (Links/Rechts) - im rechten Winkel, wie bei einer echten Kreuzlibelle.
+                  ### Die beiden Luftblasen sind eigene Kind-Widgets des Bildes und werden
+                  ### per Lambda auf den Koordinaten aus images/wasserwaage.svg verschoben.
+                  - image:
+                      id: img_wasserwaage_widget
+                      src: img_wasserwaage
                       align: CENTER
-                      y: -6
-                      width: 480
-                      height: 300
+                      y: -4
+                      widgets:
+                        - obj:
+                            id: bubble_vh
+                            align: TOP_LEFT
+                            x: 215
+                            y: 198
+                            width: 34
+                            height: 34
+                            radius: 100
+                            bg_color: 0xFFFDE7
+                            bg_grad_color: 0xE6DFA0
+                            bg_grad_dir: VER
+                            border_color: 0xB9AE63
+                            border_width: 1
+                        - obj:
+                            id: bubble_lr
+                            align: TOP_LEFT
+                            x: 428
+                            y: 208
+                            width: 34
+                            height: 34
+                            radius: 100
+                            bg_color: 0xFFFDE7
+                            bg_grad_color: 0xE6DFA0
+                            bg_grad_dir: VER
+                            border_color: 0xB9AE63
+                            border_width: 1
+
+                  - obj:
+                      align: BOTTOM_MID
+                      y: -66
+                      width: 500
+                      height: 40
                       bg_opa: TRANSP
                       border_opa: TRANSP
-                      layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER, pad_row: 10 }
+                      layout: { type: FLEX, flex_flow: ROW, flex_align_main: SPACE_EVENLY, flex_align_cross: CENTER }
                       widgets:
-                          - obj:
-                              width: 460
-                              height: 142
-                              bg_opa: TRANSP
-                              border_opa: TRANSP
-                              layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER, pad_row: 8 }
-                              widgets:
-                                - label:
-                                    text: "Links / Rechts"
-                                    text_font: montserrat_14
-                                ### Gehäuse der Libelle
-                                - obj:
-                                    width: 420
-                                    height: 64
-                                    radius: 32
-                                    bg_color: 0x3A4250
-                                    bg_opa: COVER
-                                    border_color: 0x55606F
-                                    border_width: 2
-                                    pad_all: 0
-                                    widgets:
-                                      ### Flüssigkeit im Röhrchen
-                                      - obj:
-                                          align: CENTER
-                                          width: 380
-                                          height: 40
-                                          radius: 20
-                                          bg_color: 0xC8E070
-                                          bg_grad_color: 0x7FA119
-                                          bg_grad_dir: VER
-                                          border_opa: TRANSP
-                                      ### Zwei Mittelstriche: liegt die Blase dazwischen, steht es eben
-                                      - obj:
-                                          align: CENTER
-                                          x: -5
-                                          width: 2
-                                          height: 26
-                                          radius: 0
-                                          bg_color: 0x2F3B0A
-                                          bg_opa: COVER
-                                          border_opa: TRANSP
-                                      - obj:
-                                          align: CENTER
-                                          x: 5
-                                          width: 2
-                                          height: 26
-                                          radius: 0
-                                          bg_color: 0x2F3B0A
-                                          bg_opa: COVER
-                                          border_opa: TRANSP
-                                      ### Die Luftblase selbst, wird per Lambda seitlich verschoben
-                                      - obj:
-                                          id: bubble_lr
-                                          align: CENTER
-                                          width: 34
-                                          height: 34
-                                          radius: 100
-                                          bg_color: 0xFFFDE7
-                                          bg_grad_color: 0xE6DFA0
-                                          bg_grad_dir: VER
-                                          border_color: 0xB9AE63
-                                          border_width: 1
-                                - label:
-                                    id: lbl_neigung_lr
-                                    text: "0,0°"
-                                    text_font: montserrat_20
-                          - obj:
-                              width: 460
-                              height: 142
-                              bg_opa: TRANSP
-                              border_opa: TRANSP
-                              layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER, pad_row: 8 }
-                              widgets:
-                                - label:
-                                    text: "Vorne / Hinten"
-                                    text_font: montserrat_14
-                                ### Gehäuse der Libelle
-                                - obj:
-                                    width: 420
-                                    height: 64
-                                    radius: 32
-                                    bg_color: 0x3A4250
-                                    bg_opa: COVER
-                                    border_color: 0x55606F
-                                    border_width: 2
-                                    pad_all: 0
-                                    widgets:
-                                      ### Flüssigkeit im Röhrchen
-                                      - obj:
-                                          align: CENTER
-                                          width: 380
-                                          height: 40
-                                          radius: 20
-                                          bg_color: 0xC8E070
-                                          bg_grad_color: 0x7FA119
-                                          bg_grad_dir: VER
-                                          border_opa: TRANSP
-                                      ### Zwei Mittelstriche: liegt die Blase dazwischen, steht es eben
-                                      - obj:
-                                          align: CENTER
-                                          x: -5
-                                          width: 2
-                                          height: 26
-                                          radius: 0
-                                          bg_color: 0x2F3B0A
-                                          bg_opa: COVER
-                                          border_opa: TRANSP
-                                      - obj:
-                                          align: CENTER
-                                          x: 5
-                                          width: 2
-                                          height: 26
-                                          radius: 0
-                                          bg_color: 0x2F3B0A
-                                          bg_opa: COVER
-                                          border_opa: TRANSP
-                                      ### Die Luftblase selbst, wird per Lambda seitlich verschoben
-                                      - obj:
-                                          id: bubble_vh
-                                          align: CENTER
-                                          width: 34
-                                          height: 34
-                                          radius: 100
-                                          bg_color: 0xFFFDE7
-                                          bg_grad_color: 0xE6DFA0
-                                          bg_grad_dir: VER
-                                          border_color: 0xB9AE63
-                                          border_width: 1
-                                - label:
-                                    id: lbl_neigung_vh
-                                    text: "0,0°"
-                                    text_font: montserrat_20
+                        - label:
+                            text: "Links/Rechts:"
+                            text_font: montserrat_14
+                        - label:
+                            id: lbl_neigung_lr
+                            text: "0,0°"
+                            text_font: montserrat_20
+                        - label:
+                            text: "Vorne/Hinten:"
+                            text_font: montserrat_14
+                        - label:
+                            id: lbl_neigung_vh
+                            text: "0,0°"
+                            text_font: montserrat_20
 
                   - button:
                       align: BOTTOM_MID
