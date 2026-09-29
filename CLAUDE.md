@@ -460,6 +460,16 @@ der Übersichtsseite erreichbar ist (LVGL `top_layer:`):
   Mock-HTTP-Server getestet (Entry-Suche, Diagnose-Abruf, Token-Fehler,
   Verbindungsfehler) - kein echtes Home Assistant nötig für den Test,
   Byte-für-Byte-Vergleich mit dem `--check`-Selbsttest bestätigt.
+- ✅ **Neigungswerte geglättet**: `median` (Ausreisser wie kurze Stöße/
+  Vibration herausfiltern) + `exponential_moving_average` (Rest glätten,
+  `alpha: 0.2`) auf `accel_x`/`accel_y`/`accel_z` (MPU6050) - wirkt VOR der
+  `atan2()`-Berechnung, beide Neigungswerte UND der per "Nullen"-Knopf
+  übernommene Nullpunkt profitieren automatisch mit, ohne dass die
+  Berechnung selbst angefasst wurde. Reale Änderung macht sich nach ca.
+  1-2s bemerkbar statt sofort. Nur lokal kompiliert (RAM/Flash
+  unverändert) - Wirkung auf echtes Wackeln/Vibration erst mit echter
+  Hardware im Wohnwagen beurteilbar, Filter-Parameter (`window_size: 5`,
+  `alpha: 0.2`) ggf. nach dem Livetest nachjustieren.
 
 ## Bekannte Einschränkungen
 

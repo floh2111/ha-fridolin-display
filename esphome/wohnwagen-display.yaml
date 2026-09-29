@@ -924,16 +924,35 @@ sensor:
             format: "Morgen: %.0f° – %.0f°"
             args: ["id(g_morgen_min)", "id(g_morgen_max)"]
 
+  ### Glaettung der rohen Beschleunigungswerte gegen Zittern/Vibration:
+  ### median filtert einzelne Ausreisser (z.B. ein kurzer Stoss/Erschuetterung)
+  ### heraus, exponential_moving_average glaettet den Rest. Wirkt auf accel_x/
+  ### y/z VOR der atan2()-Berechnung weiter unten - beide Neigungswerte (und
+  ### der per "Nullen"-Knopf gespeicherte Nullpunkt, der direkt aus den
+  ### aktuellen Rohwerten uebernommen wird) profitieren dadurch gemeinsam,
+  ### ohne die Berechnung selbst anzufassen. Bei window_size: 5 und
+  ### update_interval: 200ms macht sich eine echte Neigungsaenderung nach
+  ### ca. 1-2s bemerkbar statt sofort - spuerbar ruhiger, aber nicht traege.
   - platform: mpu6050
     address: 0x68
     i2c_id: bus_a
     update_interval: 200ms
     accel_x:
       id: accel_x
+      filters: &neigung_filter
+        - median:
+            window_size: 5
+            send_every: 1
+            send_first_at: 1
+        - exponential_moving_average:
+            alpha: 0.2
+            send_every: 1
     accel_y:
       id: accel_y
+      filters: *neigung_filter
     accel_z:
       id: accel_z
+      filters: *neigung_filter
 
   ### Kippwinkel links/rechts (Roll) aus den Beschleunigungswerten berechnet
   - platform: template
