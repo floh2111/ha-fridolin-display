@@ -526,6 +526,26 @@ der Übersichtsseite erreichbar ist (LVGL `top_layer:`):
   ist beim Umbenennen "Kuehlbox" -> "Kühlbox" in dieser Session genau so
   passiert und wurde erst durch den echten `--check`/`--plan`-Testlauf
   gefunden).
+- **Bootloop bei Octal-PSRAM @ 120MHz auf echter Hardware** (gefunden beim
+  ersten Hardware-Bring-up, 30.09.2026): Der ESP32-S3 crashte bei jedem
+  Boot noch VOR unserer eigenen Firmware mit `E MSPI Timing: The flash
+  model has not been verified support this feature, please contact
+  espressif business support` + `abort() ... do_secondary_init`. Ursache:
+  ESP-IDFs `CONFIG_SPIRAM_TIMING_TUNING_POINT_VIA_TEMPERATURE_SENSOR`
+  (PSRAM-Timing zur Laufzeit per Temperatursensor nachjustieren, wird bei
+  `SPIRAM_MODE_OCT` + `SPIRAM_SPEED_120M` + `enable_idf_experimental_features`
+  scharf - alle drei stehen bei uns) prüft dabei die Flash-Hersteller-ID
+  gegen eine Whitelist von nur zwei Herstellern
+  (`components/esp_mspi/mspi_timing_tuning/port/esp32s3/mspi_timing_by_mspi_delay.c`
+  im ESP-IDF-Quellcode, Vendor-IDs `0xC8`/`0x20`) - passt der Flash-Chip
+  des konkreten Boards nicht dazu, bricht der Boot sofort ab. **Fix**:
+  `CONFIG_SPIRAM_TIMING_TUNING_POINT_VIA_TEMPERATURE_SENSOR: "n"` explizit
+  in `sdkconfig_options` setzen. Weder `esphome config` noch `esphome
+  compile` melden das vorher - der Fehler existiert nur zur Boot-Laufzeit
+  auf echter Hardware, kein Kompilier-/Validierungsfehler. Betraf nur
+  `wohnwagen-display.yaml` (Octal-PSRAM-Kombination), nicht
+  `test-esp32-ohne-display.yaml` (einfaches `board: esp32dev` ohne
+  PSRAM-Tuning).
 - **ESPHome-Board-Wechsel** (falls nochmal nötig): Das 800×480-Board
   braucht `ch422g:` als IO-Expander, `display: platform: mipi_rgb, model:
   ESP32-S3-TOUCH-LCD-7-800X480`, Backlight als einfacher `switch:
