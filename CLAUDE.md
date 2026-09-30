@@ -580,6 +580,30 @@ der Übersichtsseite erreichbar ist (LVGL `top_layer:`):
   Override wirklich angekommen ist. Betraf nur `wohnwagen-display.yaml`
   (Octal-PSRAM-Kombination), nicht `test-esp32-ohne-display.yaml`
   (einfaches `board: esp32dev` ohne PSRAM-Tuning).
+- **Trages Wisch-Karussell + Grafikfehler bei Bildaenderungen auf echter
+  Hardware** (gefunden beim ersten Hardware-Bring-up, 30.09.2026, direkt
+  nachdem die PSRAM-Geschwindigkeit wegen des obigen Bootloops von 120MHz
+  auf 80MHz reduziert wurde): `lvgl: buffer_size: 25%` bedeutet bei
+  RGB-Parallel-Displays (`platform: mipi_rgb`) vier Render+Flush-Zyklen
+  fuer einen vollen Seitenwechsel statt einem - fuehrte zusammen mit der
+  reduzierten PSRAM-Bandbreite zu spuerbar traegem/hakeligem Wischen und
+  sichtbaren Grafikfehlern genau bei Bildaenderungen. **Fix**:
+  `buffer_size: 100%` (voller Bildschirmpuffer) - bei 800x480/RGB565 nur
+  ~750 KB, angesichts 8 MB PSRAM reichlich Luft. Noch nicht auf echter
+  Hardware verifiziert, ob das allein reicht oder ob zusaetzlich die
+  120MHz-PSRAM-Frage (siehe oben) nochmal aufgegriffen werden muss -
+  bewusst zuerst der risikoaermere Hebel (Puffergroesse statt erneuter
+  PSRAM-Taktaenderung, die wieder den Bootloop reproduzieren koennte).
+- **Ungewollte Scrollbalken auf echter Hardware** (gleicher Hardware-
+  Bring-up): mehrere LVGL-`obj:`/`button:`-Container zeigten duenne
+  weisse Scrollbalken, weil ihr tatsaechlicher Inhalt (Text/Icons) die
+  vorgesehene Breite/Hoehe leicht ueberschritt - in LVGL ist `scrollable`
+  bei praktisch allen Widget-Typen (auch `button:`, geerbt von der
+  Basis-`obj`-Klasse) standardmaessig an, auch wenn niemand je scrollen
+  soll. Keine Layout-Ursache einzeln behoben, sondern generell
+  `scrollable: false` auf alle 20 `obj:`- und 26 `button:`-Widgets in
+  `wohnwagen-display.yaml` gesetzt (kein Widget in diesem fest
+  layouteten Dashboard ist als scrollbarer Inhalt gedacht).
 - **ESPHome-Board-Wechsel** (falls nochmal nötig): Das 800×480-Board
   braucht `ch422g:` als IO-Expander, `display: platform: mipi_rgb, model:
   ESP32-S3-TOUCH-LCD-7-800X480`, Backlight als einfacher `switch:

@@ -1239,7 +1239,15 @@ font:
 lvgl:
   id: ui
   color_depth: 16
-  buffer_size: 25%
+  ### War 25% - bei RGB-Parallel-Displays (mipi_rgb) heisst das: LVGL
+  ### braucht 4 Render+Flush-Zyklen fuer einen vollen Seitenwechsel statt
+  ### einem. Bei Florians erstem Hardware-Test (30.09.2026) zeigten sich
+  ### dadurch ein spuerbar traeges/hakeliges Wisch-Karussell und
+  ### Grafikfehler bei Bildaenderungen (vermutlich unvollstaendige/
+  ### ueberholte Teil-Flushes). 100% (voller Bildschirmpuffer) behebt
+  ### beides typischerweise bei RGB-Displays - PSRAM hat mit 8 MB reichlich
+  ### Luft (ein voller 800x480-RGB565-Puffer sind nur ~750 KB).
+  buffer_size: 100%
   default_font: fridolin_20
 
   theme:
@@ -1283,6 +1291,7 @@ lvgl:
                   ### Verbindung normalerweise innerhalb weniger Sekunden nach dem
                   ### Booten steht.
                   - obj:
+                      scrollable: false
                       id: box_verbindung_verloren
                       align: TOP_LEFT
                       x: 12
@@ -1300,6 +1309,7 @@ lvgl:
                         pad_column: 6
                       widgets:
                         - obj:
+                            scrollable: false
                             width: 12
                             height: 12
                             radius: 6
@@ -1313,6 +1323,7 @@ lvgl:
                   ### Vier Felder: oben links Wetter + Stundenvorhersage, oben rechts
                   ### Uhrzeit/Datum/Standort + Morgen-Ausblick. Unten bleibt erstmal frei.
                   - obj:
+                      scrollable: false
                       align: TOP_MID
                       y: 42
                       width: 720
@@ -1327,6 +1338,7 @@ lvgl:
                       widgets:
                         ### Oben links: aktuelles Wetter + die vier Stunden-Slots
                         - obj:
+                            scrollable: false
                             width: 340
                             height: 300
                             bg_opa: TRANSP
@@ -1339,6 +1351,7 @@ lvgl:
                               pad_row: 14
                             widgets:
                               - obj:
+                                  scrollable: false
                                   width: 300
                                   height: 84
                                   bg_opa: TRANSP
@@ -1356,6 +1369,7 @@ lvgl:
                                         width: 56
                                         height: 56
                                     - obj:
+                                        scrollable: false
                                         width: 220
                                         height: 84
                                         bg_opa: TRANSP
@@ -1372,6 +1386,7 @@ lvgl:
                                               text_font: fridolin_14
                               ### Vorschau für die nächsten Stunden, vier Slots nebeneinander
                               - obj:
+                                  scrollable: false
                                   width: 300
                                   height: 84
                                   bg_opa: TRANSP
@@ -1384,6 +1399,7 @@ lvgl:
                                     pad_column: 6
                                   widgets:
                                     - obj:
+                                        scrollable: false
                                         width: 68
                                         height: 84
                                         bg_opa: TRANSP
@@ -1394,6 +1410,7 @@ lvgl:
                                           - image: { id: img_h0_icon, src: img_w_cloudy_s, width: 24, height: 24 }
                                           - label: { id: lbl_h0_temp, text: "--°", text_font: fridolin_20 }
                                     - obj:
+                                        scrollable: false
                                         width: 68
                                         height: 84
                                         bg_opa: TRANSP
@@ -1404,6 +1421,7 @@ lvgl:
                                           - image: { id: img_h1_icon, src: img_w_cloudy_s, width: 24, height: 24 }
                                           - label: { id: lbl_h1_temp, text: "--°", text_font: fridolin_20 }
                                     - obj:
+                                        scrollable: false
                                         width: 68
                                         height: 84
                                         bg_opa: TRANSP
@@ -1414,6 +1432,7 @@ lvgl:
                                           - image: { id: img_h2_icon, src: img_w_cloudy_s, width: 24, height: 24 }
                                           - label: { id: lbl_h2_temp, text: "--°", text_font: fridolin_20 }
                                     - obj:
+                                        scrollable: false
                                         width: 68
                                         height: 84
                                         bg_opa: TRANSP
@@ -1426,6 +1445,7 @@ lvgl:
 
                         ### Oben rechts: Uhrzeit, Datum, Standort - darunter der Morgen-Ausblick
                         - obj:
+                            scrollable: false
                             width: 340
                             height: 300
                             bg_opa: TRANSP
@@ -1450,6 +1470,7 @@ lvgl:
                                   text: "—"
                                   text_font: fridolin_14
                               - obj:
+                                  scrollable: false
                                   width: 300
                                   height: 60
                                   bg_opa: TRANSP
@@ -1467,6 +1488,7 @@ lvgl:
                                         width: 24
                                         height: 24
                                     - obj:
+                                        scrollable: false
                                         width: 240
                                         height: 60
                                         bg_opa: TRANSP
@@ -1491,6 +1513,7 @@ lvgl:
                   ### Kleiner Button, öffnet die Einstellungsseite als Overlay
                   ### (kein Bestandteil der Wisch-Reihenfolge)
                   - button:
+                      scrollable: false
                       id: btn_einstellungen_oeffnen
                       align: TOP_RIGHT
                       x: -12
@@ -1522,6 +1545,7 @@ lvgl:
                       text: "Keine Lichter eingerichtet"
                       align: CENTER
                   - obj:
+                      scrollable: false
                       align: CENTER
                       width: 720
                       height: 200
@@ -1534,6 +1558,7 @@ lvgl:
                         flex_align_cross: CENTER
                       widgets:
                         - button:
+                            scrollable: false
                             id: btn_licht_1
                             hidden: true
                             checkable: true
@@ -1549,6 +1574,7 @@ lvgl:
                                   data:
                                     entity_id: light.fridolin_licht_1
                         - button:
+                            scrollable: false
                             id: btn_licht_2
                             hidden: true
                             checkable: true
@@ -1564,6 +1590,7 @@ lvgl:
                                   data:
                                     entity_id: light.fridolin_licht_2
                         - button:
+                            scrollable: false
                             id: btn_licht_3
                             hidden: true
                             checkable: true
@@ -1579,6 +1606,7 @@ lvgl:
                                   data:
                                     entity_id: light.fridolin_licht_3
                         - button:
+                            scrollable: false
                             id: btn_licht_4
                             hidden: true
                             checkable: true
@@ -1677,6 +1705,7 @@ lvgl:
                       align: CENTER
                       y: 25
                   - button:
+                      scrollable: false
                       id: btn_klima_runter
                       hidden: true
                       align: CENTER
@@ -1696,6 +1725,7 @@ lvgl:
                               entity_id: climate.fridolin_heizung
                               temperature: !lambda return id(ha_zieltemperatur).state - 0.5;
                   - button:
+                      scrollable: false
                       id: btn_klima_hoch
                       hidden: true
                       align: CENTER
@@ -1723,6 +1753,7 @@ lvgl:
                       x: -290
                       y: -80
                   - button:
+                      scrollable: false
                       id: btn_klima_aus
                       hidden: true
                       checkable: true
@@ -1744,6 +1775,7 @@ lvgl:
                               entity_id: climate.fridolin_heizung
                               hvac_mode: "off"
                   - button:
+                      scrollable: false
                       id: btn_klima_heizen
                       hidden: true
                       checkable: true
@@ -1765,6 +1797,7 @@ lvgl:
                               entity_id: climate.fridolin_heizung
                               hvac_mode: "heat"
                   - button:
+                      scrollable: false
                       id: btn_klima_kuehlen
                       hidden: true
                       checkable: true
@@ -1794,6 +1827,7 @@ lvgl:
                       x: 290
                       y: -80
                   - button:
+                      scrollable: false
                       id: btn_klima_eco
                       hidden: true
                       checkable: true
@@ -1815,6 +1849,7 @@ lvgl:
                               entity_id: climate.fridolin_heizung
                               preset_mode: "eco"
                   - button:
+                      scrollable: false
                       id: btn_klima_normal
                       hidden: true
                       checkable: true
@@ -1837,6 +1872,7 @@ lvgl:
                               entity_id: climate.fridolin_heizung
                               preset_mode: "normal"
                   - button:
+                      scrollable: false
                       id: btn_klima_max
                       hidden: true
                       checkable: true
@@ -1883,6 +1919,7 @@ lvgl:
                         ### Ovale Blase (wie bei einer echten Wasserwaage), liegend -
                         ### bewegt sich waagerecht in der Vorne/Hinten-Röhre
                         - obj:
+                            scrollable: false
                             id: bubble_vh
                             align: TOP_LEFT
                             x: 140
@@ -1898,6 +1935,7 @@ lvgl:
                         ### Ovale Blase, stehend - bewegt sich senkrecht in der
                         ### Links/Rechts-Röhre
                         - obj:
+                            scrollable: false
                             id: bubble_lr
                             align: TOP_LEFT
                             x: 286
@@ -1912,6 +1950,7 @@ lvgl:
                             border_width: 1
 
                   - obj:
+                      scrollable: false
                       align: TOP_MID
                       y: 364
                       width: 500
@@ -1936,6 +1975,7 @@ lvgl:
                             text_font: fridolin_20
 
                   - button:
+                      scrollable: false
                       align: TOP_MID
                       y: 408
                       width: 200
@@ -1994,6 +2034,7 @@ lvgl:
                       align: CENTER
                       y: 25
                   - button:
+                      scrollable: false
                       align: CENTER
                       x: -70
                       y: 140
@@ -2009,6 +2050,7 @@ lvgl:
                             id: kb_ziel
                             value: !lambda 'return std::max(-20.0f, std::min(20.0f, (id(kb_ziel).has_state() ? id(kb_ziel).state : 5.0f) - 1.0f));'
                   - button:
+                      scrollable: false
                       align: CENTER
                       x: 70
                       y: 140
@@ -2030,6 +2072,7 @@ lvgl:
                       x: -290
                       y: -80
                   - button:
+                      scrollable: false
                       id: btn_kb_max
                       checkable: true
                       align: CENTER
@@ -2048,6 +2091,7 @@ lvgl:
                             id: kb_modus_sel
                             option: "MAX"
                   - button:
+                      scrollable: false
                       id: btn_kb_eco
                       checkable: true
                       align: CENTER
@@ -2072,6 +2116,7 @@ lvgl:
                       x: 290
                       y: -80
                   - button:
+                      scrollable: false
                       id: btn_kb_bl
                       checkable: true
                       align: CENTER
@@ -2090,6 +2135,7 @@ lvgl:
                             id: kb_batt_sel
                             option: "L"
                   - button:
+                      scrollable: false
                       id: btn_kb_bm
                       checkable: true
                       align: CENTER
@@ -2108,6 +2154,7 @@ lvgl:
                             id: kb_batt_sel
                             option: "M"
                   - button:
+                      scrollable: false
                       id: btn_kb_bh
                       checkable: true
                       align: CENTER
@@ -2126,6 +2173,7 @@ lvgl:
                             id: kb_batt_sel
                             option: "H"
                   - button:
+                      scrollable: false
                       id: btn_kb_power
                       checkable: true
                       align: BOTTOM_MID
@@ -2145,6 +2193,7 @@ lvgl:
   top_layer:
     widgets:
       - obj:
+          scrollable: false
           id: overlay_einstellungen
           hidden: true
           width: 100%
@@ -2167,6 +2216,7 @@ lvgl:
                 y: 66
 
             - obj:
+                scrollable: false
                 align: TOP_MID
                 y: 96
                 width: 340
@@ -2176,6 +2226,7 @@ lvgl:
                 layout: { type: FLEX, flex_flow: ROW, flex_align_main: SPACE_EVENLY, flex_align_cross: CENTER }
                 widgets:
                   - button:
+                      scrollable: false
                       id: btn_fahrzeug_wohnwagen
                       checkable: true
                       width: 155
@@ -2188,6 +2239,7 @@ lvgl:
                         - lambda: 'id(g_fahrzeugtyp_wohnmobil) = false;'
                         - script.execute: sync_fahrzeugtyp
                   - button:
+                      scrollable: false
                       id: btn_fahrzeug_wohnmobil
                       checkable: true
                       width: 155
@@ -2208,6 +2260,7 @@ lvgl:
                 y: -50
 
             - button:
+                scrollable: false
                 id: btn_standort_uebernehmen
                 align: CENTER
                 y: 0
@@ -2234,6 +2287,7 @@ lvgl:
                 y: 60
 
             - button:
+                scrollable: false
                 align: BOTTOM_MID
                 y: -16
                 width: 160
