@@ -119,10 +119,14 @@ external_components:
       url: https://github.com/floh2111/esphome-tuya-ble-fridolin
       ref: 76f0e49d25ef46f6940ec9656df3f1321c5fcb18
 
+### window nahe am interval belegt fast staendig den einen gemeinsamen
+### 2,4GHz-Funk von WiFi UND Bluetooth - siehe wohnwagen-display.yaml fuer
+### die ausfuehrliche Begruendung (am echten Display-Board gefunden,
+### gleiche Konfiguration hier, also vorsorglich mit demselben Fix).
 esp32_ble_tracker:
   scan_parameters:
     interval: 320ms
-    window: 300ms
+    window: 30ms
 
 tuya_ble_tracker:
 

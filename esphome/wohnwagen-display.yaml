@@ -156,6 +156,20 @@ wifi:
   ssid: !secret fridolin_wifi_ssid
   password: !secret fridolin_wifi_password
   power_save_mode: none
+  ### Feste IP statt DHCP+mDNS-Aufloesung bei jedem Verbindungsaufbau -
+  ### schneller/zuverlaessiger, SOLANGE der Router diese IP dem Geraet
+  ### stabil zuteilt (idealerweise per DHCP-Reservierung auf die MAC-
+  ### Adresse im Router fixieren, sonst kann sich die IP trotzdem mal
+  ### aendern und use_address zeigt dann ins Leere).
+  use_address: 192.168.10.34
+
+### Eigene HA-Entity, die anzeigt, ob das Display gerade online/per API
+### verbunden ist (unabhaengig vom Verbindungs-Hinweis auf dem Display
+### selbst - dieser hier ist von HA-Seite aus sichtbar, z.B. fuer ein
+### Dashboard oder eine Benachrichtigung "Fridolin Display ist offline").
+binary_sensor:
+  - platform: status
+    name: "Geräte Status"
 
 time:
   - platform: homeassistant
@@ -233,10 +247,19 @@ external_components:
       url: https://github.com/floh2111/esphome-tuya-ble-fridolin
       ref: 76f0e49d25ef46f6940ec9656df3f1321c5fcb18
 
+### window nahe am interval (hier vorher 300ms von 320ms, ~94% Duty-Cycle)
+### belegt fast staendig den einen gemeinsamen 2,4GHz-Funk von WiFi UND
+### Bluetooth auf dem ESP32-S3 - WLAN kommt dadurch nie ueber "Starting
+### scan" hinaus (gefunden beim ersten Hardware-Test mit WLAN+Kuehlbox
+### zusammen, 30.09.2026: "WiFi: Connected: NO" im Log, nie eine IP
+### bekommen). interval bewusst gleich gelassen (Kuehlbox-Scan bleibt
+### gleich oft dran), nur window stark verkuerzt - sollte fuer Tuya-BLE-
+### Advertisements (deutlich kuerzeres Intervall als 320ms) weiterhin
+### reichen, gibt WLAN aber ~90% mehr Funkzeit.
 esp32_ble_tracker:
   scan_parameters:
     interval: 320ms
-    window: 300ms
+    window: 30ms
 
 tuya_ble_tracker:
 
@@ -487,97 +510,97 @@ image:
   - platform: file
     id: img_w_sunny_s
     file: images/weather/sunny.svg
-    resize: 28x28
+    resize: 34x34
     type: RGB565
     transparency: alpha_channel
   - platform: file
     id: img_w_clear_night_s
     file: images/weather/clear-night.svg
-    resize: 28x28
+    resize: 34x34
     type: RGB565
     transparency: alpha_channel
   - platform: file
     id: img_w_partlycloudy_s
     file: images/weather/partlycloudy.svg
-    resize: 28x28
+    resize: 34x34
     type: RGB565
     transparency: alpha_channel
   - platform: file
     id: img_w_partly_cloudy_night_s
     file: images/weather/partly-cloudy-night.svg
-    resize: 28x28
+    resize: 34x34
     type: RGB565
     transparency: alpha_channel
   - platform: file
     id: img_w_cloudy_s
     file: images/weather/cloudy.svg
-    resize: 28x28
+    resize: 34x34
     type: RGB565
     transparency: alpha_channel
   - platform: file
     id: img_w_rainy_s
     file: images/weather/rainy.svg
-    resize: 28x28
+    resize: 34x34
     type: RGB565
     transparency: alpha_channel
   - platform: file
     id: img_w_pouring_s
     file: images/weather/pouring.svg
-    resize: 28x28
+    resize: 34x34
     type: RGB565
     transparency: alpha_channel
   - platform: file
     id: img_w_snowy_s
     file: images/weather/snowy.svg
-    resize: 28x28
+    resize: 34x34
     type: RGB565
     transparency: alpha_channel
   - platform: file
     id: img_w_snowy_rainy_s
     file: images/weather/snowy-rainy.svg
-    resize: 28x28
+    resize: 34x34
     type: RGB565
     transparency: alpha_channel
   - platform: file
     id: img_w_lightning_s
     file: images/weather/lightning.svg
-    resize: 28x28
+    resize: 34x34
     type: RGB565
     transparency: alpha_channel
   - platform: file
     id: img_w_lightning_rainy_s
     file: images/weather/lightning-rainy.svg
-    resize: 28x28
+    resize: 34x34
     type: RGB565
     transparency: alpha_channel
   - platform: file
     id: img_w_fog_s
     file: images/weather/fog.svg
-    resize: 28x28
+    resize: 34x34
     type: RGB565
     transparency: alpha_channel
   - platform: file
     id: img_w_hail_s
     file: images/weather/hail.svg
-    resize: 28x28
+    resize: 34x34
     type: RGB565
     transparency: alpha_channel
   - platform: file
     id: img_w_windy_s
     file: images/weather/windy.svg
-    resize: 28x28
+    resize: 34x34
     type: RGB565
     transparency: alpha_channel
   - platform: file
     id: img_w_windy_variant_s
     file: images/weather/windy-variant.svg
-    resize: 28x28
+    resize: 34x34
     type: RGB565
     transparency: alpha_channel
   - platform: file
     id: img_w_exceptional_s
     file: images/weather/exceptional.svg
-    resize: 28x28
+    resize: 34x34
     type: RGB565
     transparency: alpha_channel
 
@@ -1320,14 +1343,20 @@ lvgl:
                             text: "Keine Verbindung"
                             text_font: fridolin_14
 
-                  ### Vier Felder: oben links Wetter + Stundenvorhersage, oben rechts
-                  ### Uhrzeit/Datum/Standort + Morgen-Ausblick. Unten bleibt erstmal frei.
+                  ### Vier Felder -> jetzt zwei Bloecke: links Wetter + Stundenvorhersage
+                  ### + Morgen-Ausblick (alle drei untereinander), rechts nur noch
+                  ### Uhrzeit/Datum/Standort. Beide Bloecke sowie die Icons darin auf
+                  ### Florians Wunsch (echte Hardware, 30.09.2026) groesser als vorher -
+                  ### der Morgen-Block ist dafuer vom rechten in den linken Block
+                  ### gewandert (lag dort vorher zu eng, dadurch wirkte das Icon nicht
+                  ### wie beabsichtigt NEBEN dem Text). "Unten bewusst frei" bleibt
+                  ### trotzdem noch etwas Platz.
                   - obj:
                       scrollable: false
                       align: TOP_MID
                       y: 42
-                      width: 720
-                      height: 300
+                      width: 760
+                      height: 335
                       bg_opa: TRANSP
                       border_opa: TRANSP
                       layout:
@@ -1336,11 +1365,11 @@ lvgl:
                         flex_align_main: SPACE_BETWEEN
                         flex_align_cross: START
                       widgets:
-                        ### Oben links: aktuelles Wetter + die vier Stunden-Slots
+                        ### Links: aktuelles Wetter, Stundenvorhersage, Morgen-Ausblick
                         - obj:
                             scrollable: false
-                            width: 340
-                            height: 300
+                            width: 360
+                            height: 335
                             bg_opa: TRANSP
                             border_opa: TRANSP
                             layout:
@@ -1352,8 +1381,8 @@ lvgl:
                             widgets:
                               - obj:
                                   scrollable: false
-                                  width: 300
-                                  height: 84
+                                  width: 330
+                                  height: 98
                                   bg_opa: TRANSP
                                   border_opa: TRANSP
                                   layout:
@@ -1366,12 +1395,12 @@ lvgl:
                                     - image:
                                         id: img_wetter_gross
                                         src: img_w_cloudy
-                                        width: 56
-                                        height: 56
+                                        width: 66
+                                        height: 66
                                     - obj:
                                         scrollable: false
-                                        width: 220
-                                        height: 84
+                                        width: 244
+                                        height: 98
                                         bg_opa: TRANSP
                                         border_opa: TRANSP
                                         layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: START }
@@ -1387,8 +1416,8 @@ lvgl:
                               ### Vorschau für die nächsten Stunden, vier Slots nebeneinander
                               - obj:
                                   scrollable: false
-                                  width: 300
-                                  height: 84
+                                  width: 330
+                                  height: 98
                                   bg_opa: TRANSP
                                   border_opa: TRANSP
                                   layout:
@@ -1396,57 +1425,92 @@ lvgl:
                                     flex_flow: ROW
                                     flex_align_main: CENTER
                                     flex_align_cross: CENTER
-                                    pad_column: 6
+                                    pad_column: 7
                                   widgets:
                                     - obj:
                                         scrollable: false
-                                        width: 68
-                                        height: 84
+                                        width: 78
+                                        height: 98
                                         bg_opa: TRANSP
                                         border_opa: TRANSP
                                         layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER }
                                         widgets:
                                           - label: { id: lbl_h0_zeit, text: "--:--", text_font: fridolin_14 }
-                                          - image: { id: img_h0_icon, src: img_w_cloudy_s, width: 24, height: 24 }
+                                          - image: { id: img_h0_icon, src: img_w_cloudy_s, width: 34, height: 34 }
                                           - label: { id: lbl_h0_temp, text: "--°", text_font: fridolin_20 }
                                     - obj:
                                         scrollable: false
-                                        width: 68
-                                        height: 84
+                                        width: 78
+                                        height: 98
                                         bg_opa: TRANSP
                                         border_opa: TRANSP
                                         layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER }
                                         widgets:
                                           - label: { id: lbl_h1_zeit, text: "--:--", text_font: fridolin_14 }
-                                          - image: { id: img_h1_icon, src: img_w_cloudy_s, width: 24, height: 24 }
+                                          - image: { id: img_h1_icon, src: img_w_cloudy_s, width: 34, height: 34 }
                                           - label: { id: lbl_h1_temp, text: "--°", text_font: fridolin_20 }
                                     - obj:
                                         scrollable: false
-                                        width: 68
-                                        height: 84
+                                        width: 78
+                                        height: 98
                                         bg_opa: TRANSP
                                         border_opa: TRANSP
                                         layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER }
                                         widgets:
                                           - label: { id: lbl_h2_zeit, text: "--:--", text_font: fridolin_14 }
-                                          - image: { id: img_h2_icon, src: img_w_cloudy_s, width: 24, height: 24 }
+                                          - image: { id: img_h2_icon, src: img_w_cloudy_s, width: 34, height: 34 }
                                           - label: { id: lbl_h2_temp, text: "--°", text_font: fridolin_20 }
                                     - obj:
                                         scrollable: false
-                                        width: 68
-                                        height: 84
+                                        width: 78
+                                        height: 98
                                         bg_opa: TRANSP
                                         border_opa: TRANSP
                                         layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER }
                                         widgets:
                                           - label: { id: lbl_h3_zeit, text: "--:--", text_font: fridolin_14 }
-                                          - image: { id: img_h3_icon, src: img_w_cloudy_s, width: 24, height: 24 }
+                                          - image: { id: img_h3_icon, src: img_w_cloudy_s, width: 34, height: 34 }
                                           - label: { id: lbl_h3_temp, text: "--°", text_font: fridolin_20 }
+                              ### Morgen-Ausblick - jetzt hier im linken Block statt oben rechts
+                              - obj:
+                                  scrollable: false
+                                  width: 330
+                                  height: 76
+                                  bg_opa: TRANSP
+                                  border_opa: TRANSP
+                                  layout:
+                                    type: FLEX
+                                    flex_flow: ROW
+                                    flex_align_main: CENTER
+                                    flex_align_cross: CENTER
+                                    pad_column: 10
+                                  widgets:
+                                    - image:
+                                        id: img_morgen_icon
+                                        src: img_w_cloudy_s
+                                        width: 34
+                                        height: 34
+                                    - obj:
+                                        scrollable: false
+                                        width: 270
+                                        height: 76
+                                        bg_opa: TRANSP
+                                        border_opa: TRANSP
+                                        layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: START }
+                                        widgets:
+                                          - label:
+                                              id: lbl_morgen_range
+                                              text: "Morgen: --° – --°"
+                                              text_font: fridolin_20
+                                          - label:
+                                              id: lbl_morgen_zustand
+                                              text: "—"
+                                              text_font: fridolin_14
 
-                        ### Oben rechts: Uhrzeit, Datum, Standort - darunter der Morgen-Ausblick
+                        ### Rechts: nur noch Uhrzeit, Datum, Standort
                         - obj:
                             scrollable: false
-                            width: 340
+                            width: 360
                             height: 300
                             bg_opa: TRANSP
                             border_opa: TRANSP
@@ -1469,40 +1533,6 @@ lvgl:
                                   id: lbl_wetter_ort
                                   text: "—"
                                   text_font: fridolin_14
-                              - obj:
-                                  scrollable: false
-                                  width: 300
-                                  height: 60
-                                  bg_opa: TRANSP
-                                  border_opa: TRANSP
-                                  layout:
-                                    type: FLEX
-                                    flex_flow: ROW
-                                    flex_align_main: CENTER
-                                    flex_align_cross: CENTER
-                                    pad_column: 10
-                                  widgets:
-                                    - image:
-                                        id: img_morgen_icon
-                                        src: img_w_cloudy_s
-                                        width: 24
-                                        height: 24
-                                    - obj:
-                                        scrollable: false
-                                        width: 240
-                                        height: 60
-                                        bg_opa: TRANSP
-                                        border_opa: TRANSP
-                                        layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: START }
-                                        widgets:
-                                          - label:
-                                              id: lbl_morgen_range
-                                              text: "Morgen: --° – --°"
-                                              text_font: fridolin_20
-                                          - label:
-                                              id: lbl_morgen_zustand
-                                              text: "—"
-                                              text_font: fridolin_14
 
                   - label:
                       text: "Nach links wischen: Licht"
@@ -1949,12 +1979,17 @@ lvgl:
                             border_color: 0xB9AE63
                             border_width: 1
 
+                  ### Etwas mehr Hoehe + Abstand zum "Nullen"-Knopf darunter als
+                  ### urspruenglich, da die echte Google-Font-Montserrat (seit dem
+                  ### font-Fix) etwas mehr Platz braucht als LVGLs eingebauter
+                  ### Bitmap-Font, mit dem dieser Wert zuerst abgeschaetzt wurde -
+                  ### auf echter Hardware ueberlappten sich Werte und Knopf sonst.
                   - obj:
                       scrollable: false
                       align: TOP_MID
-                      y: 364
+                      y: 360
                       width: 500
-                      height: 40
+                      height: 48
                       bg_opa: TRANSP
                       border_opa: TRANSP
                       layout: { type: FLEX, flex_flow: ROW, flex_align_main: SPACE_EVENLY, flex_align_cross: CENTER }
@@ -1977,7 +2012,7 @@ lvgl:
                   - button:
                       scrollable: false
                       align: TOP_MID
-                      y: 408
+                      y: 416
                       width: 200
                       height: 50
                       widgets:
@@ -2215,22 +2250,34 @@ lvgl:
                 align: TOP_MID
                 y: 66
 
+            ### width:360 (statt vorher 340) + schmalere Knoepfe (150 statt
+            ### 155) - mehr Luft fuer den Zwischenraum, da sich die Knoepfe auf
+            ### echter Hardware seit dem font-Fix leicht ueberlappten (die echte
+            ### Google-Font-Montserrat braucht etwas mehr Platz als der Wert
+            ### urspruenglich mit LVGLs Bitmap-Font abgeschaetzt wurde).
             - obj:
                 scrollable: false
                 align: TOP_MID
                 y: 96
-                width: 340
+                width: 360
                 height: 50
                 bg_opa: TRANSP
                 border_opa: TRANSP
                 layout: { type: FLEX, flex_flow: ROW, flex_align_main: SPACE_EVENLY, flex_align_cross: CENTER }
                 widgets:
+                  ### Dezentere "checked"-Farbe als der globale Theme-Default (grelles
+                  ### Warn-Rot 0xF53B3B, sinnvoll fuer z.B. "Heizung an", hier aber nur
+                  ### eine stille Einstellungs-Auswahl) - dezenter, gedeckter Blauton
+                  ### in derselben Familie statt Farbwechsel.
                   - button:
                       scrollable: false
                       id: btn_fahrzeug_wohnwagen
                       checkable: true
-                      width: 155
+                      width: 150
                       height: 50
+                      checked:
+                        bg_color: 0x3D5A80
+                        bg_opa: COVER
                       widgets:
                         - label:
                             text: "Wohnwagen"
@@ -2242,8 +2289,11 @@ lvgl:
                       scrollable: false
                       id: btn_fahrzeug_wohnmobil
                       checkable: true
-                      width: 155
+                      width: 150
                       height: 50
+                      checked:
+                        bg_color: 0x3D5A80
+                        bg_opa: COVER
                       widgets:
                         - label:
                             text: "Wohnmobil"
@@ -2252,18 +2302,24 @@ lvgl:
                         - lambda: 'id(g_fahrzeugtyp_wohnmobil) = true;'
                         - script.execute: sync_fahrzeugtyp
 
+            ### y-Werte der drei CENTER-ausgerichteten Elemente etwas weiter
+            ### auseinandergezogen als urspruenglich (-50/0/60) - auf echter
+            ### Hardware ueberlappten sich die zweizeilige Einleitung und der
+            ### Knopf, da die echte Google-Font-Montserrat mehr Zeilenhoehe
+            ### braucht als LVGLs eingebauter Bitmap-Font, mit dem die Werte
+            ### zuerst abgeschaetzt wurden.
             - label:
                 text: "Fridolins aktuellen Standort für die\nWetteranzeige übernehmen:"
                 text_font: fridolin_14
                 text_align: CENTER
                 align: CENTER
-                y: -50
+                y: -90
 
             - button:
                 scrollable: false
                 id: btn_standort_uebernehmen
                 align: CENTER
-                y: 0
+                y: -10
                 width: 320
                 height: 70
                 widgets:
@@ -2284,7 +2340,7 @@ lvgl:
                 text_font: fridolin_14
                 text_align: CENTER
                 align: CENTER
-                y: 60
+                y: 55
 
             - button:
                 scrollable: false
