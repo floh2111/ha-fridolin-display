@@ -329,18 +329,18 @@ def render_sensors_tile(page: dict, column: int, page_index: int) -> str:
             f'                            widgets:\n'
             f'                              - label:\n'
             f'                                  text: "{_yaml_dq(ent.get("label") or ent.get("entity_id", ""))}"\n'
-            f'                                  text_font: montserrat_20\n'
+            f'                                  text_font: fridolin_20\n'
             f'                              - label:\n'
             f'                                  id: lbl_sensorseite_{page_index}_{i}\n'
             f'                                  text: "--"\n'
-            f'                                  text_font: montserrat_20\n'
+            f'                                  text_font: fridolin_20\n'
             for i, ent in enumerate(entities)
         )
     else:
         rows = (
             '                        - label:\n'
             '                            text: "Keine Sensoren eingerichtet"\n'
-            '                            text_font: montserrat_14\n'
+            '                            text_font: fridolin_14\n'
         )
 
     return (
@@ -352,7 +352,7 @@ def render_sensors_tile(page: dict, column: int, page_index: int) -> str:
         f'                widgets:\n'
         f'                  - label:\n'
         f'                      text: "{title}"\n'
-        f'                      text_font: montserrat_28\n'
+        f'                      text_font: fridolin_28\n'
         f'                      align: TOP_MID\n'
         f'                      y: 16\n'
         f'                  - obj:\n'

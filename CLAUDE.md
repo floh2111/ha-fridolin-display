@@ -497,24 +497,38 @@ der Übersichtsseite erreichbar ist (LVGL `top_layer:`):
 - `manifest.json`'s `documentation`-Feld darf bei Custom-Integrationen
   **nicht** auf `home-assistant.io` zeigen (hassfest lehnt das ab) –
   muss auf die eigene Repo-URL zeigen.
-- **LVGL-Fonts unter ESPHome**: die "magischen" Kurznamen wie
-  `montserrat_14/20/28/40` sind nur ein Fallback - referenziert man sie in
-  `text_font:`, OHNE sie selbst zu deklarieren, generiert ESPHome
-  automatisch LVGLs eingebaute Bitmap-Fonts (reines ASCII, keine Umlaute).
-  Deklariert man dagegen selbst einen `font:`-Eintrag mit exakt dieser ID
-  (z.B. `file: "gfonts://Montserrat", id: montserrat_14, size: 14`), nutzt
-  LVGL automatisch diesen statt den eingebauten Shortcut zu erzeugen -
-  gleiches Aussehen, aber mit frei waehlbarem `glyphs:`-Zeichensatz. Ein
-  `glyphs:`-Eintrag ERSETZT die Default-ASCII-Liste komplett statt sie zu
-  ergaenzen, deshalb muss man dort den vollen gewuenschten Zeichensatz
-  (ASCII + Umlaute + Sonderzeichen) explizit auflisten, am einfachsten als
-  YAML-Anchor (`&name`) einmal definiert und in den anderen Font-Groessen
-  per `*name` wiederverwendet. Emoji-artige Symbole wie "⚙" sind in
-  normalen Text-Schriftarten (auch Google Fonts wie Montserrat) NICHT
-  enthalten und fuehren zu einem klaren Compile-Fehler ("missing 1 glyph")
-  statt eines stillen Fallbacks - fuer sowas lieber ein eigenes kleines
-  SVG-Icon bauen (siehe `images/zahnrad.svg`) statt nach einer Schriftart
-  mit dem passenden Glyph zu suchen.
+- **LVGL-Fonts unter ESPHome - "magische" Kurznamen sind FEST RESERVIERT,
+  eigene Deklaration mit derselben ID wird NICHT verwendet** (per
+  Hardware-Test am 30.09.2026 widerlegt, was hier vorher stand): Namen wie
+  `montserrat_8/10/.../48` (alle geraden Groessen), `dejavu_16_persian_hebrew`,
+  `simsun_16_cjk`, `unscii_8`, `unscii_16` stehen in ESPHomes LVGL-Komponente
+  in einer fest verdrahteten Liste (`components/lvgl/defines.py: LV_FONTS`).
+  Referenziert man einen dieser Namen in `text_font:`/`default_font:`,
+  prueft `components/lvgl/lv_validation.py: is_lv_font()` NUR den String
+  gegen diese Liste und erzeugt dann IMMER LVGLs eingebauten ASCII-only-
+  Bitmap-Font - **komplett unabhaengig davon**, ob ein eigener `font:`-
+  Eintrag mit exakt dieser ID existiert. Ein eigener Font mit einem
+  kollidierenden Namen wird zwar fehlerfrei mitkompiliert (frisst Flash),
+  aber nie von einem Widget tatsaechlich benutzt - `esphome config`/
+  `compile` melden das nicht, es zeigt sich nur auf echter Hardware
+  (Kaestchen statt Umlaute trotz vermeintlich korrekt deklariertem Font
+  mit Umlaut-Glyphen). **Deshalb: eigene Font-IDs, die garantiert NICHT in
+  `LV_FONTS` stehen** (Projekt nutzt jetzt `fridolin_14/20/28/40` statt
+  `montserrat_14/20/28/40`) - dann greift automatisch der `cv.use_id(Font)`-
+  Zweig in `is_lv_font()`s Aufrufer und der eigene Font wird wirklich
+  verwendet. Nebeneffekt: da LVGL dann auch seine eigenen Bitmap-Fonts
+  nicht mehr mitgeneriert, wird die Firmware dabei sogar kleiner (34,0 %
+  Flash statt 35,8 % im konkreten Fall). Ein `glyphs:`-Eintrag ERSETZT die
+  Default-ASCII-Liste komplett statt sie zu ergaenzen, deshalb muss man
+  dort den vollen gewuenschten Zeichensatz (ASCII + Umlaute + Sonderzeichen)
+  explizit auflisten, am einfachsten als YAML-Anchor (`&name`) einmal
+  definiert und in den anderen Font-Groessen per `*name` wiederverwendet.
+  Emoji-artige Symbole wie "⚙" sind in normalen Text-Schriftarten (auch
+  Google Fonts wie Montserrat) NICHT enthalten und fuehren zu einem
+  klaren Compile-Fehler ("missing 1 glyph") statt eines stillen Fallbacks
+  - fuer sowas lieber ein eigenes kleines SVG-Icon bauen (siehe
+  `images/zahnrad.svg`) statt nach einer Schriftart mit dem passenden
+  Glyph zu suchen.
 - **Der YAML-Generator hat eigene, hartkodierte Text-Anker** (z.B.
   `name: "Kühlbox Batterie"` in `REMOVE_ITEM_ANCHORS`/Aequivalenten in
   `generate_display_yaml.py`), die exakt zum Text in

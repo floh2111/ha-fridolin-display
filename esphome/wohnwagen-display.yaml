@@ -1184,34 +1184,51 @@ script:
 ### frühere Ersatzschreibweise "Kuehlbox" (statt "Kühlbox") ist damit
 ### ebenfalls entfallen. Gleiche Google-Font-Familie (Montserrat) wie vorher,
 ### nur ueber ESPHomes eigenen Font-Renderer geladen statt LVGLs Bitmap-
-### Shortcut, das Erscheinungsbild bleibt dadurch identisch. Gleiche IDs
-### wie vorher (montserrat_14 usw.) - sobald ein Font mit passender ID
-### selbst deklariert ist, nutzt LVGL automatisch diese Deklaration statt
-### den eingebauten Shortcut zu erzeugen. Zeichensatz: ASCII + Umlaute/ß/
-### Grad/Plusminus/Gedankenstriche + Euro-Zeichen (fuer kuenftige sensors-
-### Seiten mit beliebigen, per Entity-Picker gewaehlten HA-Entity-Namen,
-### siehe config_flow.py). Das Zahnrad-Symbol fuer den Einstellungen-
-### Button ist bewusst KEIN Font-Glyph (normale Text-Schriftarten wie
-### Montserrat enthalten kein "⚙") - siehe stattdessen img_zahnrad weiter
-### unten (eigenes SVG-Icon).
+### Shortcut.
+###
+### WICHTIG, per Hardware-Test (30.09.2026) korrigiert: eigene IDs
+### (fridolin_14/20/28/40) statt der alten montserrat_14/20/28/40 - ein
+### eigener font:-Eintrag mit einer ID wie "montserrat_20" wird NICHT
+### automatisch von LVGL verwendet, wie urspruenglich angenommen. ESPHomes
+### LVGL-Komponente prueft bei jedem text_font:/default_font: zuerst, ob
+### der Name in einer FEST VERDRAHTETEN Liste bekannter LVGL-Bitmap-Font-
+### Namen steht (components/lvgl/defines.py: LV_FONTS = ["montserrat_8",
+### "montserrat_10", ..., "montserrat_48", "dejavu_16_persian_hebrew",
+### "simsun_16_cjk", "unscii_8", "unscii_16"] - alle geraden Groessen 8-48
+### sind also reserviert), und wenn ja, wird IMMER der eingebaute
+### ASCII-only-Bitmap-Font verwendet (components/lvgl/lv_validation.py,
+### is_lv_font()) - komplett unabhaengig davon, ob ein eigener font:-
+### Eintrag mit exakt dieser ID existiert. Der eigene Font wurde zwar
+### fehlerfrei mit allen Umlaut-Glyphen kompiliert (sonst haette der
+### Compile-Schritt selbst schon gemeckert, siehe "Emoji-artige Symbole"-
+### Eintrag weiter unten), aber NIE tatsaechlich von einem Widget benutzt -
+### auf echter Hardware zeigten sich deshalb weiterhin Kaestchen statt
+### Umlaute, obwohl esphome config/compile beide grün waren. Mit eigenen,
+### garantiert NICHT in LV_FONTS stehenden IDs (fridolin_*) umgangen.
+### Zeichensatz: ASCII + Umlaute/ß/Grad/Plusminus/Gedankenstriche + Euro-
+### Zeichen (fuer kuenftige sensors-Seiten mit beliebigen, per Entity-
+### Picker gewaehlten HA-Entity-Namen, siehe config_flow.py). Das
+### Zahnrad-Symbol fuer den Einstellungen-Button ist bewusst KEIN
+### Font-Glyph (normale Text-Schriftarten wie Montserrat enthalten kein
+### "⚙") - siehe stattdessen img_zahnrad weiter unten (eigenes SVG-Icon).
 ### ------------------------------------------------------------------
 font:
   - file: "gfonts://Montserrat"
-    id: montserrat_14
+    id: fridolin_14
     size: 14
     glyphs: &deutsche_zeichen
       - ' !"#$%&''()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~'
       - '°±ÄÖÜßäöü–—€'
   - file: "gfonts://Montserrat"
-    id: montserrat_20
+    id: fridolin_20
     size: 20
     glyphs: *deutsche_zeichen
   - file: "gfonts://Montserrat"
-    id: montserrat_28
+    id: fridolin_28
     size: 28
     glyphs: *deutsche_zeichen
   - file: "gfonts://Montserrat"
-    id: montserrat_40
+    id: fridolin_40
     size: 40
     glyphs: *deutsche_zeichen
 
@@ -1223,7 +1240,7 @@ lvgl:
   id: ui
   color_depth: 16
   buffer_size: 25%
-  default_font: montserrat_20
+  default_font: fridolin_20
 
   theme:
     button:
@@ -1254,7 +1271,7 @@ lvgl:
                 widgets:
                   - label:
                       text: "Fridolin"
-                      text_font: montserrat_20
+                      text_font: fridolin_20
                       align: TOP_MID
                       y: 10
 
@@ -1291,7 +1308,7 @@ lvgl:
                             border_opa: TRANSP
                         - label:
                             text: "Keine Verbindung"
-                            text_font: montserrat_14
+                            text_font: fridolin_14
 
                   ### Vier Felder: oben links Wetter + Stundenvorhersage, oben rechts
                   ### Uhrzeit/Datum/Standort + Morgen-Ausblick. Unten bleibt erstmal frei.
@@ -1348,11 +1365,11 @@ lvgl:
                                           - label:
                                               id: lbl_wetter_temp
                                               text: "--,- °C"
-                                              text_font: montserrat_40
+                                              text_font: fridolin_40
                                           - label:
                                               id: lbl_wetter_zustand
                                               text: "—"
-                                              text_font: montserrat_14
+                                              text_font: fridolin_14
                               ### Vorschau für die nächsten Stunden, vier Slots nebeneinander
                               - obj:
                                   width: 300
@@ -1373,9 +1390,9 @@ lvgl:
                                         border_opa: TRANSP
                                         layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER }
                                         widgets:
-                                          - label: { id: lbl_h0_zeit, text: "--:--", text_font: montserrat_14 }
+                                          - label: { id: lbl_h0_zeit, text: "--:--", text_font: fridolin_14 }
                                           - image: { id: img_h0_icon, src: img_w_cloudy_s, width: 24, height: 24 }
-                                          - label: { id: lbl_h0_temp, text: "--°", text_font: montserrat_20 }
+                                          - label: { id: lbl_h0_temp, text: "--°", text_font: fridolin_20 }
                                     - obj:
                                         width: 68
                                         height: 84
@@ -1383,9 +1400,9 @@ lvgl:
                                         border_opa: TRANSP
                                         layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER }
                                         widgets:
-                                          - label: { id: lbl_h1_zeit, text: "--:--", text_font: montserrat_14 }
+                                          - label: { id: lbl_h1_zeit, text: "--:--", text_font: fridolin_14 }
                                           - image: { id: img_h1_icon, src: img_w_cloudy_s, width: 24, height: 24 }
-                                          - label: { id: lbl_h1_temp, text: "--°", text_font: montserrat_20 }
+                                          - label: { id: lbl_h1_temp, text: "--°", text_font: fridolin_20 }
                                     - obj:
                                         width: 68
                                         height: 84
@@ -1393,9 +1410,9 @@ lvgl:
                                         border_opa: TRANSP
                                         layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER }
                                         widgets:
-                                          - label: { id: lbl_h2_zeit, text: "--:--", text_font: montserrat_14 }
+                                          - label: { id: lbl_h2_zeit, text: "--:--", text_font: fridolin_14 }
                                           - image: { id: img_h2_icon, src: img_w_cloudy_s, width: 24, height: 24 }
-                                          - label: { id: lbl_h2_temp, text: "--°", text_font: montserrat_20 }
+                                          - label: { id: lbl_h2_temp, text: "--°", text_font: fridolin_20 }
                                     - obj:
                                         width: 68
                                         height: 84
@@ -1403,9 +1420,9 @@ lvgl:
                                         border_opa: TRANSP
                                         layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER }
                                         widgets:
-                                          - label: { id: lbl_h3_zeit, text: "--:--", text_font: montserrat_14 }
+                                          - label: { id: lbl_h3_zeit, text: "--:--", text_font: fridolin_14 }
                                           - image: { id: img_h3_icon, src: img_w_cloudy_s, width: 24, height: 24 }
-                                          - label: { id: lbl_h3_temp, text: "--°", text_font: montserrat_20 }
+                                          - label: { id: lbl_h3_temp, text: "--°", text_font: fridolin_20 }
 
                         ### Oben rechts: Uhrzeit, Datum, Standort - darunter der Morgen-Ausblick
                         - obj:
@@ -1423,15 +1440,15 @@ lvgl:
                               - label:
                                   id: lbl_uhrzeit
                                   text: "--:--"
-                                  text_font: montserrat_40
+                                  text_font: fridolin_40
                               - label:
                                   id: lbl_datum
                                   text: "--, --.--."
-                                  text_font: montserrat_20
+                                  text_font: fridolin_20
                               - label:
                                   id: lbl_wetter_ort
                                   text: "—"
-                                  text_font: montserrat_14
+                                  text_font: fridolin_14
                               - obj:
                                   width: 300
                                   height: 60
@@ -1459,17 +1476,17 @@ lvgl:
                                           - label:
                                               id: lbl_morgen_range
                                               text: "Morgen: --° – --°"
-                                              text_font: montserrat_20
+                                              text_font: fridolin_20
                                           - label:
                                               id: lbl_morgen_zustand
                                               text: "—"
-                                              text_font: montserrat_14
+                                              text_font: fridolin_14
 
                   - label:
                       text: "Nach links wischen: Licht"
                       align: BOTTOM_MID
                       y: -12
-                      text_font: montserrat_14
+                      text_font: fridolin_14
 
                   ### Kleiner Button, öffnet die Einstellungsseite als Overlay
                   ### (kein Bestandteil der Wisch-Reihenfolge)
@@ -1497,7 +1514,7 @@ lvgl:
                 widgets:
                   - label:
                       text: "Licht"
-                      text_font: montserrat_28
+                      text_font: fridolin_28
                       align: TOP_MID
                       y: 16
                   - label:
@@ -1589,7 +1606,7 @@ lvgl:
                 widgets:
                   - label:
                       text: "Klimaanlage"
-                      text_font: montserrat_28
+                      text_font: fridolin_28
                       align: TOP_MID
                       y: 16
                   - label:
@@ -1650,7 +1667,7 @@ lvgl:
                       id: lbl_zieltemperatur
                       hidden: true
                       text: "21,0 °C"
-                      text_font: montserrat_40
+                      text_font: fridolin_40
                       align: CENTER
                       y: -30
                   - label:
@@ -1670,7 +1687,7 @@ lvgl:
                       widgets:
                         - label:
                             text: "-"
-                            text_font: montserrat_28
+                            text_font: fridolin_28
                             align: CENTER
                       on_click:
                         - homeassistant.action:
@@ -1689,7 +1706,7 @@ lvgl:
                       widgets:
                         - label:
                             text: "+"
-                            text_font: montserrat_28
+                            text_font: fridolin_28
                             align: CENTER
                       on_click:
                         - homeassistant.action:
@@ -1701,7 +1718,7 @@ lvgl:
                       id: lbl_klima_modus_titel
                       hidden: true
                       text: "Modus"
-                      text_font: montserrat_14
+                      text_font: fridolin_14
                       align: CENTER
                       x: -290
                       y: -80
@@ -1772,7 +1789,7 @@ lvgl:
                       id: lbl_klima_programm_titel
                       hidden: true
                       text: "Programm"
-                      text_font: montserrat_14
+                      text_font: fridolin_14
                       align: CENTER
                       x: 290
                       y: -80
@@ -1811,7 +1828,7 @@ lvgl:
                       widgets:
                         - label:
                             text: "Normal"
-                            text_font: montserrat_14
+                            text_font: fridolin_14
                             align: CENTER
                       on_click:
                         - homeassistant.action:
@@ -1849,7 +1866,7 @@ lvgl:
                 widgets:
                   - label:
                       text: "Nivellierung"
-                      text_font: montserrat_28
+                      text_font: fridolin_28
                       align: TOP_MID
                       y: 16
                   ### Schematischer Wohnwagen-Grundriss mit Kreuzlibelle: die waagerechte
@@ -1905,18 +1922,18 @@ lvgl:
                       widgets:
                         - label:
                             text: "Links/Rechts:"
-                            text_font: montserrat_14
+                            text_font: fridolin_14
                         - label:
                             id: lbl_neigung_lr
                             text: "0,0°"
-                            text_font: montserrat_20
+                            text_font: fridolin_20
                         - label:
                             text: "Vorne/Hinten:"
-                            text_font: montserrat_14
+                            text_font: fridolin_14
                         - label:
                             id: lbl_neigung_vh
                             text: "0,0°"
-                            text_font: montserrat_20
+                            text_font: fridolin_20
 
                   - button:
                       align: TOP_MID
@@ -1938,13 +1955,13 @@ lvgl:
                 widgets:
                   - label:
                       text: "Kühlbox"
-                      text_font: montserrat_28
+                      text_font: fridolin_28
                       align: TOP_MID
                       y: 16
                   - label:
                       id: lbl_kb_verbindung
                       text: "Getrennt"
-                      text_font: montserrat_14
+                      text_font: fridolin_14
                       align: TOP_LEFT
                       x: 16
                       y: 22
@@ -1968,7 +1985,7 @@ lvgl:
                   - label:
                       id: lbl_kb_ziel
                       text: "--"
-                      text_font: montserrat_40
+                      text_font: fridolin_40
                       align: CENTER
                       y: -30
                   - label:
@@ -1985,7 +2002,7 @@ lvgl:
                       widgets:
                         - label:
                             text: "-"
-                            text_font: montserrat_28
+                            text_font: fridolin_28
                             align: CENTER
                       on_click:
                         - number.set:
@@ -2000,7 +2017,7 @@ lvgl:
                       widgets:
                         - label:
                             text: "+"
-                            text_font: montserrat_28
+                            text_font: fridolin_28
                             align: CENTER
                       on_click:
                         - number.set:
@@ -2008,7 +2025,7 @@ lvgl:
                             value: !lambda 'return std::max(-20.0f, std::min(20.0f, (id(kb_ziel).has_state() ? id(kb_ziel).state : 5.0f) + 1.0f));'
                   - label:
                       text: "Modus"
-                      text_font: montserrat_14
+                      text_font: fridolin_14
                       align: CENTER
                       x: -290
                       y: -80
@@ -2050,7 +2067,7 @@ lvgl:
                             option: "ECO"
                   - label:
                       text: "Akku-Schutz"
-                      text_font: montserrat_14
+                      text_font: fridolin_14
                       align: CENTER
                       x: 290
                       y: -80
@@ -2138,13 +2155,13 @@ lvgl:
           widgets:
             - label:
                 text: "Einstellungen"
-                text_font: montserrat_28
+                text_font: fridolin_28
                 align: TOP_MID
                 y: 16
 
             - label:
                 text: "Fahrzeugtyp für die Nivellierungs-Seite:"
-                text_font: montserrat_14
+                text_font: fridolin_14
                 text_align: CENTER
                 align: TOP_MID
                 y: 66
@@ -2185,7 +2202,7 @@ lvgl:
 
             - label:
                 text: "Fridolins aktuellen Standort für die\nWetteranzeige übernehmen:"
-                text_font: montserrat_14
+                text_font: fridolin_14
                 text_align: CENTER
                 align: CENTER
                 y: -50
@@ -2211,7 +2228,7 @@ lvgl:
             - label:
                 id: lbl_standort_status
                 text: "Noch kein Standort übernommen"
-                text_font: montserrat_14
+                text_font: fridolin_14
                 text_align: CENTER
                 align: CENTER
                 y: 60
