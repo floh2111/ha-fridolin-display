@@ -17,9 +17,11 @@ esphome:
     then:
       - script.execute: sync_fahrzeugtyp
 
+### speed: 80MHz statt 120MHz - siehe Begruendung beim esp32:-Block weiter
+### unten (CONFIG_SPIRAM_TIMING_TUNING_POINT_VIA_TEMPERATURE_SENSOR).
 psram:
   mode: octal
-  speed: 120MHz
+  speed: 80MHz
 
 ### Kalibrier-Nullpunkt der Neigung nicht bei jeder Änderung ins Flash schreiben
 preferences:
@@ -77,23 +79,32 @@ esp32:
       enable_idf_experimental_features: true
     sdkconfig_options:
       CONFIG_ESPTOOLPY_FLASHSIZE_16MB: "y"
-      CONFIG_SPIRAM_MODE_OCT: "y"
-      CONFIG_SPIRAM_SPEED_120M: "y"
-      ### Verhindert einen Bootloop direkt beim Start ("The flash model has
-      ### not been verified support this feature, please contact espressif
-      ### business support", abort in psram_adjust_timing_point_via_tsens(),
-      ### components/esp_mspi/mspi_timing_tuning/port/esp32s3/
-      ### mspi_timing_by_mspi_delay.c im ESP-IDF-Quellcode). Diese ESP-IDF-
-      ### "Reliability"-Funktion (PSRAM-Timing zur Laufzeit per Temperatur-
-      ### sensor nachjustieren) wird bei Octal-PSRAM + 120MHz +
-      ### enable_idf_experimental_features automatisch scharf geschaltet,
-      ### prueft dabei aber die Flash-Hersteller-ID gegen eine Whitelist von
-      ### nur zwei Herstellern (0xC8/0x20) - auf echter Hardware mit einem
-      ### anderen Flash-Chip (wie auf Florians Waveshare-Board) bricht der
-      ### Boot deshalb sofort ab, noch vor unserer eigentlichen Firmware.
-      ### Nicht in der esphome-config sichtbar, nur beim echten Booten -
+      ### KEIN CONFIG_SPIRAM_MODE_OCT/CONFIG_SPIRAM_SPEED_120M mehr hier -
+      ### das macht der psram:-Block oben schon (redundant/doppelt gemoppelt
+      ### war vorher sowieso). Wichtiger Grund fuer die 80MHz dort: bei
+      ### Octal-PSRAM + 120MHz + enable_idf_experimental_features erzwingt
+      ### ESPHomes psram-Komponente selbst, bedingungslos und OHNE
+      ### Ruecksicht auf eigene sdkconfig_options-Angaben hier (siehe
+      ### components/psram/__init__.py im ESPHome-Quellcode, Zeile ~253:
+      ### "if speed == 120: ... add_idf_sdkconfig_option(
+      ### 'CONFIG_SPIRAM_TIMING_TUNING_POINT_VIA_TEMPERATURE_SENSOR', True)"
+      ### - ein direkter, unbedingter Dict-Write OHNE Existenz-Check, laeuft
+      ### nach unserem eigenen sdkconfig_options und ueberschreibt es damit
+      ### einfach), ESP-IDFs "PSRAM-Timing per Temperatursensor
+      ### nachjustieren"-Feature. Das pruefte beim Booten die
+      ### Flash-Hersteller-ID gegen eine Whitelist von nur zwei Herstellern
+      ### (0xC8/0x20, components/esp_mspi/mspi_timing_tuning/port/esp32s3/
+      ### mspi_timing_by_mspi_delay.c) und brach bei Florians Waveshare-Board
+      ### (anderer Flash-Hersteller) sofort ab - "MSPI Timing: The flash
+      ### model has not been verified..." + abort() in do_secondary_init,
+      ### noch vor unserer eigentlichen Firmware. Ein eigener
+      ### sdkconfig_options-Override dagegen half NICHT (siehe Git-Historie:
+      ### erst versucht, hat einen kompletten Bootloop-Debug-Umweg über
+      ### einen sauberen esphome-clean-Build gebraucht, bis der wahre Grund
+      ### im ESPHome-Quellcode selbst gefunden war - 80MHz umgeht das ganze
+      ### Problem, da der komplette Codepfad an "if speed == 120" haengt).
+      ### Nicht in esphome config/compile sichtbar, nur beim echten Booten -
       ### deshalb erst beim ersten Hardware-Test (30.09.2026) aufgefallen.
-      CONFIG_SPIRAM_TIMING_TUNING_POINT_VIA_TEMPERATURE_SENSOR: "n"
 
 logger:
 
