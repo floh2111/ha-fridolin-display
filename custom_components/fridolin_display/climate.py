@@ -29,12 +29,19 @@ from .page_plan import climate_pages
 
 # Feste Preset-Auswahl fürs Display, unabhängig davon, welche presets die
 # echte Zielentität sonst noch anbietet (ähnlich wie die festen Licht-Slots).
-# Wird 1:1 als preset_mode an die Zielentität durchgereicht - die muss diese
-# drei Werte selbst kennen, sonst tut der Knopf nichts.
+# Die Zielentität kennt diese Namen oft nicht (z.B. Gree: none/eco/away/boost/
+# sleep) - deshalb wird pro Display-Preset der erste Kandidat verwendet, den
+# die Zielentität in ihrem preset_modes-Attribut tatsächlich anbietet. Kennt
+# sie keinen davon, geht der Display-Name unverändert durch (alter Weg).
 PRESET_ECO = "eco"
 PRESET_NORMAL = "normal"
 PRESET_MAX = "max"
 DISPLAY_PRESET_MODES = [PRESET_ECO, PRESET_NORMAL, PRESET_MAX]
+PRESET_CANDIDATES = {
+    PRESET_ECO: ["eco"],
+    PRESET_NORMAL: ["normal", "none"],
+    PRESET_MAX: ["max", "boost"],
+}
 
 
 async def async_setup_entry(
@@ -117,11 +124,17 @@ class FridolinDisplayClimate(ClimateEntity):
         )
         self._attr_target_temperature = state.attributes.get("temperature")
         self._attr_current_temperature = state.attributes.get("current_temperature")
-        # Nur übernehmen, wenn die Zielentität einen unserer drei festen
-        # Presets meldet - andere presets der Zielentität bleiben unsichtbar
+        # Preset der Zielentität auf eines unserer drei festen Display-Presets
+        # abbilden - andere Presets der Zielentität (away, sleep, ...) bleiben
+        # unsichtbar (kein Knopf hervorgehoben)
         target_preset = state.attributes.get("preset_mode")
-        self._attr_preset_mode = (
-            target_preset if target_preset in DISPLAY_PRESET_MODES else None
+        self._attr_preset_mode = next(
+            (
+                display
+                for display, candidates in PRESET_CANDIDATES.items()
+                if target_preset in candidates
+            ),
+            None,
         )
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
@@ -133,10 +146,18 @@ class FridolinDisplayClimate(ClimateEntity):
         )
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
+        target_state = self.hass.states.get(self._target_entity_id)
+        offered = (
+            target_state.attributes.get("preset_modes") or [] if target_state else []
+        )
+        target_preset = next(
+            (c for c in PRESET_CANDIDATES.get(preset_mode, []) if c in offered),
+            preset_mode,
+        )
         await self.hass.services.async_call(
             "climate",
             "set_preset_mode",
-            {"entity_id": self._target_entity_id, "preset_mode": preset_mode},
+            {"entity_id": self._target_entity_id, "preset_mode": target_preset},
             blocking=True,
         )
 

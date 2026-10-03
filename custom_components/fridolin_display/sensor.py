@@ -31,6 +31,7 @@ async def async_setup_entry(
         FridolinWetterIconSensor(entry, coordinator),
         FridolinWetterTemperaturSensor(entry, coordinator),
         FridolinWetterOrtSensor(entry, coordinator),
+        FridolinWetterRegenSensor(entry, coordinator),
         FridolinMorgenMinSensor(entry, coordinator),
         FridolinMorgenMaxSensor(entry, coordinator),
         FridolinMorgenZustandSensor(entry, coordinator),
@@ -42,6 +43,7 @@ async def async_setup_entry(
         entities.append(FridolinStundeTempSensor(entry, coordinator, slot))
         entities.append(FridolinStundeZustandSensor(entry, coordinator, slot))
         entities.append(FridolinStundeIconSensor(entry, coordinator, slot))
+        entities.append(FridolinStundeRegenSensor(entry, coordinator, slot))
 
     async_add_entities(entities)
 
@@ -263,3 +265,35 @@ class FridolinStundeIconSensor(_FridolinBaseSensor):
         if not self.coordinator.data:
             return None
         return self.coordinator.data.get("hours", [])[self._slot].get("icon")
+
+
+class FridolinWetterRegenSensor(_FridolinBaseSensor):
+    """Aktueller Niederschlag (letzte Stunde) als fertiger Text, leer bei Trockenheit."""
+
+    _attr_name = "Fridolin Wetter Niederschlag"
+
+    def __init__(self, entry: ConfigEntry, coordinator: FridolinWeatherCoordinator) -> None:
+        super().__init__(entry, coordinator)
+        self._attr_unique_id = f"{entry.entry_id}_wetter_regen"
+        self.entity_id = "sensor.fridolin_wetter_regen"
+
+    @property
+    def native_value(self) -> Any:
+        return self.coordinator.data.get("precip", "") if self.coordinator.data else None
+
+
+class FridolinStundeRegenSensor(_FridolinBaseSensor):
+    """Regenwahrscheinlichkeit + Menge eines Stunden-Slots als kompakter Text."""
+
+    def __init__(self, entry: ConfigEntry, coordinator: FridolinWeatherCoordinator, slot: int) -> None:
+        super().__init__(entry, coordinator)
+        self._slot = slot
+        self._attr_name = f"Fridolin Wetter Stunde {slot} Niederschlag"
+        self._attr_unique_id = f"{entry.entry_id}_h{slot}_regen"
+        self.entity_id = f"sensor.fridolin_wetter_h{slot}_regen"
+
+    @property
+    def native_value(self) -> Any:
+        if not self.coordinator.data:
+            return None
+        return self.coordinator.data.get("hours", [])[self._slot].get("precip", "")

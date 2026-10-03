@@ -32,6 +32,14 @@ STORAGE_VERSION = 1
 STORAGE_KEY = "fridolin_display.standort"
 
 
+def _mm(block: dict[str, Any] | None, key: str) -> float:
+    """Niederschlagsmenge (mm) aus einem OWM-Block wie {"1h": 0.4}, sonst 0."""
+    try:
+        return float((block or {}).get(key, 0) or 0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
 class FridolinWeatherCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Holt aktuelles Wetter + Vorhersage und bereitet sie fürs Display auf."""
 
@@ -119,11 +127,17 @@ class FridolinWeatherCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     "temperature": round(entry.get("main", {}).get("temp", 0)),
                     "condition": weather.get("description", "—"),
                     "icon": self._map_icon(weather.get("id"), weather.get("icon", "")),
+                    "precip": self._precip_text(
+                        entry.get("pop"),
+                        _mm(entry.get("rain"), "3h") + _mm(entry.get("snow"), "3h"),
+                    ),
                 }
             )
         # Immer 4 Slots liefern, auch wenn OWM mal weniger zurückgibt
         while len(hours) < 4:
-            hours.append({"time": "--:--", "temperature": None, "condition": "—", "icon": "cloudy"})
+            hours.append(
+                {"time": "--:--", "temperature": None, "condition": "—", "icon": "cloudy", "precip": ""}
+            )
 
         tomorrow = self._extract_tomorrow(forecast_list)
 
@@ -139,9 +153,30 @@ class FridolinWeatherCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "condition": current_weather.get("description", "—"),
             "icon": self._map_icon(current_weather.get("id"), current_weather.get("icon", "")),
             "temperature": current.get("main", {}).get("temp"),
+            "precip": self._precip_now_text(
+                _mm(current.get("rain"), "1h") + _mm(current.get("snow"), "1h")
+            ),
             "hours": hours,
             "tomorrow": tomorrow,
         }
+
+    @staticmethod
+    def _precip_text(pop: float | None, mm: float) -> str:
+        """Kompakter Niederschlags-Text fürs Display, z.B. '60% 0,4mm'.
+
+        pop = Regenwahrscheinlichkeit 0..1, mm = Menge im 3h-Slot. Leer, wenn
+        weder Wahrscheinlichkeit noch Menge vorhanden sind."""
+        percent = round((pop or 0) * 100)
+        amount = f"{mm:.1f}".replace(".", ",")
+        if mm >= 0.1:
+            return f"{percent}% {amount}mm"
+        return f"{percent}%" if percent > 0 else ""
+
+    @staticmethod
+    def _precip_now_text(mm: float) -> str:
+        if mm < 0.1:
+            return ""
+        return f"Niederschlag: {f'{mm:.1f}'.replace('.', ',')} mm/h"
 
     @staticmethod
     def _extract_tomorrow(forecast_list: list[dict[str, Any]]) -> dict[str, Any]:
