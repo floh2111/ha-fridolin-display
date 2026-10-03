@@ -79,6 +79,7 @@ wifi:
   ssid: !secret fridolin_wifi_ssid
   password: !secret fridolin_wifi_password
   power_save_mode: none  # empfohlen bei gleichzeitigem Bluetooth
+  use_address: 192.168.10.91
 
 ### ------------------------------------------------------------------
 ### GY-521 / MPU6050 am I2C-Bus. Pins ggf. an deine Verkabelung anpassen.
@@ -310,6 +311,10 @@ sensor:
 ### ob die Verbindung zur "Fridolin Display"-Integration klappt.
 ### ------------------------------------------------------------------
 binary_sensor:
+  ### Online-Status des Test-ESP (in Home Assistant sichtbar)
+  - platform: status
+    name: "Geräte Status"
+
   - platform: homeassistant
     id: test_licht_1
     entity_id: light.fridolin_licht_1

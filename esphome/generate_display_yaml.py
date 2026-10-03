@@ -90,7 +90,14 @@ _FIELD_INDENT = " " * (ITEM_INDENT + 2)
 
 # Einrueckung der beiden Wohnwagen/Wohnmobil-Umschalter-Widgets im
 # Einstellungen-Overlay (Footer) - siehe REMOVE_ITEM_ANCHORS["leveling"].
-_SETTINGS_WIDGET_INDENT = 12
+# 18 statt (wie urspruenglich) 12, seit die Einstellungen-Seite einen
+# umschliessenden Flex-COLUMN-Container bekommen hat (siehe
+# wohnwagen-display.yaml, "top_layer:" -> overlay_einstellungen) - das
+# fuegt eine zusaetzliche widgets:-Verschachtelungsebene ein. Bei
+# sichtbaren Aenderungen an dieser Seite IMMER pruefen, ob sich die
+# Einrueckung dieser beiden Anker-Zeilen mitverschoben hat (siehe
+# CLAUDE.md, "Der YAML-Generator hat eigene, hartkodierte Text-Anker").
+_SETTINGS_WIDGET_INDENT = 18
 
 # Jeder Eintrag: (Regex, die IRGENDEINE Zeile innerhalb des zu entfernenden
 # Elements eindeutig identifiziert, Einrueckung des umschliessenden "- "-

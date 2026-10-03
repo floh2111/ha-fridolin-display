@@ -345,8 +345,36 @@ der Übersichtsseite erreichbar ist (LVGL `top_layer:`):
    als festen Wetter-Standort), Anzeige des letzten Übernahme-Zeitpunkts,
    "Zurück"-Button.
 
-## Aktueller Stand (Stand: 2026-09-27)
+## Aktueller Stand (Stand: 2026-10-01)
 
+- ✅ **Erster kompletter Livetest auf echter 800×480-Hardware erfolgreich**
+  (30.09.-01.10.2026, direkt am Mac per USB geflasht/geloggt). Nach
+  mehreren Flash-Runden mit Live-Feedback (Fotos vom Display): Bootloop
+  behoben (siehe PSRAM-Eintrag unten), Performance deutlich besser
+  (`lvgl took a long time`-Warnung von 312ms auf ~210-220ms gesunken),
+  Schrift-Kantenglättung (`bpp: 4` in den `font:`-Eintraegen, vorher
+  Default `bpp: 1`), Wetter-Icons vergroessert (gross 66->92px, klein
+  34->46px), Einstellungen-Seite als Flex-Column statt einzeln
+  positionierter Elemente neu gebaut, Licht-Schalten vom Display
+  funktioniert (siehe Eintrag weiter unten zur HA-Options-Flow-
+  Freigabe). Von Florian nach der letzten Runde bestätigt: "Ansicht ist
+  jetzt perfekt. Schalten vom Display klappt auch." **Wichtigster
+  technischer Fund dieser Runde** (siehe auch "Wichtige technische
+  Details"): das hartnaeckige Abschneiden von Text am rechten Rand
+  mehrerer Container lag NICHT an zu knapp berechneten Breiten/Hoehen
+  (mehrere Runden Nachjustieren brachten keine Besserung, nur
+  verschobene Symptome), sondern daran, dass kein einziges `obj:` in
+  der Datei `pad_all: 0` gesetzt hatte - LVGLs Default-Innenabstand hat
+  am rechten/unteren Rand Inhalt abgeschnitten. Fix: `pad_all: 0` auf
+  alle 23 `obj:`-Container in `wohnwagen-display.yaml` ergaenzt (gleiche
+  systematische Vorgehensweise wie vorher bei `scrollable: false`).
+- ⏳ **Kühlbox-Seite**: Florian hat gebeten, die Zieltemperatur-Anzeige
+  in der Mitte (`lbl_kb_ziel`) um ein "°C"-Suffix zu ergaenzen (zeigte
+  bisher nur die nackte Zahl, waehrend "Ist: ... °C" darunter schon eins
+  hatte) - im Code erledigt (`sync_kuehlbox`-Script,
+  `lv_label_set_text_fmt(id(lbl_kb_ziel), "%d °C", ...)`), **noch nicht
+  geflasht** (Florian hat das Display für die Nacht abgeklemmt) - naechste
+  Session: kompilieren + flashen nicht vergessen.
 - ✅ ESPHome-Konfiguration fertig geschrieben (`wohnwagen-display.yaml`),
   aktuell wieder auf 800×480 (siehe Projektziel oben).
 - ✅ Home-Assistant-Integration fertig geschrieben, inkl. ConfigFlow,
@@ -423,17 +451,30 @@ der Übersichtsseite erreichbar ist (LVGL `top_layer:`):
 - ⏳ **Wohnmobil-Grafik auf dem Display** (`img_wohnmobil`,
   Einstellungen-Umschalter) ist neu und nur lokal kompiliert – noch nicht
   auf echter Hardware gesehen.
-- ❌ Noch nicht gegen eine echte Home-Assistant-Instanz mit echten
-  Lichtern/Klimaanlage/Wetterdaten *im Livebetrieb* durchgetestet (nur
-  Kühlbox + Neigungssensor bestätigt) – der Rest nur syntaktisch/per
-  Compile validiert.
+- ✅ **Licht-Schalten vom Display bestätigt** (Livetest 30.09./01.10.2026):
+  Status kam schon vorher korrekt an, Schalten AUS dem Display heraus
+  ging zunaechst nicht - Ursache war keine falsche Code-Stelle, sondern
+  eine Home-Assistant-seitige Freigabe (Einstellungen -> Geraete &
+  Dienste -> ESPHome -> Geraet "wohnwagen-display" -> Konfigurieren ->
+  "Gerät erlauben, Home Assistant-Aktionen durchzuführen"), die bei neu
+  hinzugefuegten ESPHome-Geraeten standardmaessig AUS ist (HA zeigt dazu
+  eine eigene Meldung: "Das ESPHome-Gerät hat versucht, eine Home
+  Assistant-Aktion auszuführen, aber diese Funktion ist nicht
+  aktiviert."). Nach Aktivieren durch Florian funktioniert `light.toggle`
+  per `homeassistant.action:` sofort, kein Reflash noetig - `light.py`
+  in der Integration war die ganze Zeit korrekt. Klimaanlage/Wetterdaten
+  wurden in dieser Runde nicht gezielt gegengetestet, gelten aber als
+  grundsaetzlich funktionierend (gleiche `homeassistant.action:`-
+  Mechanik, gleiche Freigabe).
 - ✅ **Umlaute behoben**: eigene `font:`-Deklaration (Google Font
   Montserrat über ESPHomes Font-Renderer statt LVGLs eingebauter
   ASCII-only-Bitmap-Fonts, siehe "Wichtige technische Details") unter
-  denselben IDs (`montserrat_14/20/28/40`) wie vorher - ä/ö/ü/Ä/Ö/Ü/ß
-  erscheinen jetzt korrekt, die ASCII-Ersatzschreibweise "Kuehlbox" ist
-  entfallen (jetzt "Kühlbox", auch in den HA-Entity-Namen). Nur lokal
-  kompiliert, noch nicht auf echter Hardware gesehen.
+  eigenen, nicht mit LVGL kollidierenden IDs (`fridolin_14/20/28/40`,
+  seit dem Livetest zusaetzlich `fridolin_56` fuer die grosse Uhrzeit) -
+  ä/ö/ü/Ä/Ö/Ü/ß erscheinen jetzt korrekt, die ASCII-Ersatzschreibweise
+  "Kuehlbox" ist entfallen (jetzt "Kühlbox", auch in den HA-Entity-
+  Namen). **Auf echter Hardware bestätigt** (Florian: "Schrift jetzt
+  super" nach dem `bpp: 4`-Fix gegen ausgefranste/unscharfe Kanten).
 - ✅ **Verbindungs-Hinweis auf der Übersichtsseite**: `box_verbindung_verloren`
   wird sichtbar, sobald die API-Verbindung zu Home Assistant abbricht
   (`api: on_client_connected`/`on_client_disconnected`), damit eingefrorene
@@ -475,7 +516,12 @@ der Übersichtsseite erreichbar ist (LVGL `top_layer:`):
 
 - Klimaanlagen-Entity (`climate.fridolin_heizung`) unterstützt Heizen,
   Kühlen, Aus sowie einen festen Eco/Normal/Max-`preset_mode` – kein
-  Auto-Modus, keine Lüfterstufen. Presets werden ungeprüft durchgereicht.
+  Auto-Modus, keine Lüfterstufen. Die Display-Presets eco/normal/max werden
+  seit 03.10.2026 in `climate.py` (`PRESET_CANDIDATES`) auf die Presets der
+  Zielentität übersetzt (normal -> normal/none, max -> max/boost, z.B. Gree);
+  kennt sie keinen Kandidaten, geht der Display-Name unverändert durch.
+  Noch nicht gegen die echte Gree-Klima getestet, braucht ein neues
+  Integrations-Release (Version hochzählen + Tag), kein Display-Reflash.
 - Die Integration ist für **genau ein Display / einen Wohnwagen**
   ausgelegt (`async_set_unique_id(DOMAIN)` erzwingt eine einzige Instanz).
 - Bis zu 4 Licht-Slots, nicht mehr.
@@ -571,29 +617,39 @@ der Übersichtsseite erreichbar ist (LVGL `top_layer:`):
   überhaupt nicht mehr auf). Nebenbei die redundanten/jetzt überflüssigen
   `CONFIG_SPIRAM_MODE_OCT`/`CONFIG_SPIRAM_SPEED_120M`-Einträge aus den
   rohen `sdkconfig_options` entfernt (macht der `psram:`-Block schon
-  selbst, war vorher doppelt gemoppelt). RAM minimal niedriger (45,7 %
-  statt 46,8 %) durch die geringere Timing-Komplexität bei 80MHz. Weder
-  `esphome config` noch `esphome compile` melden das vorher - der Fehler
-  existiert nur zur Boot-Laufzeit auf echter Hardware, kein Kompilier-/
-  Validierungsfehler; nur ein Blick in den generierten `sdkconfig.<name>`
-  (nicht nur die eigenen `sdkconfig_options` in der YAML!) zeigt, ob ein
-  Override wirklich angekommen ist. Betraf nur `wohnwagen-display.yaml`
+  selbst, war vorher doppelt gemoppelt). Weder `esphome config` noch
+  `esphome compile` melden das vorher - der Fehler existiert nur zur
+  Boot-Laufzeit auf echter Hardware, kein Kompilier-/Validierungsfehler;
+  nur ein Blick in den generierten `sdkconfig.<name>` (nicht nur die
+  eigenen `sdkconfig_options` in der YAML!) zeigt, ob ein Override
+  wirklich angekommen ist. Betraf nur `wohnwagen-display.yaml`
   (Octal-PSRAM-Kombination), nicht `test-esp32-ohne-display.yaml`
   (einfaches `board: esp32dev` ohne PSRAM-Tuning).
-- **Trages Wisch-Karussell + Grafikfehler bei Bildaenderungen auf echter
-  Hardware** (gefunden beim ersten Hardware-Bring-up, 30.09.2026, direkt
-  nachdem die PSRAM-Geschwindigkeit wegen des obigen Bootloops von 120MHz
-  auf 80MHz reduziert wurde): `lvgl: buffer_size: 25%` bedeutet bei
-  RGB-Parallel-Displays (`platform: mipi_rgb`) vier Render+Flush-Zyklen
-  fuer einen vollen Seitenwechsel statt einem - fuehrte zusammen mit der
-  reduzierten PSRAM-Bandbreite zu spuerbar traegem/hakeligem Wischen und
-  sichtbaren Grafikfehlern genau bei Bildaenderungen. **Fix**:
-  `buffer_size: 100%` (voller Bildschirmpuffer) - bei 800x480/RGB565 nur
-  ~750 KB, angesichts 8 MB PSRAM reichlich Luft. Noch nicht auf echter
-  Hardware verifiziert, ob das allein reicht oder ob zusaetzlich die
-  120MHz-PSRAM-Frage (siehe oben) nochmal aufgegriffen werden muss -
-  bewusst zuerst der risikoaermere Hebel (Puffergroesse statt erneuter
-  PSRAM-Taktaenderung, die wieder den Bootloop reproduzieren koennte).
+  **Update (30.09.2026, gleiche Session)**: 80MHz bremste die
+  Bildwiederholrate spuerbar aus (`lvgl took a long time for an
+  operation`, 312ms bei nur 16MHz Pixeltakt). Echter, dauerhafter Fix
+  statt Drosselung: eigene kleine lokale ESPHome-Komponente
+  `esphome/components/psram_120mhz_fix/` mit `DEPENDENCIES = ["psram"]`
+  - dadurch verarbeitet ESPHome sie GARANTIERT NACH der `psram:`-
+  Komponente (topologische Sortierung nach Abhaengigkeiten), ihr eigener
+  `add_idf_sdkconfig_option("CONFIG_SPIRAM_TIMING_TUNING_POINT_VIA_TEMPERATURE_SENSOR",
+  False)`-Aufruf laeuft also NACH psrams eigenem und gewinnt (einfacher
+  Dict-Write, wer zuletzt schreibt gewinnt - siehe oben). `psram:` steht
+  jetzt wieder auf `speed: 120MHz`. **Verifiziert**: im generierten
+  `sdkconfig.<name>.esphomeinternal` steht
+  `CONFIG_SPIRAM_TIMING_TUNING_POINT_VIA_TEMPERATURE_SENSOR=n`, auf
+  echter Hardware kein Bootloop mehr UND die `lvgl`-Warnung sank auf
+  ~210-220ms. Component wird ueber einen zweiten
+  `external_components:`-Eintrag (`type: local, path: components`)
+  eingebunden. Diese Komponente ist jetzt der dauerhafte Startpunkt -
+  nicht mehr auf 80MHz zurueckgehen, ausser als Notfall-Workaround.
+- **`lvgl: buffer_size: 100%`** (statt vorher 25%, gefunden beim ersten
+  Hardware-Bring-up): bei RGB-Parallel-Displays (`platform: mipi_rgb`)
+  bedeutet ein kleinerer Puffer mehrere Render+Flush-Zyklen fuer einen
+  vollen Seitenwechsel statt einem - fuehrte zu spuerbar traegem/
+  hakeligem Wischen und Grafikfehlern bei Bildaenderungen. **Verifiziert
+  auf echter Hardware**, zusammen mit dem 120MHz-PSRAM-Fix oben Teil der
+  jetzt bestaetigt guten Performance.
 - **Ungewollte Scrollbalken auf echter Hardware** (gleicher Hardware-
   Bring-up): mehrere LVGL-`obj:`/`button:`-Container zeigten duenne
   weisse Scrollbalken, weil ihr tatsaechlicher Inhalt (Text/Icons) die
@@ -601,9 +657,48 @@ der Übersichtsseite erreichbar ist (LVGL `top_layer:`):
   bei praktisch allen Widget-Typen (auch `button:`, geerbt von der
   Basis-`obj`-Klasse) standardmaessig an, auch wenn niemand je scrollen
   soll. Keine Layout-Ursache einzeln behoben, sondern generell
-  `scrollable: false` auf alle 20 `obj:`- und 26 `button:`-Widgets in
+  `scrollable: false` auf alle `obj:`- und `button:`-Widgets in
   `wohnwagen-display.yaml` gesetzt (kein Widget in diesem fest
   layouteten Dashboard ist als scrollbarer Inhalt gedacht).
+- **LVGL `obj:`-Container schneiden ohne `pad_all: 0` Inhalt am Rand ab**
+  (gefunden 30.09./01.10.2026, nach mehreren erfolglosen Runden reinen
+  Breiten-/Hoehen-Nachjustierens bei der Stundenvorhersage auf der
+  Uebersichtsseite): Florian meldete wiederholt abgeschnittenen Text
+  (z.B. "09:00" erschien als "09:0"), obwohl die eigene Breiten-/
+  Abstandsrechnung rechnerisch genug Reserve ergab - jede Runde wurde
+  stattdessen ein ANDERES Zeichen/Fragment abgeschnitten, nie das
+  Problem behoben. Per ESPHome-Log bestaetigt, dass der Home-Assistant-
+  Sensor den vollen, korrekten String liefert (`sensor.fridolin_wetter_h3_zeit:
+  Got state '09:00'`) - also ein reines Rendering-/Clipping-Problem,
+  kein Datenfehler. Ursache: LVGLs eingebautes Default-Padding fuer ein
+  `obj:` ist nicht Null, wurde aber in KEINEM der Container in
+  `wohnwagen-display.yaml` explizit auf `pad_all: 0` gesetzt - bei
+  mehrfach verschachtelten Containern (Spalte -> Zeile -> Slot)
+  summierte sich das unbemerkt und frass genug vom rechten/unteren Rand,
+  um beim jeweils aeussersten/letzten Element ein Zeichen zu kappen.
+  Deshalb verschob sich das sichtbare Symptom bei jeder Breiten-
+  Anpassung, statt zu verschwinden - die eigentliche Ursache (Padding)
+  wurde nie angefasst. **Fix**: `pad_all: 0` auf alle 23 `obj:`-
+  Container in `wohnwagen-display.yaml` ergaenzt (direkt nach
+  `scrollable: false`, gleiche Systematik wie beim Scrollbalken-Fix
+  oben). Nach diesem Fix auf echter Hardware bestaetigt behoben
+  (Florian: "Ansicht ist jetzt perfekt."). **Lehre fuer Folgearbeiten**:
+  bei aehnlichen "trotz genug Platz abgeschnitten"-Symptomen zuerst
+  `pad_all: 0` auf die beteiligten Container pruefen, bevor an Breiten-/
+  Hoehenwerten herumgerechnet wird.
+- **macOS trennt waehrend `esphome logs`/`upload` gelegentlich die USB-
+  Serial-Verbindung** (vermutlich USB-Stromsparen/Selective-Suspend):
+  aeussert sich als `OSError: [Errno 6] Device not configured` beim
+  Log-Mitschnitt oder `ERROR ... Serial data stream stopped: Possible
+  serial noise or corruption.`/`No more data to read from the serial
+  port.` beim Flashen. Kein Hardware-/Firmware-Fehler - das Geraet
+  bleibt online (Neigungswerte liefen im Log nahtlos weiter), nur der
+  Mac-seitige serielle Port setzt kurz aus. Einfach erneut
+  `ls /dev/cu.usbmodem*` pruefen (Geraet ist normalerweise noch da) und
+  den Befehl (`esphome upload`/`esphome logs`) nochmal starten - beim
+  zweiten Versuch klappt es i.d.R. Betrifft nur den lokalen USB-Debug-
+  Aufbau am Mac, nicht den spaeteren Betrieb am eigenen Netzteil im
+  Wohnwagen.
 - **ESPHome-Board-Wechsel** (falls nochmal nötig): Das 800×480-Board
   braucht `ch422g:` als IO-Expander, `display: platform: mipi_rgb, model:
   ESP32-S3-TOUCH-LCD-7-800X480`, Backlight als einfacher `switch:
@@ -622,11 +717,11 @@ der Übersichtsseite erreichbar ist (LVGL `top_layer:`):
 
 ## Offene Aufgaben / mögliche nächste Schritte
 
-1. Test-Config (`test-esp32-ohne-display.yaml`) bei Florian erneut über
-   das ESPHome-Add-on flashen (nach dem Merge mit der Kühlbox) und
-   prüfen, ob weiterhin alles funktioniert – insbesondere, dass
-   `bluetooth_proxy` fehlt jetzt niemanden fehlt, den Florian eigentlich
-   noch wollte.
+1. **Kühlbox-Seite**: `lbl_kb_ziel` zeigt jetzt im Code "°C" an (siehe
+   "Aktueller Stand") - noch kompilieren + flashen (Display war am
+   01.10.2026 morgens abgeklemmt) und auf echter Hardware pruefen, dass
+   sich Ist/Soll jetzt gleich anfuehlen, sobald die Kühlbox verbunden
+   ist.
 2. Klimaanlagen-Seite gegen eine echte `climate`-Entity mit Heizen/Kühlen
    und Eco/Normal/Max-Presets testen; ggf. Preset-Namen anpassen, falls
    die echte Klimaanlage andere Bezeichnungen erwartet.
@@ -638,21 +733,39 @@ der Übersichtsseite erreichbar ist (LVGL `top_layer:`):
    (`/fridolin_display/fridolin-nivellierung-card.js`) durch die neue
    ersetzen, Entity-IDs im Karteneditor setzen (keine Vorbelegung mehr).
 4. Wohnwagen/Wohnmobil-Umschalter auf der Einstellungsseite des Displays
-   auf echter Hardware testen (Grafik-Wechsel, Persistenz nach Neustart).
-5. Sobald das alles läuft: reales 800×480-Waveshare-Display besorgen,
-   verkabeln, `wohnwagen-display.yaml` flashen, komplette UI live testen –
-   das betrifft inzwischen auch alles noch nicht auf echter Hardware
-   Gesehene: die neue Umlaut-Schriftart, den Verbindungs-Hinweis, den
-   Zahnrad-Icon-Button und `safe_mode:`.
-6. Ggf. Kleinigkeiten aus dem Livetest nachjustieren (Pinbelegung, Timing,
-   Layout).
-7. Standby für das Display umsetzen (siehe "Neue Anforderung: Standby"),
-   inkl. Schieberegler in den Einstellungen: Aus / 1 Minute / 2 Minuten /
-   5 Minuten.
-8. Kühlbox-Karte für Home Assistant als eigenständige Lovelace-Karte
-   bauen (siehe "Neue Anforderung: Kühlbox-Karte").
+   auf echter Hardware testen (Grafik-Wechsel, Persistenz nach Neustart)
+   - im ersten Livetest nicht gezielt gegengetestet.
+5. **Standby** (03.10.2026, im Code fertig + kompiliert, noch nicht
+   geflasht/getestet): Display-Beleuchtung geht nach einstellbarer Zeit
+   aus (Schieberegler in den Einstellungen: Aus/1/2/5 Min, Standard 1,
+   `g_standby_min` bleibt nach Neustart erhalten). Umsetzung: `interval: 1s`
+   prueft `lv_display_get_inactive_time(NULL)`; die Fangschicht
+   `overlay_wake` (letztes Widget in `top_layer`) wacht bei der ersten
+   Beruehrung auf und verbraucht sie, ohne einen Knopf darunter
+   auszuloesen. Schieberegler-Angleichung nach dem Start laeuft ueber
+   dieses Interval (nicht on_boot, wegen Generator-Anker `leveling`).
+   Die Einstellungen-Seite wurde dafuer kompakter (pad_row 10, Standort-
+   Knopf 56 hoch) - pruefen, ob dort nichts abgeschnitten ist.
+6. **Standort automatisch beim Display-Start** (03.10.2026, geflasht):
+   beim ersten API-Connect nach dem Boot drueckt das Display per
+   `homeassistant.action` den Knopf `button.fridolin_standort_uebernehmen`
+   (Flag `g_standort_geholt`, nur einmal pro Boot; bei fehlender
+   Handy-Position bleibt der gespeicherte Standort). Florian: reicht beim
+   Display-Neustart, HA laeuft zuhause. Noch nicht gegengetestet.
+7. **Kühlbox-Lovelace-Karte** (eigenstaendige Karte mit allen Bedien-
+   elementen der Display-Seite): noch nicht begonnen.
+8. Die neuen `pad_all: 0`-Erkenntnisse (siehe "Wichtige technische
+   Details") gelten bisher nur für `obj:`-Container - falls kuenftig
+   noch abgeschnittener Text/Inhalt in `button:`- oder anderen
+   Widget-Typen auftaucht, dort ebenfalls pruefen.
+9. Performance optional noch minimal verbessern (z.B. ueber
+   `pclk_frequency`, Risiko: Bildfehler) - Florian: "minimal besser"
+   waere schoen, kein Muss.
 
-## Neue Anforderung: Standby für das Display (noch nicht umgesetzt)
+(Erledigt laut Florian, 03.10.2026: Test-Config erneut geflasht,
+DHCP-Reservierung/Dauerbetrieb am Netzteil.)
+
+## Neue Anforderung: Standby für das Display (umgesetzt am 03.10.2026, siehe Aufgabe 5)
 
 Florian möchte einen Standby-Betrieb für das Fridolin-Display:
 
@@ -669,7 +782,7 @@ Florian möchte einen Standby-Betrieb für das Fridolin-Display:
 - Die weckende Berührung soll **keinen Button auslösen**, der darunter liegt.
 - Datei: `esphome/wohnwagen-display.yaml`. Das Backlicht ist der Schalter
   `lcdbacklight` (CH422G, EXIO2) und nur an/aus, **nicht dimmbar**.
-- Umsetzungsidee: `lvgl: on_idle:` mit `timeout: 60s`, dort Backlicht aus
+- Urspruengliche Umsetzungsidee (so NICHT gebaut, stattdessen `interval: 1s` + Fangschicht `overlay_wake`): `lvgl: on_idle:` mit `timeout: 60s`, dort Backlicht aus
   und `lvgl.pause`. Zum Aufwecken im `touchscreen:` (`my_touch`) per
   `on_touch` prüfen, ob LVGL pausiert ist, dann `lvgl.resume` und Backlicht
   an. Ob die weckende Berührung wirklich nicht an die Widgets durchgereicht
