@@ -34,6 +34,7 @@ async def async_setup_entry(
         FridolinWetterRegenSensor(entry, coordinator),
         FridolinWetterTextSensor(entry, coordinator, "wind", "Wind"),
         FridolinWetterTextSensor(entry, coordinator, "humidity", "Luftfeuchte"),
+        FridolinWetterTextSensor(entry, coordinator, "pressure", "Luftdruck"),
         FridolinWetterTextSensor(entry, coordinator, "sunrise", "Sonnenaufgang"),
         FridolinWetterTextSensor(entry, coordinator, "sunset", "Sonnenuntergang"),
         FridolinMorgenMinSensor(entry, coordinator),

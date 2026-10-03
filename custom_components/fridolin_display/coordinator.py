@@ -156,6 +156,7 @@ class FridolinWeatherCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "temperature": current.get("main", {}).get("temp"),
             "wind": self._wind_text(current.get("wind", {}), self._units),
             "humidity": self._humidity_text(current.get("main", {}).get("humidity")),
+            "pressure": self._pressure_text(current.get("main", {}).get("pressure")),
             "sunrise": self._local_time(current.get("sys", {}).get("sunrise")),
             "sunset": self._local_time(current.get("sys", {}).get("sunset")),
             "precip": self._precip_now_text(
@@ -200,6 +201,10 @@ class FridolinWeatherCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     @staticmethod
     def _humidity_text(humidity: float | None) -> str:
         return "—" if humidity is None else f"{round(humidity)} %"
+
+    @staticmethod
+    def _pressure_text(pressure: float | None) -> str:
+        return "—" if pressure is None else f"{round(pressure)} hPa"
 
     @staticmethod
     def _local_time(timestamp: int | None) -> str:
