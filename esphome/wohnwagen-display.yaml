@@ -109,6 +109,9 @@ esp32:
     type: esp-idf
     advanced:
       enable_idf_experimental_features: true
+      ### PERF (-O2) statt Standard SIZE (-Os): schnelleres Zeichnen/Blending in
+      ### LVGL, Wischen wirkte zuletzt wieder traege; kostet nur etwas Flash
+      compiler_optimization: PERF
     sdkconfig_options:
       CONFIG_ESPTOOLPY_FLASHSIZE_16MB: "y"
       ### KEIN CONFIG_SPIRAM_MODE_OCT/CONFIG_SPIRAM_SPEED_120M mehr hier -
@@ -442,6 +445,13 @@ interval:
           if (!id(g_standby_init)) {
             id(g_standby_init) = true;
             id(sync_standby).execute();
+            // Wisch-Physik: scroll_throw 1 (Standard 10) = Schwung laeuft laenger
+            // nach, dadurch reicht ein kurzes Wischen fuer den Seitenwechsel;
+            // scroll_limit 3 (Standard 10) = Wischen beginnt frueher
+            for (lv_indev_t *i = lv_indev_get_next(NULL); i != NULL; i = lv_indev_get_next(i)) {
+              lv_indev_set_scroll_throw(i, 1);
+              lv_indev_set_scroll_limit(i, 3);
+            }
           }
           if (id(g_standby_aktiv) || id(g_standby_min) <= 0) return;
           if (lv_display_get_inactive_time(NULL) > (uint32_t) id(g_standby_min) * 60000UL) {
@@ -492,6 +502,37 @@ image:
     type: RGB565
     transparency: alpha_channel
 
+  ### Rollladen-Seite: Symbol und Bedien-Icons
+  - platform: file
+    id: img_rollladen
+    file: images/shutter.svg
+    resize: 48x48
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_pfeil_hoch
+    file: images/arrow_up.svg
+    resize: 40x40
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_pfeil_runter
+    file: images/arrow_down.svg
+    resize: 40x40
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_stopp
+    file: images/stop.svg
+    resize: 40x40
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_bulb
+    file: images/bulb.svg
+    resize: 48x48
+    type: RGB565
+    transparency: alpha_channel
   - platform: file
     id: img_humidity
     file: images/humidity.svg
@@ -829,6 +870,127 @@ text_sensor:
       - script.execute: sync_lichter
 
   - platform: homeassistant
+    id: ha_licht_5
+    entity_id: light.fridolin_licht_5
+    on_value:
+      - script.execute: sync_lichter
+
+  - platform: homeassistant
+    id: ha_licht_6
+    entity_id: light.fridolin_licht_6
+    on_value:
+      - script.execute: sync_lichter
+
+  - platform: homeassistant
+    id: ha_licht_7
+    entity_id: light.fridolin_licht_7
+    on_value:
+      - script.execute: sync_lichter
+
+  - platform: homeassistant
+    id: ha_licht_8
+    entity_id: light.fridolin_licht_8
+    on_value:
+      - script.execute: sync_lichter
+
+  ### Rollläden: Zustand (open/closed/opening/closing) und Anzeigename
+  - platform: homeassistant
+    id: ha_rollladen_1
+    entity_id: cover.fridolin_rollladen_1
+    on_value:
+      - script.execute: sync_rollaeden
+  - platform: homeassistant
+    id: ha_rollladen_2
+    entity_id: cover.fridolin_rollladen_2
+    on_value:
+      - script.execute: sync_rollaeden
+  - platform: homeassistant
+    id: ha_rollladen_3
+    entity_id: cover.fridolin_rollladen_3
+    on_value:
+      - script.execute: sync_rollaeden
+  - platform: homeassistant
+    id: ha_rollladen_4
+    entity_id: cover.fridolin_rollladen_4
+    on_value:
+      - script.execute: sync_rollaeden
+  - platform: homeassistant
+    id: ha_rollladen_name_1
+    entity_id: cover.fridolin_rollladen_1
+    attribute: friendly_name
+    on_value:
+      - lvgl.label.update: { id: lbl_rollladen_name_1, text: !lambda 'return x;' }
+  - platform: homeassistant
+    id: ha_rollladen_name_2
+    entity_id: cover.fridolin_rollladen_2
+    attribute: friendly_name
+    on_value:
+      - lvgl.label.update: { id: lbl_rollladen_name_2, text: !lambda 'return x;' }
+  - platform: homeassistant
+    id: ha_rollladen_name_3
+    entity_id: cover.fridolin_rollladen_3
+    attribute: friendly_name
+    on_value:
+      - lvgl.label.update: { id: lbl_rollladen_name_3, text: !lambda 'return x;' }
+  - platform: homeassistant
+    id: ha_rollladen_name_4
+    entity_id: cover.fridolin_rollladen_4
+    attribute: friendly_name
+    on_value:
+      - lvgl.label.update: { id: lbl_rollladen_name_4, text: !lambda 'return x;' }
+
+  ### Anzeigename je Licht-Slot (friendly_name der Display-Entity, in der
+  ### Integration pro Slot einstellbar)
+  - platform: homeassistant
+    id: ha_licht_name_1
+    entity_id: light.fridolin_licht_1
+    attribute: friendly_name
+    on_value:
+      - lvgl.label.update: { id: lbl_licht_name_1, text: !lambda 'return x;' }
+  - platform: homeassistant
+    id: ha_licht_name_2
+    entity_id: light.fridolin_licht_2
+    attribute: friendly_name
+    on_value:
+      - lvgl.label.update: { id: lbl_licht_name_2, text: !lambda 'return x;' }
+  - platform: homeassistant
+    id: ha_licht_name_3
+    entity_id: light.fridolin_licht_3
+    attribute: friendly_name
+    on_value:
+      - lvgl.label.update: { id: lbl_licht_name_3, text: !lambda 'return x;' }
+  - platform: homeassistant
+    id: ha_licht_name_4
+    entity_id: light.fridolin_licht_4
+    attribute: friendly_name
+    on_value:
+      - lvgl.label.update: { id: lbl_licht_name_4, text: !lambda 'return x;' }
+  - platform: homeassistant
+    id: ha_licht_name_5
+    entity_id: light.fridolin_licht_5
+    attribute: friendly_name
+    on_value:
+      - lvgl.label.update: { id: lbl_licht_name_5, text: !lambda 'return x;' }
+  - platform: homeassistant
+    id: ha_licht_name_6
+    entity_id: light.fridolin_licht_6
+    attribute: friendly_name
+    on_value:
+      - lvgl.label.update: { id: lbl_licht_name_6, text: !lambda 'return x;' }
+  - platform: homeassistant
+    id: ha_licht_name_7
+    entity_id: light.fridolin_licht_7
+    attribute: friendly_name
+    on_value:
+      - lvgl.label.update: { id: lbl_licht_name_7, text: !lambda 'return x;' }
+  - platform: homeassistant
+    id: ha_licht_name_8
+    entity_id: light.fridolin_licht_8
+    attribute: friendly_name
+    on_value:
+      - lvgl.label.update: { id: lbl_licht_name_8, text: !lambda 'return x;' }
+
+  - platform: homeassistant
     id: ha_heizung_modus
     entity_id: climate.fridolin_heizung
     on_value:
@@ -1065,6 +1227,32 @@ sensor:
             std::string s = str_sprintf("%.1f °C", x);
             for (auto &c : s) if (c == '.') c = ',';
             return s;
+
+  ### Rollläden: Position in Prozent (Attribut current_position)
+  - platform: homeassistant
+    id: ha_rollladen_pos_1
+    entity_id: cover.fridolin_rollladen_1
+    attribute: current_position
+    on_value:
+      - script.execute: sync_rollaeden
+  - platform: homeassistant
+    id: ha_rollladen_pos_2
+    entity_id: cover.fridolin_rollladen_2
+    attribute: current_position
+    on_value:
+      - script.execute: sync_rollaeden
+  - platform: homeassistant
+    id: ha_rollladen_pos_3
+    entity_id: cover.fridolin_rollladen_3
+    attribute: current_position
+    on_value:
+      - script.execute: sync_rollaeden
+  - platform: homeassistant
+    id: ha_rollladen_pos_4
+    entity_id: cover.fridolin_rollladen_4
+    attribute: current_position
+    on_value:
+      - script.execute: sync_rollaeden
 
   ### Ist-Temperatur der Klimaanlage (Attribut "current_temperature") - legt
   ### fest, wo der Ring von rot (kälter) auf blau (wärmer) umschlägt
@@ -1355,10 +1543,11 @@ script:
   - id: sync_lichter
     then:
       - lambda: |-
-          lv_obj_t *btns[4] = {id(btn_licht_1), id(btn_licht_2), id(btn_licht_3), id(btn_licht_4)};
-          text_sensor::TextSensor *ts[4] = {id(ha_licht_1), id(ha_licht_2), id(ha_licht_3), id(ha_licht_4)};
+          lv_obj_t *btns[8] = {id(btn_licht_1), id(btn_licht_2), id(btn_licht_3), id(btn_licht_4), id(btn_licht_5), id(btn_licht_6), id(btn_licht_7), id(btn_licht_8)};
+          lv_obj_t *zustand[8] = {id(lbl_licht_zustand_1), id(lbl_licht_zustand_2), id(lbl_licht_zustand_3), id(lbl_licht_zustand_4), id(lbl_licht_zustand_5), id(lbl_licht_zustand_6), id(lbl_licht_zustand_7), id(lbl_licht_zustand_8)};
+          text_sensor::TextSensor *ts[8] = {id(ha_licht_1), id(ha_licht_2), id(ha_licht_3), id(ha_licht_4), id(ha_licht_5), id(ha_licht_6), id(ha_licht_7), id(ha_licht_8)};
           int sichtbar = 0;
-          for (int i = 0; i < 4; i++) {
+          for (int i = 0; i < 8; i++) {
             const std::string &s = ts[i]->state;
             bool da = ts[i]->has_state() && !s.empty() && s != "unavailable" && s != "unknown";
             if (da) {
@@ -1369,9 +1558,37 @@ script:
             }
             if (s == "on") lv_obj_add_state(btns[i], LV_STATE_CHECKED);
             else lv_obj_clear_state(btns[i], LV_STATE_CHECKED);
+            lv_label_set_text(zustand[i], s == "on" ? "Ein" : "Aus");
           }
           if (sichtbar > 0) lv_obj_add_flag(id(lbl_keine_lichter), LV_OBJ_FLAG_HIDDEN);
           else lv_obj_clear_flag(id(lbl_keine_lichter), LV_OBJ_FLAG_HIDDEN);
+
+  - id: sync_rollaeden
+    then:
+      - lambda: |-
+          lv_obj_t *boxen[4] = {id(box_rollladen_1), id(box_rollladen_2), id(box_rollladen_3), id(box_rollladen_4)};
+          lv_obj_t *zustand[4] = {id(lbl_rollladen_zustand_1), id(lbl_rollladen_zustand_2), id(lbl_rollladen_zustand_3), id(lbl_rollladen_zustand_4)};
+          text_sensor::TextSensor *ts[4] = {id(ha_rollladen_1), id(ha_rollladen_2), id(ha_rollladen_3), id(ha_rollladen_4)};
+          sensor::Sensor *pos[4] = {id(ha_rollladen_pos_1), id(ha_rollladen_pos_2), id(ha_rollladen_pos_3), id(ha_rollladen_pos_4)};
+          int sichtbar = 0;
+          for (int i = 0; i < 4; i++) {
+            const std::string &s = ts[i]->state;
+            bool da = ts[i]->has_state() && !s.empty() && s != "unavailable" && s != "unknown";
+            if (da) {
+              lv_obj_clear_flag(boxen[i], LV_OBJ_FLAG_HIDDEN);
+              sichtbar++;
+            } else {
+              lv_obj_add_flag(boxen[i], LV_OBJ_FLAG_HIDDEN);
+              continue;
+            }
+            if (s == "closed") lv_label_set_text(zustand[i], "Geschlossen");
+            else if (s == "opening") lv_label_set_text(zustand[i], "Öffnet ...");
+            else if (s == "closing") lv_label_set_text(zustand[i], "Schließt ...");
+            else if (pos[i]->has_state() && !std::isnan(pos[i]->state)) lv_label_set_text_fmt(zustand[i], "Geöffnet – %d %%", (int) roundf(pos[i]->state));
+            else lv_label_set_text(zustand[i], "Geöffnet");
+          }
+          if (sichtbar > 0) lv_obj_add_flag(id(lbl_keine_rollladen), LV_OBJ_FLAG_HIDDEN);
+          else lv_obj_clear_flag(id(lbl_keine_rollladen), LV_OBJ_FLAG_HIDDEN);
 
   ### Klimaanlage: Sichtbarkeit, Status-Text sowie Modus-/Programm-Knöpfe
   ### zusammen aktualisieren, sobald sich Zustand oder Preset ändern
@@ -1513,6 +1730,28 @@ lvgl:
         ### Wisch-Karussell: nach links/rechts wischen wechselt die Seite
         - tileview:
             id: tv_seiten
+            scroll_one: true
+            ### Endlos-Karussell: ein schneller Wisch ueber das Ende hinaus springt
+            ### zur ersten bzw. letzten Seite (die Ausrichtung der Seiten ergibt
+            ### sich aus ihrer x-Position, damit es mit jedem Seitenplan klappt)
+            on_gesture:
+              - lambda: |-
+                  lv_obj_t *tv = id(tv_seiten);
+                  lv_obj_t *aktiv = lv_tileview_get_tile_active(tv);
+                  if (aktiv == nullptr) return;
+                  lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_active());
+                  lv_obj_t *erste = nullptr, *letzte = nullptr;
+                  int minx = 1000000, maxx = -1;
+                  for (uint32_t i = 0; i < lv_obj_get_child_count(tv); i++) {
+                    lv_obj_t *k = lv_obj_get_child(tv, i);
+                    int x = lv_obj_get_x(k);
+                    if (x < minx) { minx = x; erste = k; }
+                    if (x > maxx) { maxx = x; letzte = k; }
+                  }
+                  if (erste == nullptr || maxx <= minx) return;
+                  int ax = lv_obj_get_x(aktiv);
+                  if (dir == LV_DIR_LEFT && ax == maxx) lv_tileview_set_tile(tv, erste, LV_ANIM_OFF);
+                  else if (dir == LV_DIR_RIGHT && ax == minx) lv_tileview_set_tile(tv, letzte, LV_ANIM_OFF);
             scrollbar_mode: "OFF"
             bg_color: 0x101820
             tiles:
@@ -1923,12 +2162,6 @@ lvgl:
                                           - image: { src: img_sunset, width: 40, height: 40 }
                                           - label: { id: lbl_sunset, text: "--:--", text_font: fridolin_28, width: 110, text_align: LEFT }
 
-                  - label:
-                      text: "Nach links wischen: Kühlbox"
-                      align: BOTTOM_MID
-                      y: -12
-                      text_font: fridolin_14
-
                   ### Kleiner Button, öffnet die Einstellungsseite als Overlay
                   ### (kein Bestandteil der Wisch-Reihenfolge)
                   - button:
@@ -2263,31 +2496,56 @@ lvgl:
                       id: lbl_keine_lichter
                       text: "Keine Lichter eingerichtet"
                       align: CENTER
+                  ### Licht-Kacheln im Stil der Home-Assistant-Leuchtenliste: Symbol,
+                  ### Name, Ein/Aus - zwei nebeneinander, bis zu 8 Slots. Nicht belegte
+                  ### Slots sind ausgeblendet und fallen aus dem Layout (rutscht auf).
                   - obj:
                       scrollable: false
                       pad_all: 0
-                      align: CENTER
-                      width: 720
-                      height: 200
+                      align: TOP_MID
+                      y: 62
+                      width: 760
+                      height: 360
                       bg_opa: TRANSP
                       border_opa: TRANSP
                       layout:
                         type: FLEX
-                        flex_flow: ROW
-                        flex_align_main: SPACE_EVENLY
-                        flex_align_cross: CENTER
+                        flex_flow: ROW_WRAP
+                        flex_align_main: START
+                        flex_align_cross: START
+                        flex_align_track: START
+                        pad_row: 10
+                        pad_column: 12
                       widgets:
                         - button:
                             scrollable: false
+                            pad_left: 16
+                            pad_right: 0
+                            pad_top: 14
+                            pad_bottom: 0
                             id: btn_licht_1
                             hidden: true
                             checkable: true
-                            width: 160
-                            height: 160
+                            width: 374
+                            height: 80
+                            checked:
+                              bg_color: 0xB8741A
+                              bg_opa: COVER
+                            layout: { type: FLEX, flex_flow: ROW, flex_align_main: START, flex_align_cross: CENTER, pad_column: 14 }
                             widgets:
-                              - label:
-                                  text: "Licht 1"
-                                  align: CENTER
+                              - image: { src: img_bulb, width: 40, height: 40 }
+                              - obj:
+                                  scrollable: false
+                                  clickable: false
+                                  pad_all: 0
+                                  width: 290
+                                  height: 60
+                                  bg_opa: TRANSP
+                                  border_opa: TRANSP
+                                  layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: START }
+                                  widgets:
+                                    - label: { id: lbl_licht_name_1, text: "Licht 1", text_font: fridolin_20, width: 290, long_mode: DOT, height: 26 }
+                                    - label: { id: lbl_licht_zustand_1, text: "Aus", text_font: fridolin_14, width: 290, translate_y: -5 }
                             on_click:
                               - homeassistant.action:
                                   action: light.toggle
@@ -2295,15 +2553,33 @@ lvgl:
                                     entity_id: light.fridolin_licht_1
                         - button:
                             scrollable: false
+                            pad_left: 16
+                            pad_right: 0
+                            pad_top: 14
+                            pad_bottom: 0
                             id: btn_licht_2
                             hidden: true
                             checkable: true
-                            width: 160
-                            height: 160
+                            width: 374
+                            height: 80
+                            checked:
+                              bg_color: 0xB8741A
+                              bg_opa: COVER
+                            layout: { type: FLEX, flex_flow: ROW, flex_align_main: START, flex_align_cross: CENTER, pad_column: 14 }
                             widgets:
-                              - label:
-                                  text: "Licht 2"
-                                  align: CENTER
+                              - image: { src: img_bulb, width: 40, height: 40 }
+                              - obj:
+                                  scrollable: false
+                                  clickable: false
+                                  pad_all: 0
+                                  width: 290
+                                  height: 60
+                                  bg_opa: TRANSP
+                                  border_opa: TRANSP
+                                  layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: START }
+                                  widgets:
+                                    - label: { id: lbl_licht_name_2, text: "Licht 2", text_font: fridolin_20, width: 290, long_mode: DOT, height: 26 }
+                                    - label: { id: lbl_licht_zustand_2, text: "Aus", text_font: fridolin_14, width: 290, translate_y: -5 }
                             on_click:
                               - homeassistant.action:
                                   action: light.toggle
@@ -2311,15 +2587,33 @@ lvgl:
                                     entity_id: light.fridolin_licht_2
                         - button:
                             scrollable: false
+                            pad_left: 16
+                            pad_right: 0
+                            pad_top: 14
+                            pad_bottom: 0
                             id: btn_licht_3
                             hidden: true
                             checkable: true
-                            width: 160
-                            height: 160
+                            width: 374
+                            height: 80
+                            checked:
+                              bg_color: 0xB8741A
+                              bg_opa: COVER
+                            layout: { type: FLEX, flex_flow: ROW, flex_align_main: START, flex_align_cross: CENTER, pad_column: 14 }
                             widgets:
-                              - label:
-                                  text: "Licht 3"
-                                  align: CENTER
+                              - image: { src: img_bulb, width: 40, height: 40 }
+                              - obj:
+                                  scrollable: false
+                                  clickable: false
+                                  pad_all: 0
+                                  width: 290
+                                  height: 60
+                                  bg_opa: TRANSP
+                                  border_opa: TRANSP
+                                  layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: START }
+                                  widgets:
+                                    - label: { id: lbl_licht_name_3, text: "Licht 3", text_font: fridolin_20, width: 290, long_mode: DOT, height: 26 }
+                                    - label: { id: lbl_licht_zustand_3, text: "Aus", text_font: fridolin_14, width: 290, translate_y: -5 }
                             on_click:
                               - homeassistant.action:
                                   action: light.toggle
@@ -2327,20 +2621,174 @@ lvgl:
                                     entity_id: light.fridolin_licht_3
                         - button:
                             scrollable: false
+                            pad_left: 16
+                            pad_right: 0
+                            pad_top: 14
+                            pad_bottom: 0
                             id: btn_licht_4
                             hidden: true
                             checkable: true
-                            width: 160
-                            height: 160
+                            width: 374
+                            height: 80
+                            checked:
+                              bg_color: 0xB8741A
+                              bg_opa: COVER
+                            layout: { type: FLEX, flex_flow: ROW, flex_align_main: START, flex_align_cross: CENTER, pad_column: 14 }
                             widgets:
-                              - label:
-                                  text: "Licht 4"
-                                  align: CENTER
+                              - image: { src: img_bulb, width: 40, height: 40 }
+                              - obj:
+                                  scrollable: false
+                                  clickable: false
+                                  pad_all: 0
+                                  width: 290
+                                  height: 60
+                                  bg_opa: TRANSP
+                                  border_opa: TRANSP
+                                  layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: START }
+                                  widgets:
+                                    - label: { id: lbl_licht_name_4, text: "Licht 4", text_font: fridolin_20, width: 290, long_mode: DOT, height: 26 }
+                                    - label: { id: lbl_licht_zustand_4, text: "Aus", text_font: fridolin_14, width: 290, translate_y: -5 }
                             on_click:
                               - homeassistant.action:
                                   action: light.toggle
                                   data:
                                     entity_id: light.fridolin_licht_4
+                        - button:
+                            scrollable: false
+                            pad_left: 16
+                            pad_right: 0
+                            pad_top: 14
+                            pad_bottom: 0
+                            id: btn_licht_5
+                            hidden: true
+                            checkable: true
+                            width: 374
+                            height: 80
+                            checked:
+                              bg_color: 0xB8741A
+                              bg_opa: COVER
+                            layout: { type: FLEX, flex_flow: ROW, flex_align_main: START, flex_align_cross: CENTER, pad_column: 14 }
+                            widgets:
+                              - image: { src: img_bulb, width: 40, height: 40 }
+                              - obj:
+                                  scrollable: false
+                                  clickable: false
+                                  pad_all: 0
+                                  width: 290
+                                  height: 60
+                                  bg_opa: TRANSP
+                                  border_opa: TRANSP
+                                  layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: START }
+                                  widgets:
+                                    - label: { id: lbl_licht_name_5, text: "Licht 5", text_font: fridolin_20, width: 290, long_mode: DOT, height: 26 }
+                                    - label: { id: lbl_licht_zustand_5, text: "Aus", text_font: fridolin_14, width: 290, translate_y: -5 }
+                            on_click:
+                              - homeassistant.action:
+                                  action: light.toggle
+                                  data:
+                                    entity_id: light.fridolin_licht_5
+                        - button:
+                            scrollable: false
+                            pad_left: 16
+                            pad_right: 0
+                            pad_top: 14
+                            pad_bottom: 0
+                            id: btn_licht_6
+                            hidden: true
+                            checkable: true
+                            width: 374
+                            height: 80
+                            checked:
+                              bg_color: 0xB8741A
+                              bg_opa: COVER
+                            layout: { type: FLEX, flex_flow: ROW, flex_align_main: START, flex_align_cross: CENTER, pad_column: 14 }
+                            widgets:
+                              - image: { src: img_bulb, width: 40, height: 40 }
+                              - obj:
+                                  scrollable: false
+                                  clickable: false
+                                  pad_all: 0
+                                  width: 290
+                                  height: 60
+                                  bg_opa: TRANSP
+                                  border_opa: TRANSP
+                                  layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: START }
+                                  widgets:
+                                    - label: { id: lbl_licht_name_6, text: "Licht 6", text_font: fridolin_20, width: 290, long_mode: DOT, height: 26 }
+                                    - label: { id: lbl_licht_zustand_6, text: "Aus", text_font: fridolin_14, width: 290, translate_y: -5 }
+                            on_click:
+                              - homeassistant.action:
+                                  action: light.toggle
+                                  data:
+                                    entity_id: light.fridolin_licht_6
+                        - button:
+                            scrollable: false
+                            pad_left: 16
+                            pad_right: 0
+                            pad_top: 14
+                            pad_bottom: 0
+                            id: btn_licht_7
+                            hidden: true
+                            checkable: true
+                            width: 374
+                            height: 80
+                            checked:
+                              bg_color: 0xB8741A
+                              bg_opa: COVER
+                            layout: { type: FLEX, flex_flow: ROW, flex_align_main: START, flex_align_cross: CENTER, pad_column: 14 }
+                            widgets:
+                              - image: { src: img_bulb, width: 40, height: 40 }
+                              - obj:
+                                  scrollable: false
+                                  clickable: false
+                                  pad_all: 0
+                                  width: 290
+                                  height: 60
+                                  bg_opa: TRANSP
+                                  border_opa: TRANSP
+                                  layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: START }
+                                  widgets:
+                                    - label: { id: lbl_licht_name_7, text: "Licht 7", text_font: fridolin_20, width: 290, long_mode: DOT, height: 26 }
+                                    - label: { id: lbl_licht_zustand_7, text: "Aus", text_font: fridolin_14, width: 290, translate_y: -5 }
+                            on_click:
+                              - homeassistant.action:
+                                  action: light.toggle
+                                  data:
+                                    entity_id: light.fridolin_licht_7
+                        - button:
+                            scrollable: false
+                            pad_left: 16
+                            pad_right: 0
+                            pad_top: 14
+                            pad_bottom: 0
+                            id: btn_licht_8
+                            hidden: true
+                            checkable: true
+                            width: 374
+                            height: 80
+                            checked:
+                              bg_color: 0xB8741A
+                              bg_opa: COVER
+                            layout: { type: FLEX, flex_flow: ROW, flex_align_main: START, flex_align_cross: CENTER, pad_column: 14 }
+                            widgets:
+                              - image: { src: img_bulb, width: 40, height: 40 }
+                              - obj:
+                                  scrollable: false
+                                  clickable: false
+                                  pad_all: 0
+                                  width: 290
+                                  height: 60
+                                  bg_opa: TRANSP
+                                  border_opa: TRANSP
+                                  layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: START }
+                                  widgets:
+                                    - label: { id: lbl_licht_name_8, text: "Licht 8", text_font: fridolin_20, width: 290, long_mode: DOT, height: 26 }
+                                    - label: { id: lbl_licht_zustand_8, text: "Aus", text_font: fridolin_14, width: 290, translate_y: -5 }
+                            on_click:
+                              - homeassistant.action:
+                                  action: light.toggle
+                                  data:
+                                    entity_id: light.fridolin_licht_8
 
               ### Seite 3: Heizung (ohne eingerichtete Heizung nur ein Hinweistext)
               ### Seite 3: Klimaanlage (Heizen/Kühlen/Aus, Eco/Normal/Max,
@@ -2616,6 +3064,370 @@ lvgl:
                               entity_id: climate.fridolin_heizung
                               preset_mode: "max"
 
+              ### Seite 6: Rollläden (bis zu 4, zwei nebeneinander; je Kachel Name,
+              ### Zustand/Position und Auf/Stopp/Ab). Nicht belegte Slots sind
+              ### ausgeblendet.
+              - id: tile_rollladen
+                row: 0
+                column: 5
+                dir: HOR
+                widgets:
+                  - label:
+                      text: "Rollläden"
+                      text_font: fridolin_28
+                      align: TOP_MID
+                      y: 16
+                  - label:
+                      id: lbl_keine_rollladen
+                      text: "Keine Rollläden eingerichtet"
+                      align: CENTER
+                  - obj:
+                      scrollable: false
+                      pad_all: 0
+                      align: TOP_MID
+                      y: 62
+                      width: 760
+                      height: 380
+                      bg_opa: TRANSP
+                      border_opa: TRANSP
+                      layout:
+                        type: FLEX
+                        flex_flow: ROW_WRAP
+                        flex_align_main: START
+                        flex_align_cross: START
+                        flex_align_track: START
+                        pad_row: 12
+                        pad_column: 12
+                      widgets:
+                        - obj:
+                            scrollable: false
+                            pad_all: 10
+                            id: box_rollladen_1
+                            hidden: true
+                            width: 374
+                            height: 170
+                            radius: 14
+                            bg_color: 0x1B2A41
+                            bg_opa: COVER
+                            border_opa: TRANSP
+                            layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: START, flex_align_cross: CENTER, pad_row: 8 }
+                            widgets:
+                              - obj:
+                                  scrollable: false
+                                  clickable: false
+                                  pad_all: 0
+                                  width: 350
+                                  height: 62
+                                  bg_opa: TRANSP
+                                  border_opa: TRANSP
+                                  layout: { type: FLEX, flex_flow: ROW, flex_align_main: START, flex_align_cross: CENTER, pad_column: 14 }
+                                  widgets:
+                                    - image: { src: img_rollladen, width: 44, height: 44 }
+                                    - obj:
+                                        scrollable: false
+                                        clickable: false
+                                        pad_all: 0
+                                        width: 280
+                                        height: 58
+                                        bg_opa: TRANSP
+                                        border_opa: TRANSP
+                                        layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: START }
+                                        widgets:
+                                          - label: { id: lbl_rollladen_name_1, text: "Rollladen 1", text_font: fridolin_20, width: 280, height: 26, long_mode: DOT }
+                                          - label: { id: lbl_rollladen_zustand_1, text: "--", text_font: fridolin_14, width: 280, translate_y: -4 }
+                              - obj:
+                                  scrollable: false
+                                  clickable: false
+                                  pad_all: 0
+                                  width: 350
+                                  height: 62
+                                  bg_opa: TRANSP
+                                  border_opa: TRANSP
+                                  layout: { type: FLEX, flex_flow: ROW, flex_align_main: SPACE_BETWEEN, flex_align_cross: CENTER }
+                                  widgets:
+                                    - button:
+                                        scrollable: false
+                                        pad_all: 0
+                                        width: 110
+                                        height: 58
+                                        widgets:
+                                          - image: { src: img_pfeil_hoch, align: CENTER, width: 40, height: 40 }
+                                        on_click:
+                                          - homeassistant.action:
+                                              action: cover.open_cover
+                                              data:
+                                                entity_id: cover.fridolin_rollladen_1
+                                    - button:
+                                        scrollable: false
+                                        pad_all: 0
+                                        width: 110
+                                        height: 58
+                                        widgets:
+                                          - image: { src: img_stopp, align: CENTER, width: 40, height: 40 }
+                                        on_click:
+                                          - homeassistant.action:
+                                              action: cover.stop_cover
+                                              data:
+                                                entity_id: cover.fridolin_rollladen_1
+                                    - button:
+                                        scrollable: false
+                                        pad_all: 0
+                                        width: 110
+                                        height: 58
+                                        widgets:
+                                          - image: { src: img_pfeil_runter, align: CENTER, width: 40, height: 40 }
+                                        on_click:
+                                          - homeassistant.action:
+                                              action: cover.close_cover
+                                              data:
+                                                entity_id: cover.fridolin_rollladen_1
+                        - obj:
+                            scrollable: false
+                            pad_all: 10
+                            id: box_rollladen_2
+                            hidden: true
+                            width: 374
+                            height: 170
+                            radius: 14
+                            bg_color: 0x1B2A41
+                            bg_opa: COVER
+                            border_opa: TRANSP
+                            layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: START, flex_align_cross: CENTER, pad_row: 8 }
+                            widgets:
+                              - obj:
+                                  scrollable: false
+                                  clickable: false
+                                  pad_all: 0
+                                  width: 350
+                                  height: 62
+                                  bg_opa: TRANSP
+                                  border_opa: TRANSP
+                                  layout: { type: FLEX, flex_flow: ROW, flex_align_main: START, flex_align_cross: CENTER, pad_column: 14 }
+                                  widgets:
+                                    - image: { src: img_rollladen, width: 44, height: 44 }
+                                    - obj:
+                                        scrollable: false
+                                        clickable: false
+                                        pad_all: 0
+                                        width: 280
+                                        height: 58
+                                        bg_opa: TRANSP
+                                        border_opa: TRANSP
+                                        layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: START }
+                                        widgets:
+                                          - label: { id: lbl_rollladen_name_2, text: "Rollladen 2", text_font: fridolin_20, width: 280, height: 26, long_mode: DOT }
+                                          - label: { id: lbl_rollladen_zustand_2, text: "--", text_font: fridolin_14, width: 280, translate_y: -4 }
+                              - obj:
+                                  scrollable: false
+                                  clickable: false
+                                  pad_all: 0
+                                  width: 350
+                                  height: 62
+                                  bg_opa: TRANSP
+                                  border_opa: TRANSP
+                                  layout: { type: FLEX, flex_flow: ROW, flex_align_main: SPACE_BETWEEN, flex_align_cross: CENTER }
+                                  widgets:
+                                    - button:
+                                        scrollable: false
+                                        pad_all: 0
+                                        width: 110
+                                        height: 58
+                                        widgets:
+                                          - image: { src: img_pfeil_hoch, align: CENTER, width: 40, height: 40 }
+                                        on_click:
+                                          - homeassistant.action:
+                                              action: cover.open_cover
+                                              data:
+                                                entity_id: cover.fridolin_rollladen_2
+                                    - button:
+                                        scrollable: false
+                                        pad_all: 0
+                                        width: 110
+                                        height: 58
+                                        widgets:
+                                          - image: { src: img_stopp, align: CENTER, width: 40, height: 40 }
+                                        on_click:
+                                          - homeassistant.action:
+                                              action: cover.stop_cover
+                                              data:
+                                                entity_id: cover.fridolin_rollladen_2
+                                    - button:
+                                        scrollable: false
+                                        pad_all: 0
+                                        width: 110
+                                        height: 58
+                                        widgets:
+                                          - image: { src: img_pfeil_runter, align: CENTER, width: 40, height: 40 }
+                                        on_click:
+                                          - homeassistant.action:
+                                              action: cover.close_cover
+                                              data:
+                                                entity_id: cover.fridolin_rollladen_2
+                        - obj:
+                            scrollable: false
+                            pad_all: 10
+                            id: box_rollladen_3
+                            hidden: true
+                            width: 374
+                            height: 170
+                            radius: 14
+                            bg_color: 0x1B2A41
+                            bg_opa: COVER
+                            border_opa: TRANSP
+                            layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: START, flex_align_cross: CENTER, pad_row: 8 }
+                            widgets:
+                              - obj:
+                                  scrollable: false
+                                  clickable: false
+                                  pad_all: 0
+                                  width: 350
+                                  height: 62
+                                  bg_opa: TRANSP
+                                  border_opa: TRANSP
+                                  layout: { type: FLEX, flex_flow: ROW, flex_align_main: START, flex_align_cross: CENTER, pad_column: 14 }
+                                  widgets:
+                                    - image: { src: img_rollladen, width: 44, height: 44 }
+                                    - obj:
+                                        scrollable: false
+                                        clickable: false
+                                        pad_all: 0
+                                        width: 280
+                                        height: 58
+                                        bg_opa: TRANSP
+                                        border_opa: TRANSP
+                                        layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: START }
+                                        widgets:
+                                          - label: { id: lbl_rollladen_name_3, text: "Rollladen 3", text_font: fridolin_20, width: 280, height: 26, long_mode: DOT }
+                                          - label: { id: lbl_rollladen_zustand_3, text: "--", text_font: fridolin_14, width: 280, translate_y: -4 }
+                              - obj:
+                                  scrollable: false
+                                  clickable: false
+                                  pad_all: 0
+                                  width: 350
+                                  height: 62
+                                  bg_opa: TRANSP
+                                  border_opa: TRANSP
+                                  layout: { type: FLEX, flex_flow: ROW, flex_align_main: SPACE_BETWEEN, flex_align_cross: CENTER }
+                                  widgets:
+                                    - button:
+                                        scrollable: false
+                                        pad_all: 0
+                                        width: 110
+                                        height: 58
+                                        widgets:
+                                          - image: { src: img_pfeil_hoch, align: CENTER, width: 40, height: 40 }
+                                        on_click:
+                                          - homeassistant.action:
+                                              action: cover.open_cover
+                                              data:
+                                                entity_id: cover.fridolin_rollladen_3
+                                    - button:
+                                        scrollable: false
+                                        pad_all: 0
+                                        width: 110
+                                        height: 58
+                                        widgets:
+                                          - image: { src: img_stopp, align: CENTER, width: 40, height: 40 }
+                                        on_click:
+                                          - homeassistant.action:
+                                              action: cover.stop_cover
+                                              data:
+                                                entity_id: cover.fridolin_rollladen_3
+                                    - button:
+                                        scrollable: false
+                                        pad_all: 0
+                                        width: 110
+                                        height: 58
+                                        widgets:
+                                          - image: { src: img_pfeil_runter, align: CENTER, width: 40, height: 40 }
+                                        on_click:
+                                          - homeassistant.action:
+                                              action: cover.close_cover
+                                              data:
+                                                entity_id: cover.fridolin_rollladen_3
+                        - obj:
+                            scrollable: false
+                            pad_all: 10
+                            id: box_rollladen_4
+                            hidden: true
+                            width: 374
+                            height: 170
+                            radius: 14
+                            bg_color: 0x1B2A41
+                            bg_opa: COVER
+                            border_opa: TRANSP
+                            layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: START, flex_align_cross: CENTER, pad_row: 8 }
+                            widgets:
+                              - obj:
+                                  scrollable: false
+                                  clickable: false
+                                  pad_all: 0
+                                  width: 350
+                                  height: 62
+                                  bg_opa: TRANSP
+                                  border_opa: TRANSP
+                                  layout: { type: FLEX, flex_flow: ROW, flex_align_main: START, flex_align_cross: CENTER, pad_column: 14 }
+                                  widgets:
+                                    - image: { src: img_rollladen, width: 44, height: 44 }
+                                    - obj:
+                                        scrollable: false
+                                        clickable: false
+                                        pad_all: 0
+                                        width: 280
+                                        height: 58
+                                        bg_opa: TRANSP
+                                        border_opa: TRANSP
+                                        layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: START }
+                                        widgets:
+                                          - label: { id: lbl_rollladen_name_4, text: "Rollladen 4", text_font: fridolin_20, width: 280, height: 26, long_mode: DOT }
+                                          - label: { id: lbl_rollladen_zustand_4, text: "--", text_font: fridolin_14, width: 280, translate_y: -4 }
+                              - obj:
+                                  scrollable: false
+                                  clickable: false
+                                  pad_all: 0
+                                  width: 350
+                                  height: 62
+                                  bg_opa: TRANSP
+                                  border_opa: TRANSP
+                                  layout: { type: FLEX, flex_flow: ROW, flex_align_main: SPACE_BETWEEN, flex_align_cross: CENTER }
+                                  widgets:
+                                    - button:
+                                        scrollable: false
+                                        pad_all: 0
+                                        width: 110
+                                        height: 58
+                                        widgets:
+                                          - image: { src: img_pfeil_hoch, align: CENTER, width: 40, height: 40 }
+                                        on_click:
+                                          - homeassistant.action:
+                                              action: cover.open_cover
+                                              data:
+                                                entity_id: cover.fridolin_rollladen_4
+                                    - button:
+                                        scrollable: false
+                                        pad_all: 0
+                                        width: 110
+                                        height: 58
+                                        widgets:
+                                          - image: { src: img_stopp, align: CENTER, width: 40, height: 40 }
+                                        on_click:
+                                          - homeassistant.action:
+                                              action: cover.stop_cover
+                                              data:
+                                                entity_id: cover.fridolin_rollladen_4
+                                    - button:
+                                        scrollable: false
+                                        pad_all: 0
+                                        width: 110
+                                        height: 58
+                                        widgets:
+                                          - image: { src: img_pfeil_runter, align: CENTER, width: 40, height: 40 }
+                                        on_click:
+                                          - homeassistant.action:
+                                              action: cover.close_cover
+                                              data:
+                                                entity_id: cover.fridolin_rollladen_4
+
   ### ------------------------------------------------------------------
   ### Einstellungsseite: kein eigener Wisch-Seite, sondern ein Overlay
   ### im top_layer, das nur über den Button auf der Übersicht erscheint
@@ -2649,121 +3461,134 @@ lvgl:
             ### Flex-COLUMN mit pad_row garantiert ueberlappungsfreie Abstaende
             ### unabhaengig von der tatsaechlichen, schwer im Voraus
             ### abschaetzbaren Textzeilenhoehe der echten Google-Font.
+            ### Zwei Spalten, oben ausgerichtet: links Fahrzeugtyp + Standby, rechts
+            ### Standort (erste Zeile). Eine Spalte war zu hoch und schnitt Knoepfe ab.
             - obj:
                 scrollable: false
                 pad_all: 0
                 align: TOP_MID
-                y: 64
+                y: 86
                 width: 100%
-                height: 340
+                height: 310
                 bg_opa: TRANSP
                 border_opa: TRANSP
-                layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER, pad_row: 10 }
+                layout: { type: FLEX, flex_flow: ROW, flex_align_main: SPACE_EVENLY, flex_align_cross: START }
                 widgets:
-                  - label:
-                      text: "Fahrzeugtyp für die Nivellierungs-Seite:"
-                      text_font: fridolin_14
-                      text_align: CENTER
-
-                  ### flex_align_main: CENTER + fester pad_column (statt SPACE_EVENLY,
-                  ### das den Abstand implizit aus width minus Knopfbreiten errechnet)
-                  ### - auf echter Hardware wirkten die beiden Knoepfe trotz
-                  ### rechnerisch ausreichendem Abstand noch zu eng/ueberlappend,
-                  ### ein grosszuegiger EXPLIZITER Abstand ist unabhaengig von der
-                  ### exakten Container-Breite.
                   - obj:
                       scrollable: false
                       pad_all: 0
-                      width: 400
-                      height: 50
+                      width: 380
+                      height: 310
                       bg_opa: TRANSP
                       border_opa: TRANSP
-                      layout: { type: FLEX, flex_flow: ROW, flex_align_main: CENTER, flex_align_cross: CENTER, pad_column: 50 }
-                      widgets:
-                        ### Dezentere "checked"-Farbe als der globale Theme-Default
-                        ### (grelles Warn-Rot 0xF53B3B, sinnvoll fuer z.B. "Heizung
-                        ### an", hier aber nur eine stille Einstellungs-Auswahl) -
-                        ### dezenter, gedeckter Blauton in derselben Familie statt
-                        ### Farbwechsel.
-                        - button:
-                            scrollable: false
-                            id: btn_fahrzeug_wohnwagen
-                            checkable: true
-                            width: 155
-                            height: 50
-                            checked:
-                              bg_color: 0x3D5A80
-                              bg_opa: COVER
-                            widgets:
-                              - label:
-                                  text: "Wohnwagen"
-                                  align: CENTER
-                            on_click:
-                              - lambda: 'id(g_fahrzeugtyp_wohnmobil) = false;'
-                              - script.execute: sync_fahrzeugtyp
-                        - button:
-                            scrollable: false
-                            id: btn_fahrzeug_wohnmobil
-                            checkable: true
-                            width: 155
-                            height: 50
-                            checked:
-                              bg_color: 0x3D5A80
-                              bg_opa: COVER
-                            widgets:
-                              - label:
-                                  text: "Wohnmobil"
-                                  align: CENTER
-                            on_click:
-                              - lambda: 'id(g_fahrzeugtyp_wohnmobil) = true;'
-                              - script.execute: sync_fahrzeugtyp
-
-                  - label:
-                      text: "Fridolins aktuellen Standort für die\nWetteranzeige übernehmen:"
-                      text_font: fridolin_14
-                      text_align: CENTER
-
-                  - button:
-                      scrollable: false
-                      id: btn_standort_uebernehmen
-                      width: 320
-                      height: 56
+                      layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: START, flex_align_cross: CENTER, pad_row: 26 }
                       widgets:
                         - label:
-                            text: "Standort übernehmen"
-                            align: CENTER
-                      on_click:
-                        ### Drückt den "Standort übernehmen"-Button der
-                        ### Fridolin-Display-Integration in Home Assistant
-                        - homeassistant.action:
-                            action: button.press
-                            data:
-                              entity_id: button.fridolin_standort_uebernehmen
+                            text: "Fahrzeugtyp für die Nivellierungs-Seite:"
+                            text_font: fridolin_20
+                            text_align: CENTER
+                            width: 380
 
-                  - label:
-                      id: lbl_standort_status
-                      text: "Noch kein Standort übernommen"
-                      text_font: fridolin_14
-                      text_align: CENTER
+                        - obj:
+                            scrollable: false
+                            pad_all: 0
+                            width: 380
+                            height: 60
+                            bg_opa: TRANSP
+                            border_opa: TRANSP
+                            layout: { type: FLEX, flex_flow: ROW, flex_align_main: CENTER, flex_align_cross: CENTER, pad_column: 20 }
+                            widgets:
+                              - button:
+                                  scrollable: false
+                                  id: btn_fahrzeug_wohnwagen
+                                  checkable: true
+                                  width: 165
+                                  height: 50
+                                  checked:
+                                    bg_color: 0x3D5A80
+                                    bg_opa: COVER
+                                  widgets:
+                                    - label:
+                                        text: "Wohnwagen"
+                                        align: CENTER
+                                  on_click:
+                                    - lambda: 'id(g_fahrzeugtyp_wohnmobil) = false;'
+                                    - script.execute: sync_fahrzeugtyp
+                              - button:
+                                  scrollable: false
+                                  id: btn_fahrzeug_wohnmobil
+                                  checkable: true
+                                  width: 165
+                                  height: 50
+                                  checked:
+                                    bg_color: 0x3D5A80
+                                    bg_opa: COVER
+                                  widgets:
+                                    - label:
+                                        text: "Wohnmobil"
+                                        align: CENTER
+                                  on_click:
+                                    - lambda: 'id(g_fahrzeugtyp_wohnmobil) = true;'
+                                    - script.execute: sync_fahrzeugtyp
 
-                  - label:
-                      id: lbl_standby
-                      text: "Display ausschalten nach: 1 Min"
-                      text_font: fridolin_14
-                      text_align: CENTER
+                        - label:
+                            id: lbl_standby
+                            text: "Display ausschalten nach: 1 Min"
+                            text_font: fridolin_20
+                            text_align: CENTER
+                            width: 380
 
-                  - slider:
-                      id: sld_standby
-                      width: 300
-                      height: 14
-                      min_value: 0
-                      max_value: 3
-                      value: 1
-                      on_value:
-                        - lambda: |-
-                            static const int minuten[4] = {0, 1, 2, 5};
-                            id(g_standby_min) = minuten[(int) x];
-                            id(sync_standby).execute();
+                        - slider:
+                            id: sld_standby
+                            width: 300
+                            height: 18
+                            min_value: 0
+                            max_value: 3
+                            value: 1
+                            on_value:
+                              - lambda: |-
+                                  static const int minuten[4] = {0, 1, 2, 5};
+                                  id(g_standby_min) = minuten[(int) x];
+                                  id(sync_standby).execute();
+
+                  - obj:
+                      scrollable: false
+                      pad_all: 0
+                      width: 380
+                      height: 310
+                      bg_opa: TRANSP
+                      border_opa: TRANSP
+                      layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: START, flex_align_cross: CENTER, pad_row: 26 }
+                      widgets:
+                        - label:
+                            text: "Fridolins aktuellen Standort für die\nWetteranzeige übernehmen:"
+                            text_font: fridolin_20
+                            text_align: CENTER
+                            width: 380
+
+                        - button:
+                            scrollable: false
+                            id: btn_standort_uebernehmen
+                            width: 320
+                            height: 60
+                            widgets:
+                              - label:
+                                  text: "Standort übernehmen"
+                                  align: CENTER
+                            on_click:
+                              ### Drückt den "Standort übernehmen"-Button der
+                              ### Fridolin-Display-Integration in Home Assistant
+                              - homeassistant.action:
+                                  action: button.press
+                                  data:
+                                    entity_id: button.fridolin_standort_uebernehmen
+
+                        - label:
+                            id: lbl_standort_status
+                            text: "Noch kein Standort übernommen"
+                            text_font: fridolin_20
+                            text_align: CENTER
+                            width: 380
 
             - button:
                 scrollable: false

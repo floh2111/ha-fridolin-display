@@ -52,6 +52,7 @@ TILE_ID_BY_TYPE = {
     "climate": "tile_heizung",
     "leveling": "tile_nivellierung",
     "fridge": "tile_kuehlbox",
+    "cover": "tile_rollladen",
 }
 TYPE_BY_TILE_ID = {v: k for k, v in TILE_ID_BY_TYPE.items()}
 
@@ -90,14 +91,14 @@ _FIELD_INDENT = " " * (ITEM_INDENT + 2)
 
 # Einrueckung der beiden Wohnwagen/Wohnmobil-Umschalter-Widgets im
 # Einstellungen-Overlay (Footer) - siehe REMOVE_ITEM_ANCHORS["leveling"].
-# 18 statt (wie urspruenglich) 12, seit die Einstellungen-Seite einen
-# umschliessenden Flex-COLUMN-Container bekommen hat (siehe
+# 24 (urspruenglich 12, dann 18): die Einstellungen-Seite hat einen
+# umschliessenden Container und zwei Spalten-Container bekommen (siehe
 # wohnwagen-display.yaml, "top_layer:" -> overlay_einstellungen) - das
 # fuegt eine zusaetzliche widgets:-Verschachtelungsebene ein. Bei
 # sichtbaren Aenderungen an dieser Seite IMMER pruefen, ob sich die
 # Einrueckung dieser beiden Anker-Zeilen mitverschoben hat (siehe
 # CLAUDE.md, "Der YAML-Generator hat eigene, hartkodierte Text-Anker").
-_SETTINGS_WIDGET_INDENT = 18
+_SETTINGS_WIDGET_INDENT = 24
 
 # Jeder Eintrag: (Regex, die IRGENDEINE Zeile innerhalb des zu entfernenden
 # Elements eindeutig identifiziert, Einrueckung des umschliessenden "- "-
@@ -110,8 +111,21 @@ _SETTINGS_WIDGET_INDENT = 18
 # wuerde dort faelschlich zuschlagen und auf das falsche (umschliessende)
 # Element zurueckfallen.
 REMOVE_ITEM_ANCHORS: dict[str, list[tuple[re.Pattern, int]]] = {
-    "light": [(re.compile(rf"^{_FIELD_INDENT}id: ha_licht_{n}\s*$"), ITEM_INDENT) for n in range(1, 5)]
+    "light": [(re.compile(rf"^{_FIELD_INDENT}id: ha_licht_{n}\s*$"), ITEM_INDENT) for n in range(1, 9)]
+    + [(re.compile(rf"^{_FIELD_INDENT}id: ha_licht_name_{n}\s*$"), ITEM_INDENT) for n in range(1, 9)]
     + [(re.compile(r"^\s*- id: sync_lichter\s*$"), ITEM_INDENT)],
+    "cover": [
+        (re.compile(rf"^{_FIELD_INDENT}id: ha_rollladen_{n}\s*$"), ITEM_INDENT) for n in range(1, 5)
+    ]
+    + [
+        (re.compile(rf"^{_FIELD_INDENT}id: ha_rollladen_name_{n}\s*$"), ITEM_INDENT)
+        for n in range(1, 5)
+    ]
+    + [
+        (re.compile(rf"^{_FIELD_INDENT}id: ha_rollladen_pos_{n}\s*$"), ITEM_INDENT)
+        for n in range(1, 5)
+    ]
+    + [(re.compile(r"^\s*- id: sync_rollaeden\s*$"), ITEM_INDENT)],
     "climate": [
         (re.compile(rf"^{_FIELD_INDENT}id: ha_heizung_modus\s*$"), ITEM_INDENT),
         (re.compile(rf"^{_FIELD_INDENT}id: ha_klima_preset\s*$"), ITEM_INDENT),
@@ -193,9 +207,26 @@ LEGACY_INSTANCE = "1"
 MULTI_INSTANCE_SECTIONS: dict[str, list[tuple[re.Pattern, int, str]]] = {
     "light": [
         (re.compile(rf"^{_FIELD_INDENT}id: ha_licht_{n}\s*$"), ITEM_INDENT, "text_sensor")
-        for n in range(1, 5)
+        for n in range(1, 9)
+    ]
+    + [
+        (re.compile(rf"^{_FIELD_INDENT}id: ha_licht_name_{n}\s*$"), ITEM_INDENT, "text_sensor")
+        for n in range(1, 9)
     ]
     + [(re.compile(r"^\s*- id: sync_lichter\s*$"), ITEM_INDENT, "script")],
+    "cover": [
+        (re.compile(rf"^{_FIELD_INDENT}id: ha_rollladen_{n}\s*$"), ITEM_INDENT, "text_sensor")
+        for n in range(1, 5)
+    ]
+    + [
+        (re.compile(rf"^{_FIELD_INDENT}id: ha_rollladen_name_{n}\s*$"), ITEM_INDENT, "text_sensor")
+        for n in range(1, 5)
+    ]
+    + [
+        (re.compile(rf"^{_FIELD_INDENT}id: ha_rollladen_pos_{n}\s*$"), ITEM_INDENT, "sensor")
+        for n in range(1, 5)
+    ]
+    + [(re.compile(r"^\s*- id: sync_rollaeden\s*$"), ITEM_INDENT, "script")],
     "climate": [
         (re.compile(rf"^{_FIELD_INDENT}id: ha_heizung_modus\s*$"), ITEM_INDENT, "text_sensor"),
         (re.compile(rf"^{_FIELD_INDENT}id: ha_klima_preset\s*$"), ITEM_INDENT, "text_sensor"),
@@ -451,6 +482,12 @@ def _remap_entity_ids(text: str, page_type: str, instance: str) -> str:
         )
     if page_type == "climate":
         return text.replace("climate.fridolin_heizung", f"climate.fridolin_climate_{instance}")
+    if page_type == "cover":
+        return re.sub(
+            r"cover\.fridolin_rollladen_(\d+)\b",
+            rf"cover.fridolin_rollladen_{instance}_\1",
+            text,
+        )
     return text
 
 
@@ -762,6 +799,7 @@ def _plan_from_source_order(blocks_order: list[str]) -> list[dict]:
         "climate": "Klimaanlage",
         "leveling": "Nivellierung",
         "fridge": "Kühlbox",
+        "cover": "Rollläden",
     }
     return [{"type": t, "title": titles[t]} for t in blocks_order]
 

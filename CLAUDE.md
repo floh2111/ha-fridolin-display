@@ -858,6 +858,25 @@ Wind, Luftfeuchte, Luftdruck, Sonne; Klima-Ringe zusaetzlich per
 `arc_opa` unsichtbar ohne Klimaanlage (Grafikfehler, Ursache nicht sicher
 geklaert); Integration 0.7.2 (Luftdruck) noch nicht released.
 
+## Licht, Schalter, Rollläden, Wischen (Stand 03.10.2026, Integration 0.8.0)
+
+- **Licht-Seite**: Kachel-Stil (Symbol, Name, Ein/Aus), zwei nebeneinander,
+  bis zu 8 Slots (`MAX_LIGHT_SLOTS = 8`); ein Slot darf auch ein `switch`
+  sein (Ein/Aus laeuft ueber `homeassistant.turn_on/turn_off`). Der Name
+  kommt vom `friendly_name`-Attribut der Spiegel-Entity.
+- **Rollläden-Seite** (neuer Seitentyp `cover`, `tile_rollladen`, am Ende der
+  Reihenfolge): bis zu 4 Slots (`MAX_COVER_SLOTS`), Spiegel-Entities
+  `cover.fridolin_rollladen_N` (`cover.py`), Auf/Stopp/Ab per
+  `homeassistant.action`; Optionen-Flow erzeugt pro Seite 4 Slots.
+  Generator kennt den Typ (Anker, Mehrfach-Instanzen, `--check` ok).
+- **Wischen**: `scroll_one: true` auf dem Tileview, `scroll_throw 1` /
+  `scroll_limit 3` per Lambda beim Start, `compiler_optimization: PERF`,
+  Endlos-Karussell per `on_gesture` (springt am Ende zur ersten/letzten
+  Seite, Position der Seiten ueber ihre x-Koordinate).
+- Einstellungen in zwei Spalten (Generator-Anker `_SETTINGS_WIDGET_INDENT = 24`).
+- Bei `git`: **kein `git stash`** in diesem Repo benutzen - hat einmal den
+  Index zerstoert (mit `git reset` ohne `--hard` reparierbar).
+
 ## Ton/Stil-Hinweis
 
 Florian ist technisch versiert (kennt sich mit ESPHome, Home Assistant,
