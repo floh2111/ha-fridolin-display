@@ -834,6 +834,30 @@ Alle Werte kommen als fertige Texte aus der Integration (neue Sensoren
 rechnerisch knapp (linker Block 400px hoch) - auf Hardware pruefen, ob
 etwas abgeschnitten ist. Die Schrift `fridolin_56` wurde entfernt.
 
+## Kühlbox-Bluetooth (Stand 03.10.2026)
+
+Die Tuya-BLE-Komponenten (`tuya_ble_client/_node/_tracker`, Fork
+`floh2111/esphome-tuya-ble-fridolin`, Commit 76f0e49) liegen jetzt LOKAL
+in `esphome/components/` (Lizenz: `TUYA_BLE_LICENSE.txt`) statt als
+git-`external_components`, damit sie angepasst werden koennen. Aenderungen
+gegenueber dem Fork: `TuyaBLENode::update()` liest die Werte auf einer
+offenen Verbindung neu ein (statt zu ueberspringen). Dazu in der YAML
+`tuya_ble_client: timeout: 60s` (Standard war 2 s - die Verbindung brach
+nach jeder Aktion ab, jeder Tastendruck brauchte Neuaufbau) und
+`update_interval: 30s`. Ergebnis im Log: eine Verbindung nach dem Boot, alle
+30 s Refresh ohne Reconnect. Nachteil: die Tuya-App kann sich nicht mehr
+verbinden, solange das Display laeuft (war ohnehin nur eine Verbindung
+moeglich). Zieltemperatur-Klicks wirken sofort in der Anzeige
+(`g_kb_pending`, Skripte `kb_ziel_aendern`/`kb_ziel_senden`, 600 ms
+Entprellung, mehrere Klicks = ein BLE-Befehl). Noch nicht von Florian im
+Alltag bestaetigt.
+
+Weitere Aenderungen 03.10.2026: Seitenreihenfolge Uebersicht, Kuehlbox,
+Nivellierung, Licht, Klimaanlage (per Generator); rechte Wetterspalte mit
+Wind, Luftfeuchte, Luftdruck, Sonne; Klima-Ringe zusaetzlich per
+`arc_opa` unsichtbar ohne Klimaanlage (Grafikfehler, Ursache nicht sicher
+geklaert); Integration 0.7.2 (Luftdruck) noch nicht released.
+
 ## Ton/Stil-Hinweis
 
 Florian ist technisch versiert (kennt sich mit ESPHome, Home Assistant,

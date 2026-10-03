@@ -131,6 +131,9 @@ REMOVE_ITEM_ANCHORS: dict[str, list[tuple[re.Pattern, int]]] = {
         (re.compile(rf'^{_FIELD_INDENT}name: "Kühlbox Batterie"\s*$'), ITEM_INDENT),
         (re.compile(rf'^{_FIELD_INDENT}name: "Kühlbox Spannung"\s*$'), ITEM_INDENT),
         (re.compile(r"^\s*- id: sync_kuehlbox\s*$"), ITEM_INDENT),
+        (re.compile(r"^\s*- id: g_kb_pending\s*$"), ITEM_INDENT),
+        (re.compile(r"^\s*- id: kb_ziel_aendern\s*$"), ITEM_INDENT),
+        (re.compile(r"^\s*- id: kb_ziel_senden\s*$"), ITEM_INDENT),
         # interval:-Trigger, der sync_kuehlbox alle 10s aufruft (eigenes,
         # von "id: sync_kuehlbox" getrenntes Element - siehe interval:-
         # Sektion; "10s" ist an dieser Stelle eindeutig)

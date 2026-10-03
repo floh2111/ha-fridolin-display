@@ -36,6 +36,13 @@ preferences:
 ### Übersichts-Text unabhängig von der Update-Reihenfolge stimmt
 globals:
   ### Zeitpunkt (millis) der letzten Kühlbox-Messung, für die Anzeige Verbunden/Getrennt
+  ### Vom Display eingestellte, noch nicht bestaetigte Kuehlbox-Zieltemperatur
+  ### (-999 = nichts ausstehend) - zeigt die Aenderung sofort an und lässt
+  ### mehrere schnelle Klicks aufeinander aufbauen
+  - id: g_kb_pending
+    type: float
+    restore_value: false
+    initial_value: '-999'
   - id: g_kb_letzte
     type: uint32_t
     restore_value: false
@@ -284,10 +291,6 @@ touchscreen:
 ### Assistant-Integration "Tuya BLE" müssen getrennt/deaktiviert sein.
 ### ------------------------------------------------------------------
 external_components:
-  - source:
-      type: git
-      url: https://github.com/floh2111/esphome-tuya-ble-fridolin
-      ref: 76f0e49d25ef46f6940ec9656df3f1321c5fcb18
   ### Eigene kleine lokale Komponente (components/psram_120mhz_fix/), die
   ### PSRAM trotz 120MHz bootfaehig haelt - siehe deren Docstring und
   ### CLAUDE.md fuer die volle Herleitung des Bootloops, den 120MHz ohne
@@ -314,8 +317,13 @@ esp32_ble_tracker:
 
 tuya_ble_tracker:
 
+### timeout: 60s statt Standard 2s - die Verbindung zur Kuehlbox bleibt nach
+### jeder Aktion 60 s offen (und wird vom 30s-Update auf der offenen
+### Verbindung am Leben gehalten), sonst musste jeder Tastendruck die
+### komplette Verbindung (Suchen, Verbinden, Koppeln) neu aufbauen.
 tuya_ble_client:
   - id: tuya_client
+    timeout: 60s
 
 tuya_ble_node:
   - id: kuehlbox
@@ -324,7 +332,7 @@ tuya_ble_node:
     device_id: !secret fridolin_kuehlbox_device_id
     uuid: !secret fridolin_kuehlbox_uuid
     tuya_ble_client_id: tuya_client
-    update_interval: 60s
+    update_interval: 30s
     max_queued: 5
 
 select:
@@ -411,6 +419,7 @@ number:
     mode: box
     on_value:
       - lambda: |-
+          if (id(g_kb_pending) > -900 && fabsf(x - id(g_kb_pending)) < 0.5f) id(g_kb_pending) = -999;
           id(kb_ziel_auswahl).publish_state(str_sprintf("%d °C", (int) roundf(x)));
       - script.execute: sync_kuehlbox
 
@@ -463,16 +472,10 @@ image:
   ### esphome/images/wasserwaage.svg), in nativer Auflösung gerastert
   ### (460x300, deckungsgleich mit dem SVG-viewBox) - die Blasen-Overlays
   ### unten rechnen deshalb direkt mit den SVG-Koordinaten, ohne Skalierung.
-  ### Icons fuer die rechte Wetterspalte (Wind, Luftfeuchte, Sonne)
+  ### Icons fuer die rechte Wetterspalte (Wind, Luftfeuchte, Luftdruck, Sonne)
   - platform: file
     id: img_wind
-    file: images/weather/windy.svg
-    resize: 48x48
-    type: RGB565
-    transparency: alpha_channel
-  - platform: file
-    id: img_humidity
-    file: images/humidity.svg
+    file: images/wind.svg
     resize: 48x48
     type: RGB565
     transparency: alpha_channel
@@ -485,6 +488,19 @@ image:
   - platform: file
     id: img_sunset
     file: images/sunset.svg
+    resize: 48x48
+    type: RGB565
+    transparency: alpha_channel
+
+  - platform: file
+    id: img_humidity
+    file: images/humidity.svg
+    resize: 48x48
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_pressure
+    file: images/pressure.svg
     resize: 48x48
     type: RGB565
     transparency: alpha_channel
@@ -955,6 +971,11 @@ text_sensor:
     on_value:
       - lvgl.label.update: { id: lbl_feuchte, text: !lambda 'return (x == "unknown" || x == "unavailable") ? std::string("--") : x;' }
   - platform: homeassistant
+    id: wetter_druck
+    entity_id: sensor.fridolin_wetter_pressure
+    on_value:
+      - lvgl.label.update: { id: lbl_druck, text: !lambda 'return (x == "unknown" || x == "unavailable") ? std::string("--") : x;' }
+  - platform: homeassistant
     id: wetter_sunrise
     entity_id: sensor.fridolin_wetter_sunrise
     on_value:
@@ -1231,14 +1252,42 @@ script:
           lv_label_set_text_fmt(id(lbl_uhrzeit), "%02u:%02u", t.hour, t.minute);
           lv_label_set_text_fmt(id(lbl_datum), "%s, %02u.%02u.", wochentag[t.day_of_week], t.day_of_month, t.month);
 
+  ### Zieltemperatur der Kuehlbox um delta aendern: Anzeige sofort, der
+  ### Bluetooth-Befehl geht erst nach kurzer Ruhe raus (mehrere Klicks = ein Befehl)
+  - id: kb_ziel_aendern
+    parameters:
+      delta: int
+    then:
+      - lambda: |-
+          float basis = id(g_kb_pending) > -900 ? id(g_kb_pending) : (id(kb_ziel).has_state() ? id(kb_ziel).state : 5.0f);
+          float neu = std::max(-20.0f, std::min(20.0f, basis + delta));
+          id(g_kb_pending) = neu;
+          lv_label_set_text_fmt(id(lbl_kb_ziel), "%d °C", (int) roundf(neu));
+          lv_arc_set_value(id(arc_kb), (int) roundf(neu));
+      - script.execute: kb_ziel_senden
+
+  - id: kb_ziel_senden
+    mode: restart
+    then:
+      - delay: 600ms
+      - number.set:
+          id: kb_ziel
+          value: !lambda 'return id(g_kb_pending);'
+      ### Falls die Kuehlbox den Wert nie zurueckmeldet, nach 30 s wieder
+      ### den echten Stand anzeigen
+      - delay: 30s
+      - lambda: 'id(g_kb_pending) = -999;'
+      - script.execute: sync_kuehlbox
+
   - id: sync_kuehlbox
     then:
       - lambda: |-
           bool frisch = id(g_kb_letzte) != 0 && (millis() - id(g_kb_letzte)) < 180000;
           bool an = id(kb_power).state;
-          bool hat_ziel = id(kb_ziel).has_state();
+          bool hat_pending = id(g_kb_pending) > -900;
+          bool hat_ziel = hat_pending || id(kb_ziel).has_state();
           bool hat_ist = id(kb_ist).has_state();
-          float z = id(kb_ziel).state;
+          float z = hat_pending ? id(g_kb_pending) : id(kb_ziel).state;
           float ist = id(kb_ist).state;
           const char *status = !frisch ? "Keine Daten" : (!an ? "Aus" : ((hat_ziel && hat_ist && ist > z) ? "Kuehlt" : "Bereit"));
           lv_label_set_text(id(lbl_kb_status), status);
@@ -1342,6 +1391,10 @@ script:
             if (da) lv_obj_clear_flag(o, LV_OBJ_FLAG_HIDDEN);
             else lv_obj_add_flag(o, LV_OBJ_FLAG_HIDDEN);
           }
+          // Ringe zusaetzlich zum HIDDEN-Flag komplett durchsichtig, solange keine
+          // Klimaanlage da ist (Grafikfehler: Ring-Rest auf der leeren Klima-Seite)
+          lv_obj_set_style_arc_opa(id(arc_klima_kalt), da ? LV_OPA_COVER : LV_OPA_TRANSP, LV_PART_INDICATOR);
+          lv_obj_set_style_arc_opa(id(arc_klima_warm), da ? LV_OPA_COVER : LV_OPA_TRANSP, LV_PART_INDICATOR);
           if (da) lv_obj_add_flag(id(lbl_keine_heizung), LV_OBJ_FLAG_HIDDEN);
           else lv_obj_clear_flag(id(lbl_keine_heizung), LV_OBJ_FLAG_HIDDEN);
 
@@ -1407,7 +1460,7 @@ font:
     bpp: 4
     glyphs: &deutsche_zeichen
       - ' !"#$%&''()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~'
-      - '°±ÄÖÜßäöü–—€'
+      - '°±²ÄÖÜßäöü–—€'
   - file: "gfonts://Montserrat"
     id: fridolin_20
     size: 20
@@ -1562,26 +1615,13 @@ lvgl:
                               flex_flow: COLUMN
                               flex_align_main: CENTER
                               flex_align_cross: CENTER
-                              pad_row: 6
+                              pad_row: 12
                             widgets:
-                              ### Oben links: Uhrzeit + Datum nebeneinander, darunter der Ort
                               - obj:
                                   scrollable: false
                                   pad_all: 0
                                   width: 350
-                                  height: 52
-                                  bg_opa: TRANSP
-                                  border_opa: TRANSP
-                                  layout: { type: FLEX, flex_flow: ROW, flex_align_main: CENTER, flex_align_cross: CENTER, pad_column: 16 }
-                                  widgets:
-                                    - label: { id: lbl_uhrzeit, text: "--:--", text_font: fridolin_40, width: 128, text_align: CENTER }
-                                    - label: { id: lbl_datum, text: "--, --.--.", text_font: fridolin_28, width: 190, text_align: CENTER }
-                              - label: { id: lbl_wetter_ort, text: "—", text_font: fridolin_20, width: 350, text_align: CENTER }
-                              - obj:
-                                  scrollable: false
-                                  pad_all: 0
-                                  width: 350
-                                  height: 104
+                                  height: 124
                                   bg_opa: TRANSP
                                   border_opa: TRANSP
                                   layout:
@@ -1609,7 +1649,7 @@ lvgl:
                                         scrollable: false
                                         pad_all: 0
                                         width: 248
-                                        height: 104
+                                        height: 124
                                         bg_opa: TRANSP
                                         border_opa: TRANSP
                                         layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: START }
@@ -1646,7 +1686,7 @@ lvgl:
                                   scrollable: false
                                   pad_all: 0
                                   width: 360
-                                  height: 112
+                                  height: 138
                                   bg_opa: TRANSP
                                   border_opa: TRANSP
                                   layout:
@@ -1660,52 +1700,52 @@ lvgl:
                                         scrollable: false
                                         pad_all: 0
                                         width: 82
-                                        height: 112
+                                        height: 138
                                         bg_opa: TRANSP
                                         border_opa: TRANSP
                                         layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER, pad_row: 3 }
                                         widgets:
                                           - label: { id: lbl_h0_zeit, text: "--:--", text_font: fridolin_14, width: 82, text_align: CENTER }
-                                          - image: { id: img_h0_icon, src: img_w_cloudy_s, width: 40, height: 40 }
+                                          - image: { id: img_h0_icon, src: img_w_cloudy_s, width: 46, height: 46 }
                                           - label: { id: lbl_h0_temp, text: "--°", text_font: fridolin_20, width: 82, text_align: CENTER }
                                           - label: { id: lbl_h0_regen, text: "", text_font: fridolin_14, text_color: 0x6CB8FF, width: 82, text_align: CENTER }
                                     - obj:
                                         scrollable: false
                                         pad_all: 0
                                         width: 82
-                                        height: 112
+                                        height: 138
                                         bg_opa: TRANSP
                                         border_opa: TRANSP
                                         layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER, pad_row: 3 }
                                         widgets:
                                           - label: { id: lbl_h1_zeit, text: "--:--", text_font: fridolin_14, width: 82, text_align: CENTER }
-                                          - image: { id: img_h1_icon, src: img_w_cloudy_s, width: 40, height: 40 }
+                                          - image: { id: img_h1_icon, src: img_w_cloudy_s, width: 46, height: 46 }
                                           - label: { id: lbl_h1_temp, text: "--°", text_font: fridolin_20, width: 82, text_align: CENTER }
                                           - label: { id: lbl_h1_regen, text: "", text_font: fridolin_14, text_color: 0x6CB8FF, width: 82, text_align: CENTER }
                                     - obj:
                                         scrollable: false
                                         pad_all: 0
                                         width: 82
-                                        height: 112
+                                        height: 138
                                         bg_opa: TRANSP
                                         border_opa: TRANSP
                                         layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER, pad_row: 3 }
                                         widgets:
                                           - label: { id: lbl_h2_zeit, text: "--:--", text_font: fridolin_14, width: 82, text_align: CENTER }
-                                          - image: { id: img_h2_icon, src: img_w_cloudy_s, width: 40, height: 40 }
+                                          - image: { id: img_h2_icon, src: img_w_cloudy_s, width: 46, height: 46 }
                                           - label: { id: lbl_h2_temp, text: "--°", text_font: fridolin_20, width: 82, text_align: CENTER }
                                           - label: { id: lbl_h2_regen, text: "", text_font: fridolin_14, text_color: 0x6CB8FF, width: 82, text_align: CENTER }
                                     - obj:
                                         scrollable: false
                                         pad_all: 0
                                         width: 82
-                                        height: 112
+                                        height: 138
                                         bg_opa: TRANSP
                                         border_opa: TRANSP
                                         layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER, pad_row: 3 }
                                         widgets:
                                           - label: { id: lbl_h3_zeit, text: "--:--", text_font: fridolin_14, width: 82, text_align: CENTER }
-                                          - image: { id: img_h3_icon, src: img_w_cloudy_s, width: 40, height: 40 }
+                                          - image: { id: img_h3_icon, src: img_w_cloudy_s, width: 46, height: 46 }
                                           - label: { id: lbl_h3_temp, text: "--°", text_font: fridolin_20, width: 82, text_align: CENTER }
                                           - label: { id: lbl_h3_regen, text: "", text_font: fridolin_14, text_color: 0x6CB8FF, width: 82, text_align: CENTER }
                               ### Morgen-Ausblick - jetzt hier im linken Block statt oben rechts.
@@ -1720,7 +1760,7 @@ lvgl:
                                   scrollable: false
                                   pad_all: 0
                                   width: 350
-                                  height: 80
+                                  height: 94
                                   bg_opa: TRANSP
                                   border_opa: TRANSP
                                   layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: START, pad_row: 2 }
@@ -1768,12 +1808,15 @@ lvgl:
                                               width: 294
                                               text_align: LEFT
 
-                        ### Rechts: Wind, Luftfeuchte, Sonnenauf- und -untergang (Uhrzeit,
-                        ### Datum und Ort sind in den linken Block gewandert). Werte
-                        ### liefert die Integration als fertige Texte.
+                        ### Rechts: Uhrzeit + Datum (Zeile 1, nebeneinander), Ort (Zeile 2),
+                        ### darunter Wind und Sonnenauf-/-untergang nebeneinander. Werte
+                        ### kommen als fertige Texte aus der Integration.
                         - obj:
                             scrollable: false
-                            pad_all: 0
+                            pad_left: 0
+                            pad_right: 0
+                            pad_top: 10
+                            pad_bottom: 24
                             width: 380
                             height: 400
                             bg_opa: TRANSP
@@ -1781,10 +1824,31 @@ lvgl:
                             layout:
                               type: FLEX
                               flex_flow: COLUMN
-                              flex_align_main: CENTER
+                              flex_align_main: SPACE_BETWEEN
                               flex_align_cross: CENTER
-                              pad_row: 16
                             widgets:
+                              ### Gruppe oben: Uhrzeit + Datum nebeneinander, darunter der Ort
+                              - obj:
+                                  scrollable: false
+                                  pad_all: 0
+                                  width: 370
+                                  height: 84
+                                  bg_opa: TRANSP
+                                  border_opa: TRANSP
+                                  layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: START, flex_align_cross: CENTER, pad_row: 6 }
+                                  widgets:
+                                    - obj:
+                                        scrollable: false
+                                        pad_all: 0
+                                        width: 370
+                                        height: 52
+                                        bg_opa: TRANSP
+                                        border_opa: TRANSP
+                                        layout: { type: FLEX, flex_flow: ROW, flex_align_main: CENTER, flex_align_cross: CENTER, pad_column: 16 }
+                                        widgets:
+                                          - label: { id: lbl_uhrzeit, text: "--:--", text_font: fridolin_40, width: 128, text_align: CENTER }
+                                          - label: { id: lbl_datum, text: "--, --.--.", text_font: fridolin_28, width: 190, text_align: CENTER }
+                                    - label: { id: lbl_wetter_ort, text: "—", text_font: fridolin_20, width: 370, text_align: CENTER }
                               - obj:
                                   scrollable: false
                                   pad_all: 0
@@ -1799,39 +1863,68 @@ lvgl:
                               - obj:
                                   scrollable: false
                                   pad_all: 0
-                                  width: 330
-                                  height: 62
+                                  width: 360
+                                  height: 56
                                   bg_opa: TRANSP
                                   border_opa: TRANSP
-                                  layout: { type: FLEX, flex_flow: ROW, flex_align_main: START, flex_align_cross: CENTER, pad_column: 16 }
+                                  layout: { type: FLEX, flex_flow: ROW, flex_align_main: SPACE_BETWEEN, flex_align_cross: CENTER }
                                   widgets:
-                                    - image: { src: img_humidity, width: 44, height: 44 }
-                                    - label: { id: lbl_feuchte, text: "--", text_font: fridolin_28, width: 262, text_align: LEFT }
+                                    - obj:
+                                        scrollable: false
+                                        pad_all: 0
+                                        width: 150
+                                        height: 56
+                                        bg_opa: TRANSP
+                                        border_opa: TRANSP
+                                        layout: { type: FLEX, flex_flow: ROW, flex_align_main: START, flex_align_cross: CENTER, pad_column: 8 }
+                                        widgets:
+                                          - image: { src: img_humidity, width: 40, height: 40 }
+                                          - label: { id: lbl_feuchte, text: "--", text_font: fridolin_28, width: 100, text_align: LEFT }
+                                    - obj:
+                                        scrollable: false
+                                        pad_all: 0
+                                        width: 210
+                                        height: 56
+                                        bg_opa: TRANSP
+                                        border_opa: TRANSP
+                                        layout: { type: FLEX, flex_flow: ROW, flex_align_main: START, flex_align_cross: CENTER, pad_column: 8 }
+                                        widgets:
+                                          - image: { src: img_pressure, width: 40, height: 40 }
+                                          - label: { id: lbl_druck, text: "--", text_font: fridolin_28, width: 160, text_align: LEFT }
                               - obj:
                                   scrollable: false
                                   pad_all: 0
-                                  width: 330
-                                  height: 62
+                                  width: 360
+                                  height: 56
                                   bg_opa: TRANSP
                                   border_opa: TRANSP
-                                  layout: { type: FLEX, flex_flow: ROW, flex_align_main: START, flex_align_cross: CENTER, pad_column: 16 }
+                                  layout: { type: FLEX, flex_flow: ROW, flex_align_main: SPACE_BETWEEN, flex_align_cross: CENTER }
                                   widgets:
-                                    - image: { src: img_sunrise, width: 44, height: 44 }
-                                    - label: { id: lbl_sunrise, text: "--", text_font: fridolin_28, width: 262, text_align: LEFT }
-                              - obj:
-                                  scrollable: false
-                                  pad_all: 0
-                                  width: 330
-                                  height: 62
-                                  bg_opa: TRANSP
-                                  border_opa: TRANSP
-                                  layout: { type: FLEX, flex_flow: ROW, flex_align_main: START, flex_align_cross: CENTER, pad_column: 16 }
-                                  widgets:
-                                    - image: { src: img_sunset, width: 44, height: 44 }
-                                    - label: { id: lbl_sunset, text: "--", text_font: fridolin_28, width: 262, text_align: LEFT }
+                                    - obj:
+                                        scrollable: false
+                                        pad_all: 0
+                                        width: 176
+                                        height: 56
+                                        bg_opa: TRANSP
+                                        border_opa: TRANSP
+                                        layout: { type: FLEX, flex_flow: ROW, flex_align_main: CENTER, flex_align_cross: CENTER, pad_column: 8 }
+                                        widgets:
+                                          - image: { src: img_sunrise, width: 40, height: 40 }
+                                          - label: { id: lbl_sunrise, text: "--:--", text_font: fridolin_28, width: 110, text_align: LEFT }
+                                    - obj:
+                                        scrollable: false
+                                        pad_all: 0
+                                        width: 176
+                                        height: 56
+                                        bg_opa: TRANSP
+                                        border_opa: TRANSP
+                                        layout: { type: FLEX, flex_flow: ROW, flex_align_main: CENTER, flex_align_cross: CENTER, pad_column: 8 }
+                                        widgets:
+                                          - image: { src: img_sunset, width: 40, height: 40 }
+                                          - label: { id: lbl_sunset, text: "--:--", text_font: fridolin_28, width: 110, text_align: LEFT }
 
                   - label:
-                      text: "Nach links wischen: Licht"
+                      text: "Nach links wischen: Kühlbox"
                       align: BOTTOM_MID
                       y: -12
                       text_font: fridolin_14
@@ -1855,10 +1948,310 @@ lvgl:
                             id: overlay_einstellungen
                             hidden: false
 
+              ### Seite 5: Kuehlbox (Thermostat-Anzeige, Modus, Batterieschutz)
+              - id: tile_kuehlbox
+                row: 0
+                column: 1
+                dir: HOR
+                widgets:
+                  - label:
+                      text: "Kühlbox"
+                      text_font: fridolin_28
+                      align: TOP_MID
+                      y: 16
+                  - label:
+                      id: lbl_kb_verbindung
+                      text: "Getrennt"
+                      text_font: fridolin_14
+                      align: TOP_LEFT
+                      x: 16
+                      y: 22
+                  - arc:
+                      id: arc_kb
+                      align: CENTER
+                      y: -10
+                      width: 260
+                      height: 260
+                      min_value: -20
+                      max_value: 20
+                      value: 0
+                      start_angle: 135
+                      end_angle: 45
+                      adjustable: false
+                  - label:
+                      id: lbl_kb_status
+                      text: "--"
+                      align: CENTER
+                      y: -75
+                  - label:
+                      id: lbl_kb_ziel
+                      text: "--"
+                      text_font: fridolin_40
+                      align: CENTER
+                      y: -30
+                  - label:
+                      id: lbl_kb_ist
+                      text: "Ist: --"
+                      align: CENTER
+                      y: 25
+                  - button:
+                      scrollable: false
+                      align: CENTER
+                      x: -70
+                      y: 140
+                      width: 70
+                      height: 56
+                      widgets:
+                        - label:
+                            text: "-"
+                            text_font: fridolin_28
+                            align: CENTER
+                      on_click:
+                        - script.execute:
+                            id: kb_ziel_aendern
+                            delta: -1
+                  - button:
+                      scrollable: false
+                      align: CENTER
+                      x: 70
+                      y: 140
+                      width: 70
+                      height: 56
+                      widgets:
+                        - label:
+                            text: "+"
+                            text_font: fridolin_28
+                            align: CENTER
+                      on_click:
+                        - script.execute:
+                            id: kb_ziel_aendern
+                            delta: 1
+                  - label:
+                      text: "Modus"
+                      text_font: fridolin_14
+                      align: CENTER
+                      x: -290
+                      y: -80
+                  - button:
+                      scrollable: false
+                      id: btn_kb_max
+                      checkable: true
+                      align: CENTER
+                      x: -290
+                      y: -35
+                      width: 120
+                      height: 50
+                      checked:
+                        bg_color: 0x3FA34D
+                      widgets:
+                        - label:
+                            text: "MAX"
+                            align: CENTER
+                      on_click:
+                        - select.set:
+                            id: kb_modus_sel
+                            option: "MAX"
+                  - button:
+                      scrollable: false
+                      id: btn_kb_eco
+                      checkable: true
+                      align: CENTER
+                      x: -290
+                      y: 25
+                      width: 120
+                      height: 50
+                      checked:
+                        bg_color: 0x3FA34D
+                      widgets:
+                        - label:
+                            text: "ECO"
+                            align: CENTER
+                      on_click:
+                        - select.set:
+                            id: kb_modus_sel
+                            option: "ECO"
+                  - label:
+                      text: "Akku-Schutz"
+                      text_font: fridolin_14
+                      align: CENTER
+                      x: 290
+                      y: -80
+                  - button:
+                      scrollable: false
+                      id: btn_kb_bl
+                      checkable: true
+                      align: CENTER
+                      x: 225
+                      y: -35
+                      width: 60
+                      height: 50
+                      checked:
+                        bg_color: 0x3FA34D
+                      widgets:
+                        - label:
+                            text: "L"
+                            align: CENTER
+                      on_click:
+                        - select.set:
+                            id: kb_batt_sel
+                            option: "L"
+                  - button:
+                      scrollable: false
+                      id: btn_kb_bm
+                      checkable: true
+                      align: CENTER
+                      x: 290
+                      y: -35
+                      width: 60
+                      height: 50
+                      checked:
+                        bg_color: 0x3FA34D
+                      widgets:
+                        - label:
+                            text: "M"
+                            align: CENTER
+                      on_click:
+                        - select.set:
+                            id: kb_batt_sel
+                            option: "M"
+                  - button:
+                      scrollable: false
+                      id: btn_kb_bh
+                      checkable: true
+                      align: CENTER
+                      x: 355
+                      y: -35
+                      width: 60
+                      height: 50
+                      checked:
+                        bg_color: 0x3FA34D
+                      widgets:
+                        - label:
+                            text: "H"
+                            align: CENTER
+                      on_click:
+                        - select.set:
+                            id: kb_batt_sel
+                            option: "H"
+                  - button:
+                      scrollable: false
+                      id: btn_kb_power
+                      checkable: true
+                      align: BOTTOM_MID
+                      y: -8
+                      width: 200
+                      height: 50
+                      widgets:
+                        - label:
+                            text: "Ein/Aus"
+                            align: CENTER
+                      on_click:
+                        - switch.toggle: kb_power
+              ### Seite 4: Nivellierung (zwei "Wasserwaagen")
+              - id: tile_nivellierung
+                row: 0
+                column: 2
+                dir: HOR
+                widgets:
+                  - label:
+                      text: "Nivellierung"
+                      text_font: fridolin_28
+                      align: TOP_MID
+                      y: 16
+                  ### Schematischer Wohnwagen-Grundriss mit Kreuzlibelle: die waagerechte
+                  ### Röhre liegt in Fahrtrichtung (Vorne/Hinten), die senkrechte quer dazu
+                  ### (Links/Rechts) - im rechten Winkel, wie bei einer echten Kreuzlibelle.
+                  ### Die beiden Luftblasen sind eigene Kind-Widgets des Bildes und werden
+                  ### per Lambda auf den Koordinaten aus images/wasserwaage.svg verschoben.
+                  - image:
+                      id: img_wasserwaage_widget
+                      src: img_wasserwaage
+                      align: TOP_MID
+                      y: 52
+                      widgets:
+                        ### Ovale Blase (wie bei einer echten Wasserwaage), liegend -
+                        ### bewegt sich waagerecht in der Vorne/Hinten-Röhre
+                        - obj:
+                            scrollable: false
+                            pad_all: 0
+                            id: bubble_vh
+                            align: TOP_LEFT
+                            x: 140
+                            y: 129
+                            width: 30
+                            height: 22
+                            radius: 100
+                            bg_color: 0xFFFDE7
+                            bg_grad_color: 0xE6DFA0
+                            bg_grad_dir: VER
+                            border_color: 0xB9AE63
+                            border_width: 1
+                        ### Ovale Blase, stehend - bewegt sich senkrecht in der
+                        ### Links/Rechts-Röhre
+                        - obj:
+                            scrollable: false
+                            pad_all: 0
+                            id: bubble_lr
+                            align: TOP_LEFT
+                            x: 286
+                            y: 125
+                            width: 22
+                            height: 30
+                            radius: 100
+                            bg_color: 0xFFFDE7
+                            bg_grad_color: 0xE6DFA0
+                            bg_grad_dir: VER
+                            border_color: 0xB9AE63
+                            border_width: 1
+
+                  ### Etwas mehr Hoehe + Abstand zum "Nullen"-Knopf darunter als
+                  ### urspruenglich, da die echte Google-Font-Montserrat (seit dem
+                  ### font-Fix) etwas mehr Platz braucht als LVGLs eingebauter
+                  ### Bitmap-Font, mit dem dieser Wert zuerst abgeschaetzt wurde -
+                  ### auf echter Hardware ueberlappten sich Werte und Knopf sonst.
+                  - obj:
+                      scrollable: false
+                      pad_all: 0
+                      align: TOP_MID
+                      y: 360
+                      width: 500
+                      height: 48
+                      bg_opa: TRANSP
+                      border_opa: TRANSP
+                      layout: { type: FLEX, flex_flow: ROW, flex_align_main: SPACE_EVENLY, flex_align_cross: CENTER }
+                      widgets:
+                        - label:
+                            text: "Links/Rechts:"
+                            text_font: fridolin_14
+                        - label:
+                            id: lbl_neigung_lr
+                            text: "0,0°"
+                            text_font: fridolin_20
+                        - label:
+                            text: "Vorne/Hinten:"
+                            text_font: fridolin_14
+                        - label:
+                            id: lbl_neigung_vh
+                            text: "0,0°"
+                            text_font: fridolin_20
+
+                  - button:
+                      scrollable: false
+                      align: TOP_MID
+                      y: 416
+                      width: 200
+                      height: 50
+                      widgets:
+                        - label:
+                            text: "Nullen"
+                            align: CENTER
+                      on_click:
+                        - script.execute: neigung_nullen
+
               ### Seite 2: Licht (bis zu 4 Lichter, nicht belegte Slots sind versteckt)
               - id: tile_licht
                 row: 0
-                column: 1
+                column: 3
                 dir: HOR
                 widgets:
                   - label:
@@ -1956,7 +2349,7 @@ lvgl:
               ### der Ist-Temperatur, rot darunter), Modus links, Programm rechts.
               - id: tile_heizung
                 row: 0
-                column: 2
+                column: 4
                 dir: HOR
                 widgets:
                   - label:
@@ -1989,6 +2382,7 @@ lvgl:
                         arc_opa: TRANSP
                       indicator:
                         arc_color: 0xE0663F
+                        arc_opa: TRANSP
                       knob:
                         arc_opa: TRANSP
                         bg_opa: TRANSP
@@ -2009,6 +2403,7 @@ lvgl:
                         arc_opa: TRANSP
                       indicator:
                         arc_color: 0x3FA8DC
+                        arc_opa: TRANSP
                       knob:
                         arc_opa: TRANSP
                         bg_opa: TRANSP
@@ -2221,306 +2616,6 @@ lvgl:
                               entity_id: climate.fridolin_heizung
                               preset_mode: "max"
 
-              ### Seite 4: Nivellierung (zwei "Wasserwaagen")
-              - id: tile_nivellierung
-                row: 0
-                column: 3
-                dir: HOR
-                widgets:
-                  - label:
-                      text: "Nivellierung"
-                      text_font: fridolin_28
-                      align: TOP_MID
-                      y: 16
-                  ### Schematischer Wohnwagen-Grundriss mit Kreuzlibelle: die waagerechte
-                  ### Röhre liegt in Fahrtrichtung (Vorne/Hinten), die senkrechte quer dazu
-                  ### (Links/Rechts) - im rechten Winkel, wie bei einer echten Kreuzlibelle.
-                  ### Die beiden Luftblasen sind eigene Kind-Widgets des Bildes und werden
-                  ### per Lambda auf den Koordinaten aus images/wasserwaage.svg verschoben.
-                  - image:
-                      id: img_wasserwaage_widget
-                      src: img_wasserwaage
-                      align: TOP_MID
-                      y: 52
-                      widgets:
-                        ### Ovale Blase (wie bei einer echten Wasserwaage), liegend -
-                        ### bewegt sich waagerecht in der Vorne/Hinten-Röhre
-                        - obj:
-                            scrollable: false
-                            pad_all: 0
-                            id: bubble_vh
-                            align: TOP_LEFT
-                            x: 140
-                            y: 129
-                            width: 30
-                            height: 22
-                            radius: 100
-                            bg_color: 0xFFFDE7
-                            bg_grad_color: 0xE6DFA0
-                            bg_grad_dir: VER
-                            border_color: 0xB9AE63
-                            border_width: 1
-                        ### Ovale Blase, stehend - bewegt sich senkrecht in der
-                        ### Links/Rechts-Röhre
-                        - obj:
-                            scrollable: false
-                            pad_all: 0
-                            id: bubble_lr
-                            align: TOP_LEFT
-                            x: 286
-                            y: 125
-                            width: 22
-                            height: 30
-                            radius: 100
-                            bg_color: 0xFFFDE7
-                            bg_grad_color: 0xE6DFA0
-                            bg_grad_dir: VER
-                            border_color: 0xB9AE63
-                            border_width: 1
-
-                  ### Etwas mehr Hoehe + Abstand zum "Nullen"-Knopf darunter als
-                  ### urspruenglich, da die echte Google-Font-Montserrat (seit dem
-                  ### font-Fix) etwas mehr Platz braucht als LVGLs eingebauter
-                  ### Bitmap-Font, mit dem dieser Wert zuerst abgeschaetzt wurde -
-                  ### auf echter Hardware ueberlappten sich Werte und Knopf sonst.
-                  - obj:
-                      scrollable: false
-                      pad_all: 0
-                      align: TOP_MID
-                      y: 360
-                      width: 500
-                      height: 48
-                      bg_opa: TRANSP
-                      border_opa: TRANSP
-                      layout: { type: FLEX, flex_flow: ROW, flex_align_main: SPACE_EVENLY, flex_align_cross: CENTER }
-                      widgets:
-                        - label:
-                            text: "Links/Rechts:"
-                            text_font: fridolin_14
-                        - label:
-                            id: lbl_neigung_lr
-                            text: "0,0°"
-                            text_font: fridolin_20
-                        - label:
-                            text: "Vorne/Hinten:"
-                            text_font: fridolin_14
-                        - label:
-                            id: lbl_neigung_vh
-                            text: "0,0°"
-                            text_font: fridolin_20
-
-                  - button:
-                      scrollable: false
-                      align: TOP_MID
-                      y: 416
-                      width: 200
-                      height: 50
-                      widgets:
-                        - label:
-                            text: "Nullen"
-                            align: CENTER
-                      on_click:
-                        - script.execute: neigung_nullen
-
-              ### Seite 5: Kuehlbox (Thermostat-Anzeige, Modus, Batterieschutz)
-              - id: tile_kuehlbox
-                row: 0
-                column: 4
-                dir: HOR
-                widgets:
-                  - label:
-                      text: "Kühlbox"
-                      text_font: fridolin_28
-                      align: TOP_MID
-                      y: 16
-                  - label:
-                      id: lbl_kb_verbindung
-                      text: "Getrennt"
-                      text_font: fridolin_14
-                      align: TOP_LEFT
-                      x: 16
-                      y: 22
-                  - arc:
-                      id: arc_kb
-                      align: CENTER
-                      y: -10
-                      width: 260
-                      height: 260
-                      min_value: -20
-                      max_value: 20
-                      value: 0
-                      start_angle: 135
-                      end_angle: 45
-                      adjustable: false
-                  - label:
-                      id: lbl_kb_status
-                      text: "--"
-                      align: CENTER
-                      y: -75
-                  - label:
-                      id: lbl_kb_ziel
-                      text: "--"
-                      text_font: fridolin_40
-                      align: CENTER
-                      y: -30
-                  - label:
-                      id: lbl_kb_ist
-                      text: "Ist: --"
-                      align: CENTER
-                      y: 25
-                  - button:
-                      scrollable: false
-                      align: CENTER
-                      x: -70
-                      y: 140
-                      width: 70
-                      height: 56
-                      widgets:
-                        - label:
-                            text: "-"
-                            text_font: fridolin_28
-                            align: CENTER
-                      on_click:
-                        - number.set:
-                            id: kb_ziel
-                            value: !lambda 'return std::max(-20.0f, std::min(20.0f, (id(kb_ziel).has_state() ? id(kb_ziel).state : 5.0f) - 1.0f));'
-                  - button:
-                      scrollable: false
-                      align: CENTER
-                      x: 70
-                      y: 140
-                      width: 70
-                      height: 56
-                      widgets:
-                        - label:
-                            text: "+"
-                            text_font: fridolin_28
-                            align: CENTER
-                      on_click:
-                        - number.set:
-                            id: kb_ziel
-                            value: !lambda 'return std::max(-20.0f, std::min(20.0f, (id(kb_ziel).has_state() ? id(kb_ziel).state : 5.0f) + 1.0f));'
-                  - label:
-                      text: "Modus"
-                      text_font: fridolin_14
-                      align: CENTER
-                      x: -290
-                      y: -80
-                  - button:
-                      scrollable: false
-                      id: btn_kb_max
-                      checkable: true
-                      align: CENTER
-                      x: -290
-                      y: -35
-                      width: 120
-                      height: 50
-                      checked:
-                        bg_color: 0x3FA34D
-                      widgets:
-                        - label:
-                            text: "MAX"
-                            align: CENTER
-                      on_click:
-                        - select.set:
-                            id: kb_modus_sel
-                            option: "MAX"
-                  - button:
-                      scrollable: false
-                      id: btn_kb_eco
-                      checkable: true
-                      align: CENTER
-                      x: -290
-                      y: 25
-                      width: 120
-                      height: 50
-                      checked:
-                        bg_color: 0x3FA34D
-                      widgets:
-                        - label:
-                            text: "ECO"
-                            align: CENTER
-                      on_click:
-                        - select.set:
-                            id: kb_modus_sel
-                            option: "ECO"
-                  - label:
-                      text: "Akku-Schutz"
-                      text_font: fridolin_14
-                      align: CENTER
-                      x: 290
-                      y: -80
-                  - button:
-                      scrollable: false
-                      id: btn_kb_bl
-                      checkable: true
-                      align: CENTER
-                      x: 225
-                      y: -35
-                      width: 60
-                      height: 50
-                      checked:
-                        bg_color: 0x3FA34D
-                      widgets:
-                        - label:
-                            text: "L"
-                            align: CENTER
-                      on_click:
-                        - select.set:
-                            id: kb_batt_sel
-                            option: "L"
-                  - button:
-                      scrollable: false
-                      id: btn_kb_bm
-                      checkable: true
-                      align: CENTER
-                      x: 290
-                      y: -35
-                      width: 60
-                      height: 50
-                      checked:
-                        bg_color: 0x3FA34D
-                      widgets:
-                        - label:
-                            text: "M"
-                            align: CENTER
-                      on_click:
-                        - select.set:
-                            id: kb_batt_sel
-                            option: "M"
-                  - button:
-                      scrollable: false
-                      id: btn_kb_bh
-                      checkable: true
-                      align: CENTER
-                      x: 355
-                      y: -35
-                      width: 60
-                      height: 50
-                      checked:
-                        bg_color: 0x3FA34D
-                      widgets:
-                        - label:
-                            text: "H"
-                            align: CENTER
-                      on_click:
-                        - select.set:
-                            id: kb_batt_sel
-                            option: "H"
-                  - button:
-                      scrollable: false
-                      id: btn_kb_power
-                      checkable: true
-                      align: BOTTOM_MID
-                      y: -8
-                      width: 200
-                      height: 50
-                      widgets:
-                        - label:
-                            text: "Ein/Aus"
-                            align: CENTER
-                      on_click:
-                        - switch.toggle: kb_power
   ### ------------------------------------------------------------------
   ### Einstellungsseite: kein eigener Wisch-Seite, sondern ein Overlay
   ### im top_layer, das nur über den Button auf der Übersicht erscheint
