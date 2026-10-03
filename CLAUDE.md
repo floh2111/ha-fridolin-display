@@ -647,6 +647,26 @@ der Übersichtsseite erreichbar ist (LVGL `top_layer:`):
 6. Ggf. Kleinigkeiten aus dem Livetest nachjustieren (Pinbelegung, Timing,
    Layout).
 
+## Neue Anforderung: Standby für das Display (noch nicht umgesetzt)
+
+Florian möchte einen Standby-Betrieb für das Fridolin-Display:
+
+- Nach **60 Sekunden ohne Berührung** geht das Display aus (Backlicht aus).
+- Bei **Berührung** geht es wieder an.
+- Die weckende Berührung soll **keinen Button auslösen**, der darunter liegt.
+- Datei: `esphome/wohnwagen-display.yaml`. Das Backlicht ist der Schalter
+  `lcdbacklight` (CH422G, EXIO2) und nur an/aus, **nicht dimmbar**.
+- Umsetzungsidee: `lvgl: on_idle:` mit `timeout: 60s`, dort Backlicht aus
+  und `lvgl.pause`. Zum Aufwecken im `touchscreen:` (`my_touch`) per
+  `on_touch` prüfen, ob LVGL pausiert ist, dann `lvgl.resume` und Backlicht
+  an. Ob die weckende Berührung wirklich nicht an die Widgets durchgereicht
+  wird, ist auf echter Hardware zu prüfen.
+- Wichtig: API, Wetter, Kühlbox (BLE) und Neigungssensor laufen im
+  Standby weiter.
+- Optional: Dauer in den Einstellungen wählbar machen.
+- Falls der YAML-Generator (`generate_display_yaml.py`) betroffen ist:
+  `--check`-Selbsttest muss weiterhin Byte-für-Byte stimmen.
+
 ## Ton/Stil-Hinweis
 
 Florian ist technisch versiert (kennt sich mit ESPHome, Home Assistant,
