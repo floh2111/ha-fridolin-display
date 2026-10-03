@@ -169,13 +169,14 @@ class FridolinWeatherCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def _precip_text(pop: float | None, mm: float) -> str:
         """Kompakter Niederschlags-Text fürs Display, z.B. '60% 0,4mm'.
 
-        pop = Regenwahrscheinlichkeit 0..1, mm = Menge im 3h-Slot. Leer, wenn
-        weder Wahrscheinlichkeit noch Menge vorhanden sind."""
+        pop = Regenwahrscheinlichkeit 0..1, mm = Menge im 3h-Slot. Bei
+        Trockenheit '0%' (nicht leer), damit man sieht, dass die Anzeige
+        arbeitet."""
         percent = round((pop or 0) * 100)
         amount = f"{mm:.1f}".replace(".", ",")
         if mm >= 0.1:
             return f"{percent}% {amount}mm"
-        return f"{percent}%" if percent > 0 else ""
+        return f"{percent}%"
 
     @staticmethod
     def _wind_text(wind: dict[str, Any], units: str) -> str:
@@ -209,7 +210,7 @@ class FridolinWeatherCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     @staticmethod
     def _precip_now_text(mm: float) -> str:
         if mm < 0.1:
-            return ""
+            return "Kein Niederschlag"
         return f"Niederschlag: {f'{mm:.1f}'.replace('.', ',')} mm/h"
 
     @staticmethod
