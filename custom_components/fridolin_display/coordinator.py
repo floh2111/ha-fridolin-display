@@ -18,6 +18,7 @@ import async_timeout
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.storage import Store
+from homeassistant.util import dt as dt_util
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import (
@@ -153,6 +154,10 @@ class FridolinWeatherCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "condition": current_weather.get("description", "—"),
             "icon": self._map_icon(current_weather.get("id"), current_weather.get("icon", "")),
             "temperature": current.get("main", {}).get("temp"),
+            "wind": self._wind_text(current.get("wind", {}), self._units),
+            "humidity": self._humidity_text(current.get("main", {}).get("humidity")),
+            "sunrise": self._local_time(current.get("sys", {}).get("sunrise")),
+            "sunset": self._local_time(current.get("sys", {}).get("sunset")),
             "precip": self._precip_now_text(
                 _mm(current.get("rain"), "1h") + _mm(current.get("snow"), "1h")
             ),
@@ -171,6 +176,35 @@ class FridolinWeatherCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if mm >= 0.1:
             return f"{percent}% {amount}mm"
         return f"{percent}%" if percent > 0 else ""
+
+    @staticmethod
+    def _wind_text(wind: dict[str, Any], units: str) -> str:
+        """Wind als Text, z.B. '12 km/h NW' (zweite Zeile 'Böen 25 km/h')."""
+        speed = wind.get("speed")
+        if speed is None:
+            return "—"
+        if units == "imperial":
+            factor, unit = 1.0, "mph"
+        else:  # metric/standard liefern m/s
+            factor, unit = 3.6, "km/h"
+        directions = ["N", "NO", "O", "SO", "S", "SW", "W", "NW"]
+        deg = wind.get("deg")
+        direction = f" {directions[round(deg / 45) % 8]}" if deg is not None else ""
+        text = f"{round(speed * factor)} {unit}{direction}"
+        gust = wind.get("gust")
+        if gust is not None and round(gust * factor) > round(speed * factor):
+            text += f"\nBöen {round(gust * factor)} {unit}"
+        return text
+
+    @staticmethod
+    def _humidity_text(humidity: float | None) -> str:
+        return "—" if humidity is None else f"{round(humidity)} %"
+
+    @staticmethod
+    def _local_time(timestamp: int | None) -> str:
+        if not timestamp:
+            return "--:--"
+        return dt_util.as_local(dt_util.utc_from_timestamp(timestamp)).strftime("%H:%M")
 
     @staticmethod
     def _precip_now_text(mm: float) -> str:

@@ -821,6 +821,19 @@ Hinweise für die Umsetzung:
 - Die HA-Entity-IDs der ESP-Entities sind Claude Code bekannt (aus der
   ESPHome-Config ableitbar) - dafür nicht bei Florian nachfragen.
 
+## Wetter-Uebersicht (Stand 03.10.2026)
+
+Links oben Uhrzeit + Datum nebeneinander, darunter der Ort, dann aktuelles
+Wetter (mit blauer Niederschlagszeile `0x6CB8FF`), Stundenvorhersage (je
+Slot Wahrscheinlichkeit/Menge) und Morgen-Ausblick. Rechts: Wind (mit
+Boeen), Luftfeuchte, Sonnenaufgang, Sonnenuntergang mit Icons
+(`images/sunrise.svg`, `sunset.svg`, `humidity.svg`, `weather/windy.svg`).
+Alle Werte kommen als fertige Texte aus der Integration (neue Sensoren
+`sensor.fridolin_wetter_wind/_humidity/_sunrise/_sunset`,
+`..._regen`, `..._h0.._h3_regen`, Integration 0.6.0/0.7.0). Layout ist
+rechnerisch knapp (linker Block 400px hoch) - auf Hardware pruefen, ob
+etwas abgeschnitten ist. Die Schrift `fridolin_56` wurde entfernt.
+
 ## Ton/Stil-Hinweis
 
 Florian ist technisch versiert (kennt sich mit ESPHome, Home Assistant,

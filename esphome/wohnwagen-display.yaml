@@ -463,6 +463,32 @@ image:
   ### esphome/images/wasserwaage.svg), in nativer Auflösung gerastert
   ### (460x300, deckungsgleich mit dem SVG-viewBox) - die Blasen-Overlays
   ### unten rechnen deshalb direkt mit den SVG-Koordinaten, ohne Skalierung.
+  ### Icons fuer die rechte Wetterspalte (Wind, Luftfeuchte, Sonne)
+  - platform: file
+    id: img_wind
+    file: images/weather/windy.svg
+    resize: 48x48
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_humidity
+    file: images/humidity.svg
+    resize: 48x48
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_sunrise
+    file: images/sunrise.svg
+    resize: 48x48
+    type: RGB565
+    transparency: alpha_channel
+  - platform: file
+    id: img_sunset
+    file: images/sunset.svg
+    resize: 48x48
+    type: RGB565
+    transparency: alpha_channel
+
   - platform: file
     id: img_wasserwaage
     file: images/wasserwaage.svg
@@ -918,6 +944,26 @@ text_sensor:
     entity_id: sensor.fridolin_wetter_regen
     on_value:
       - lvgl.label.update: { id: lbl_wetter_regen, text: !lambda 'return (x == "unknown" || x == "unavailable") ? std::string("") : x;' }
+  - platform: homeassistant
+    id: wetter_wind
+    entity_id: sensor.fridolin_wetter_wind
+    on_value:
+      - lvgl.label.update: { id: lbl_wind, text: !lambda 'return (x == "unknown" || x == "unavailable") ? std::string("--") : x;' }
+  - platform: homeassistant
+    id: wetter_feuchte
+    entity_id: sensor.fridolin_wetter_humidity
+    on_value:
+      - lvgl.label.update: { id: lbl_feuchte, text: !lambda 'return (x == "unknown" || x == "unavailable") ? std::string("--") : x;' }
+  - platform: homeassistant
+    id: wetter_sunrise
+    entity_id: sensor.fridolin_wetter_sunrise
+    on_value:
+      - lvgl.label.update: { id: lbl_sunrise, text: !lambda 'return (x == "unknown" || x == "unavailable") ? std::string("--") : x;' }
+  - platform: homeassistant
+    id: wetter_sunset
+    entity_id: sensor.fridolin_wetter_sunset
+    on_value:
+      - lvgl.label.update: { id: lbl_sunset, text: !lambda 'return (x == "unknown" || x == "unavailable") ? std::string("--") : x;' }
   - platform: homeassistant
     id: h0_zeit
     entity_id: sensor.fridolin_wetter_h0_zeit
@@ -1377,14 +1423,6 @@ font:
     size: 40
     bpp: 4
     glyphs: *deutsche_zeichen
-  ### Nur fuer die grosse Uhrzeit auf der Uebersicht - der rechte Block
-  ### (Uhrzeit/Datum/Standort) sollte auf Florians Wunsch deutlich groesser
-  ### wirken als der linke Wetter-Block.
-  - file: "gfonts://Montserrat"
-    id: fridolin_56
-    size: 56
-    bpp: 4
-    glyphs: *deutsche_zeichen
 
 ### ------------------------------------------------------------------
 ### LVGL-Oberfläche: 5 Seiten als Wisch-Karussell (tileview)
@@ -1502,7 +1540,7 @@ lvgl:
                       align: TOP_MID
                       y: 42
                       width: 760
-                      height: 385
+                      height: 400
                       bg_opa: TRANSP
                       border_opa: TRANSP
                       layout:
@@ -1516,7 +1554,7 @@ lvgl:
                             scrollable: false
                             pad_all: 0
                             width: 360
-                            height: 385
+                            height: 400
                             bg_opa: TRANSP
                             border_opa: TRANSP
                             layout:
@@ -1524,13 +1562,26 @@ lvgl:
                               flex_flow: COLUMN
                               flex_align_main: CENTER
                               flex_align_cross: CENTER
-                              pad_row: 12
+                              pad_row: 6
                             widgets:
+                              ### Oben links: Uhrzeit + Datum nebeneinander, darunter der Ort
                               - obj:
                                   scrollable: false
                                   pad_all: 0
                                   width: 350
-                                  height: 124
+                                  height: 52
+                                  bg_opa: TRANSP
+                                  border_opa: TRANSP
+                                  layout: { type: FLEX, flex_flow: ROW, flex_align_main: CENTER, flex_align_cross: CENTER, pad_column: 16 }
+                                  widgets:
+                                    - label: { id: lbl_uhrzeit, text: "--:--", text_font: fridolin_40, width: 128, text_align: CENTER }
+                                    - label: { id: lbl_datum, text: "--, --.--.", text_font: fridolin_28, width: 190, text_align: CENTER }
+                              - label: { id: lbl_wetter_ort, text: "—", text_font: fridolin_20, width: 350, text_align: CENTER }
+                              - obj:
+                                  scrollable: false
+                                  pad_all: 0
+                                  width: 350
+                                  height: 104
                                   bg_opa: TRANSP
                                   border_opa: TRANSP
                                   layout:
@@ -1558,7 +1609,7 @@ lvgl:
                                         scrollable: false
                                         pad_all: 0
                                         width: 248
-                                        height: 124
+                                        height: 104
                                         bg_opa: TRANSP
                                         border_opa: TRANSP
                                         layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: START }
@@ -1595,7 +1646,7 @@ lvgl:
                                   scrollable: false
                                   pad_all: 0
                                   width: 360
-                                  height: 138
+                                  height: 112
                                   bg_opa: TRANSP
                                   border_opa: TRANSP
                                   layout:
@@ -1609,52 +1660,52 @@ lvgl:
                                         scrollable: false
                                         pad_all: 0
                                         width: 82
-                                        height: 138
+                                        height: 112
                                         bg_opa: TRANSP
                                         border_opa: TRANSP
                                         layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER, pad_row: 3 }
                                         widgets:
                                           - label: { id: lbl_h0_zeit, text: "--:--", text_font: fridolin_14, width: 82, text_align: CENTER }
-                                          - image: { id: img_h0_icon, src: img_w_cloudy_s, width: 46, height: 46 }
+                                          - image: { id: img_h0_icon, src: img_w_cloudy_s, width: 40, height: 40 }
                                           - label: { id: lbl_h0_temp, text: "--°", text_font: fridolin_20, width: 82, text_align: CENTER }
                                           - label: { id: lbl_h0_regen, text: "", text_font: fridolin_14, text_color: 0x6CB8FF, width: 82, text_align: CENTER }
                                     - obj:
                                         scrollable: false
                                         pad_all: 0
                                         width: 82
-                                        height: 138
+                                        height: 112
                                         bg_opa: TRANSP
                                         border_opa: TRANSP
                                         layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER, pad_row: 3 }
                                         widgets:
                                           - label: { id: lbl_h1_zeit, text: "--:--", text_font: fridolin_14, width: 82, text_align: CENTER }
-                                          - image: { id: img_h1_icon, src: img_w_cloudy_s, width: 46, height: 46 }
+                                          - image: { id: img_h1_icon, src: img_w_cloudy_s, width: 40, height: 40 }
                                           - label: { id: lbl_h1_temp, text: "--°", text_font: fridolin_20, width: 82, text_align: CENTER }
                                           - label: { id: lbl_h1_regen, text: "", text_font: fridolin_14, text_color: 0x6CB8FF, width: 82, text_align: CENTER }
                                     - obj:
                                         scrollable: false
                                         pad_all: 0
                                         width: 82
-                                        height: 138
+                                        height: 112
                                         bg_opa: TRANSP
                                         border_opa: TRANSP
                                         layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER, pad_row: 3 }
                                         widgets:
                                           - label: { id: lbl_h2_zeit, text: "--:--", text_font: fridolin_14, width: 82, text_align: CENTER }
-                                          - image: { id: img_h2_icon, src: img_w_cloudy_s, width: 46, height: 46 }
+                                          - image: { id: img_h2_icon, src: img_w_cloudy_s, width: 40, height: 40 }
                                           - label: { id: lbl_h2_temp, text: "--°", text_font: fridolin_20, width: 82, text_align: CENTER }
                                           - label: { id: lbl_h2_regen, text: "", text_font: fridolin_14, text_color: 0x6CB8FF, width: 82, text_align: CENTER }
                                     - obj:
                                         scrollable: false
                                         pad_all: 0
                                         width: 82
-                                        height: 138
+                                        height: 112
                                         bg_opa: TRANSP
                                         border_opa: TRANSP
                                         layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: CENTER, pad_row: 3 }
                                         widgets:
                                           - label: { id: lbl_h3_zeit, text: "--:--", text_font: fridolin_14, width: 82, text_align: CENTER }
-                                          - image: { id: img_h3_icon, src: img_w_cloudy_s, width: 46, height: 46 }
+                                          - image: { id: img_h3_icon, src: img_w_cloudy_s, width: 40, height: 40 }
                                           - label: { id: lbl_h3_temp, text: "--°", text_font: fridolin_20, width: 82, text_align: CENTER }
                                           - label: { id: lbl_h3_regen, text: "", text_font: fridolin_14, text_color: 0x6CB8FF, width: 82, text_align: CENTER }
                               ### Morgen-Ausblick - jetzt hier im linken Block statt oben rechts.
@@ -1669,7 +1720,7 @@ lvgl:
                                   scrollable: false
                                   pad_all: 0
                                   width: 350
-                                  height: 94
+                                  height: 80
                                   bg_opa: TRANSP
                                   border_opa: TRANSP
                                   layout: { type: FLEX, flex_flow: COLUMN, flex_align_main: CENTER, flex_align_cross: START, pad_row: 2 }
@@ -1717,16 +1768,14 @@ lvgl:
                                               width: 294
                                               text_align: LEFT
 
-                        ### Rechts: Uhrzeit/Datum/Standort - auf Florians Wunsch
-                        ### "deutlich groesser und zentriert": eigene groessere
-                        ### Uhrzeit-Schriftart (fridolin_56 statt fridolin_40),
-                        ### Block jetzt genauso hoch wie der linke (335 statt 300)
-                        ### und dadurch echt vertikal zentriert statt oben klebend.
+                        ### Rechts: Wind, Luftfeuchte, Sonnenauf- und -untergang (Uhrzeit,
+                        ### Datum und Ort sind in den linken Block gewandert). Werte
+                        ### liefert die Integration als fertige Texte.
                         - obj:
                             scrollable: false
                             pad_all: 0
                             width: 380
-                            height: 335
+                            height: 400
                             bg_opa: TRANSP
                             border_opa: TRANSP
                             layout:
@@ -1734,26 +1783,52 @@ lvgl:
                               flex_flow: COLUMN
                               flex_align_main: CENTER
                               flex_align_cross: CENTER
-                              pad_row: 18
+                              pad_row: 16
                             widgets:
-                              - label:
-                                  id: lbl_uhrzeit
-                                  text: "--:--"
-                                  text_font: fridolin_56
-                                  width: 380
-                                  text_align: CENTER
-                              - label:
-                                  id: lbl_datum
-                                  text: "--, --.--."
-                                  text_font: fridolin_28
-                                  width: 380
-                                  text_align: CENTER
-                              - label:
-                                  id: lbl_wetter_ort
-                                  text: "—"
-                                  text_font: fridolin_20
-                                  width: 380
-                                  text_align: CENTER
+                              - obj:
+                                  scrollable: false
+                                  pad_all: 0
+                                  width: 330
+                                  height: 84
+                                  bg_opa: TRANSP
+                                  border_opa: TRANSP
+                                  layout: { type: FLEX, flex_flow: ROW, flex_align_main: START, flex_align_cross: CENTER, pad_column: 16 }
+                                  widgets:
+                                    - image: { src: img_wind, width: 44, height: 44 }
+                                    - label: { id: lbl_wind, text: "--", text_font: fridolin_28, width: 262, text_align: LEFT }
+                              - obj:
+                                  scrollable: false
+                                  pad_all: 0
+                                  width: 330
+                                  height: 62
+                                  bg_opa: TRANSP
+                                  border_opa: TRANSP
+                                  layout: { type: FLEX, flex_flow: ROW, flex_align_main: START, flex_align_cross: CENTER, pad_column: 16 }
+                                  widgets:
+                                    - image: { src: img_humidity, width: 44, height: 44 }
+                                    - label: { id: lbl_feuchte, text: "--", text_font: fridolin_28, width: 262, text_align: LEFT }
+                              - obj:
+                                  scrollable: false
+                                  pad_all: 0
+                                  width: 330
+                                  height: 62
+                                  bg_opa: TRANSP
+                                  border_opa: TRANSP
+                                  layout: { type: FLEX, flex_flow: ROW, flex_align_main: START, flex_align_cross: CENTER, pad_column: 16 }
+                                  widgets:
+                                    - image: { src: img_sunrise, width: 44, height: 44 }
+                                    - label: { id: lbl_sunrise, text: "--", text_font: fridolin_28, width: 262, text_align: LEFT }
+                              - obj:
+                                  scrollable: false
+                                  pad_all: 0
+                                  width: 330
+                                  height: 62
+                                  bg_opa: TRANSP
+                                  border_opa: TRANSP
+                                  layout: { type: FLEX, flex_flow: ROW, flex_align_main: START, flex_align_cross: CENTER, pad_column: 16 }
+                                  widgets:
+                                    - image: { src: img_sunset, width: 44, height: 44 }
+                                    - label: { id: lbl_sunset, text: "--", text_font: fridolin_28, width: 262, text_align: LEFT }
 
                   - label:
                       text: "Nach links wischen: Licht"

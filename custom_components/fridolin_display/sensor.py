@@ -32,6 +32,10 @@ async def async_setup_entry(
         FridolinWetterTemperaturSensor(entry, coordinator),
         FridolinWetterOrtSensor(entry, coordinator),
         FridolinWetterRegenSensor(entry, coordinator),
+        FridolinWetterTextSensor(entry, coordinator, "wind", "Wind"),
+        FridolinWetterTextSensor(entry, coordinator, "humidity", "Luftfeuchte"),
+        FridolinWetterTextSensor(entry, coordinator, "sunrise", "Sonnenaufgang"),
+        FridolinWetterTextSensor(entry, coordinator, "sunset", "Sonnenuntergang"),
         FridolinMorgenMinSensor(entry, coordinator),
         FridolinMorgenMaxSensor(entry, coordinator),
         FridolinMorgenZustandSensor(entry, coordinator),
@@ -297,3 +301,20 @@ class FridolinStundeRegenSensor(_FridolinBaseSensor):
         if not self.coordinator.data:
             return None
         return self.coordinator.data.get("hours", [])[self._slot].get("precip", "")
+
+
+class FridolinWetterTextSensor(_FridolinBaseSensor):
+    """Einfacher Text-Wert des aktuellen Wetters (Wind, Luftfeuchte, Sonnenzeiten)."""
+
+    def __init__(
+        self, entry: ConfigEntry, coordinator: FridolinWeatherCoordinator, key: str, name: str
+    ) -> None:
+        super().__init__(entry, coordinator)
+        self._key = key
+        self._attr_name = f"Fridolin Wetter {name}"
+        self._attr_unique_id = f"{entry.entry_id}_wetter_{key}"
+        self.entity_id = f"sensor.fridolin_wetter_{key}"
+
+    @property
+    def native_value(self) -> Any:
+        return self.coordinator.data.get(self._key) if self.coordinator.data else None
