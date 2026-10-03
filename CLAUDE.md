@@ -667,6 +667,35 @@ Florian möchte einen Standby-Betrieb für das Fridolin-Display:
 - Falls der YAML-Generator (`generate_display_yaml.py`) betroffen ist:
   `--check`-Selbsttest muss weiterhin Byte-für-Byte stimmen.
 
+## Neue Anforderung: Kühlbox-Karte für Home Assistant (noch nicht umgesetzt)
+
+Florian möchte im Home-Assistant-Dashboard eine **Karte zur Bedienung der
+Kühlbox** mit **allen Bedienelementen, die auch auf dem Display
+(Kühlbox-Seite, `tile_kuehlbox` in `esphome/wohnwagen-display.yaml`) zu
+finden sind**:
+
+- Zieltemperatur-Anzeige mit −/+ (Entity `kb_ziel`, Bereich −20…20 °C,
+  Schritt 1 °C)
+- Ist-Temperatur (`kb_ist`) und Verbindungsstatus (Verbunden/Getrennt,
+  Status-Text)
+- Ein/Aus (`kb_power`)
+- Modus MAX/ECO (`kb_modus_sel`)
+- Batterieschutz L/M/H (`kb_batt_sel`)
+- Zusätzlich in HA ohnehin verfügbar: Kühlbox Batterie und Spannung
+
+Hinweise für die Umsetzung:
+- Optik und Aufbau an das Display bzw. an die `rv-leveling-card`
+  (eigenes Repo `floh2111/rv-leveling-card`) anlehnen; ob eigene
+  Lovelace-Karte oder Erweiterung dieser Karte, ist offen und mit Florian
+  zu klären.
+- Die Kühlbox hängt per Tuya-BLE **direkt am ESP** (nicht an HA). Die
+  Bedienung aus HA läuft daher über die vom ESP per ESPHome-API
+  bereitgestellten Entities (`Kühlbox Zieltemperatur Zahl`, `Kühlbox
+  Power`, `Kühlbox Modus`, `Kühlbox Batterieschutz` usw.), nicht über
+  die Tuya-Integration. Nur eine BLE-Verbindung zur Kühlbox ist möglich.
+- Die genauen HA-Entity-IDs der ESP-Entities vor dem Bau in Home
+  Assistant prüfen.
+
 ## Ton/Stil-Hinweis
 
 Florian ist technisch versiert (kennt sich mit ESPHome, Home Assistant,
