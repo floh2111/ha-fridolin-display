@@ -871,8 +871,16 @@ geklaert); Integration 0.7.2 (Luftdruck) noch nicht released.
   Generator kennt den Typ (Anker, Mehrfach-Instanzen, `--check` ok).
 - **Wischen**: `scroll_one: true` auf dem Tileview, `scroll_throw 1` /
   `scroll_limit 3` per Lambda beim Start, `compiler_optimization: PERF`,
-  Endlos-Karussell per `on_gesture` (springt am Ende zur ersten/letzten
-  Seite, Position der Seiten ueber ihre x-Koordinate).
+  Snap-Animation per Build-Flag `-DSCROLL_ANIM_TIME_MIN=90/-MAX=160`,
+  `lvgl: buffer_size: 12.5%` (Puffer im internen RAM). Gemessen
+  (Benchmark mit `lv_refr_now`, inzwischen ausgebaut): voller Bildaufbau
+  ~110-135 ms, davon ~44 ms reine Uebertragung (mipi_rgb, nicht
+  beeinflussbar) - mehr als ~10 Bilder/s sind beim Wischen nicht drin.
+  Verworfen: 2 Draw-Units/FreeRTOS (langsamer, 136 ms), `bpp: 2` bei
+  den Schriften (kein messbarer Gewinn). **Endlos-Karussell wurde
+  versucht und auf Florians Wunsch entfernt** (on_gesture erreichte die
+  Wischflaeche nicht, Touch-Auswertung per on_release funktionierte nicht
+  sauber - LVGLs Schwung schob nach dem Sprung weiter).
 - Einstellungen in zwei Spalten (Generator-Anker `_SETTINGS_WIDGET_INDENT = 24`).
 - Bei `git`: **kein `git stash`** in diesem Repo benutzen - hat einmal den
   Index zerstoert (mit `git reset` ohne `--hard` reparierbar).

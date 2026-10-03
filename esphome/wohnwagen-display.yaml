@@ -7,7 +7,10 @@ esphome:
   name: ${name}
   friendly_name: ${friendly_name}
   platformio_options:
-    build_flags: "-DBOARD_HAS_PSRAM"
+    ### SCROLL_ANIM_TIME_MIN/MAX: LVGL-Standard 200-400 ms fuer die Einrast-Animation
+    ### beim Seitenwechsel; bei ~10 Bildern/s wirkt das ruckelig, kuerzer = weniger
+    ### sichtbare Zwischenbilder
+    build_flags: "-DBOARD_HAS_PSRAM -DSCROLL_ANIM_TIME_MIN=90 -DSCROLL_ANIM_TIME_MAX=160"
     board_build.arduino.memory_type: qio_opi
     board_build.flash_mode: dio
   ### Gespeicherten Fahrzeugtyp (Wohnwagen/Wohnmobil) nach dem Hochfahren
@@ -1709,7 +1712,11 @@ lvgl:
   ### ueberholte Teil-Flushes). 100% (voller Bildschirmpuffer) behebt
   ### beides typischerweise bei RGB-Displays - PSRAM hat mit 8 MB reichlich
   ### Luft (ein voller 800x480-RGB565-Puffer sind nur ~750 KB).
-  buffer_size: 100%
+  ### 12.5% (1/8 Bildschirm): ESPHome legt Puffer bis zu dieser Groesse im schnellen
+  ### INTERNEN RAM an (alles darueber im langsameren PSRAM) - gemessen: voller
+  ### Bildaufbau ~110-135 ms statt ~160 ms bei 100%. Bei 20-25% landet der Puffer
+  ### wieder im PSRAM (185 ms, langsamer).
+  buffer_size: 12.5%
   default_font: fridolin_20
 
   theme:
@@ -1731,27 +1738,6 @@ lvgl:
         - tileview:
             id: tv_seiten
             scroll_one: true
-            ### Endlos-Karussell: ein schneller Wisch ueber das Ende hinaus springt
-            ### zur ersten bzw. letzten Seite (die Ausrichtung der Seiten ergibt
-            ### sich aus ihrer x-Position, damit es mit jedem Seitenplan klappt)
-            on_gesture:
-              - lambda: |-
-                  lv_obj_t *tv = id(tv_seiten);
-                  lv_obj_t *aktiv = lv_tileview_get_tile_active(tv);
-                  if (aktiv == nullptr) return;
-                  lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_active());
-                  lv_obj_t *erste = nullptr, *letzte = nullptr;
-                  int minx = 1000000, maxx = -1;
-                  for (uint32_t i = 0; i < lv_obj_get_child_count(tv); i++) {
-                    lv_obj_t *k = lv_obj_get_child(tv, i);
-                    int x = lv_obj_get_x(k);
-                    if (x < minx) { minx = x; erste = k; }
-                    if (x > maxx) { maxx = x; letzte = k; }
-                  }
-                  if (erste == nullptr || maxx <= minx) return;
-                  int ax = lv_obj_get_x(aktiv);
-                  if (dir == LV_DIR_LEFT && ax == maxx) lv_tileview_set_tile(tv, erste, LV_ANIM_OFF);
-                  else if (dir == LV_DIR_RIGHT && ax == minx) lv_tileview_set_tile(tv, letzte, LV_ANIM_OFF);
             scrollbar_mode: "OFF"
             bg_color: 0x101820
             tiles:
