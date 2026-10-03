@@ -684,17 +684,17 @@ finden sind**:
 - Zusätzlich in HA ohnehin verfügbar: Kühlbox Batterie und Spannung
 
 Hinweise für die Umsetzung:
-- Optik und Aufbau an das Display bzw. an die `rv-leveling-card`
-  (eigenes Repo `floh2111/rv-leveling-card`) anlehnen; ob eigene
-  Lovelace-Karte oder Erweiterung dieser Karte, ist offen und mit Florian
-  zu klären.
+- Es wird eine **eigenständige Lovelace-Karte** (Florians Entscheidung),
+  keine Erweiterung der `rv-leveling-card`. Optik und Aufbau an das
+  Display bzw. an die `rv-leveling-card` (eigenes Repo
+  `floh2111/rv-leveling-card`) anlehnen.
 - Die Kühlbox hängt per Tuya-BLE **direkt am ESP** (nicht an HA). Die
   Bedienung aus HA läuft daher über die vom ESP per ESPHome-API
   bereitgestellten Entities (`Kühlbox Zieltemperatur Zahl`, `Kühlbox
   Power`, `Kühlbox Modus`, `Kühlbox Batterieschutz` usw.), nicht über
   die Tuya-Integration. Nur eine BLE-Verbindung zur Kühlbox ist möglich.
-- Die genauen HA-Entity-IDs der ESP-Entities vor dem Bau in Home
-  Assistant prüfen.
+- Die HA-Entity-IDs der ESP-Entities sind Claude Code bekannt (aus der
+  ESPHome-Config ableitbar) - dafür nicht bei Florian nachfragen.
 
 ## Ton/Stil-Hinweis
 
