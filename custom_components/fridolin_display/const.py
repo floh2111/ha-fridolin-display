@@ -21,7 +21,10 @@ MODEL = "Fridolin Touch-Display (Waveshare ESP32-S3-Touch-LCD-7)"
 # Übersichtlichkeit halber eine feste, großzügig bemessene Zahl statt
 # einer dynamischen Liste - ein Slot ohne zugewiesene Entity wird einfach
 # nicht angelegt.
-MAX_LIGHT_SLOTS = 4
+MAX_LIGHT_SLOTS = 8
+
+# Wie viele Rollladen-Slots eine Rollladen-Seite anbietet (2 Spalten x 2 Reihen).
+MAX_COVER_SLOTS = 4
 
 # Instanz-Kennung der jeweils ersten Licht-/Klimaanlagen-Seite im
 # Seitenplan: bekommt bewusst die *alten*, seit Version 0.1.x
@@ -42,6 +45,7 @@ PAGE_TYPE_CLIMATE = "climate"
 PAGE_TYPE_LEVELING = "leveling"
 PAGE_TYPE_FRIDGE = "fridge"
 PAGE_TYPE_SENSORS = "sensors"
+PAGE_TYPE_COVER = "cover"
 
 # overview/leveling/fridge sind lokale bzw. Einzel-Seiten (Kühlbox und
 # Nivellierung sprechen direkt mit dem ESP, nicht mit dieser
@@ -54,18 +58,25 @@ PAGE_TYPES = [
     PAGE_TYPE_LEVELING,
     PAGE_TYPE_FRIDGE,
     PAGE_TYPE_SENSORS,
+    PAGE_TYPE_COVER,
 ]
-PAGE_TYPES_WITH_ENTITIES = {PAGE_TYPE_LIGHT, PAGE_TYPE_CLIMATE, PAGE_TYPE_SENSORS}
+PAGE_TYPES_WITH_ENTITIES = {
+    PAGE_TYPE_LIGHT,
+    PAGE_TYPE_CLIMATE,
+    PAGE_TYPE_SENSORS,
+    PAGE_TYPE_COVER,
+}
 
 # Seitenplan, der dem bisherigen, fest verdrahteten Display entspricht -
 # Vorbelegung fuer bestehende Installationen, die den Seitenplan noch
 # nicht selbst angelegt haben.
 DEFAULT_PAGE_PLAN: list[dict[str, str]] = [
     {"type": PAGE_TYPE_OVERVIEW, "title": "Übersicht"},
+    {"type": PAGE_TYPE_FRIDGE, "title": "Kühlbox"},
+    {"type": PAGE_TYPE_LEVELING, "title": "Nivellierung"},
     {"type": PAGE_TYPE_LIGHT, "title": "Licht", "instance": LEGACY_INSTANCE},
     {"type": PAGE_TYPE_CLIMATE, "title": "Klimaanlage", "instance": LEGACY_INSTANCE},
-    {"type": PAGE_TYPE_LEVELING, "title": "Nivellierung"},
-    {"type": PAGE_TYPE_FRIDGE, "title": "Kühlbox"},
+    {"type": PAGE_TYPE_COVER, "title": "Rollläden", "instance": LEGACY_INSTANCE},
 ]
 
 # ---- Config-/Options-Keys ----
@@ -80,6 +91,8 @@ CONF_OWM_LANG = "owm_lang"
 CONF_CLIMATE_TARGET = "climate_target_{instance}_entity_id"
 CONF_LIGHT_SLOT_ENTITY = "light_{instance}_slot_{index}_entity_id"
 CONF_LIGHT_SLOT_NAME = "light_{instance}_slot_{index}_name"
+CONF_COVER_SLOT_ENTITY = "cover_{instance}_slot_{index}_entity_id"
+CONF_COVER_SLOT_NAME = "cover_{instance}_slot_{index}_name"
 
 # Legacy-Schluessel (instance == LEGACY_INSTANCE), unveraendert seit
 # 0.1.x - fuer die Migration alter Configs auf das neue, instanz-
@@ -87,6 +100,8 @@ CONF_LIGHT_SLOT_NAME = "light_{instance}_slot_{index}_name"
 LEGACY_CONF_CLIMATE_TARGET = "climate_target_entity_id"
 LEGACY_CONF_LIGHT_SLOT_ENTITY = "light_slot_{index}_entity_id"
 LEGACY_CONF_LIGHT_SLOT_NAME = "light_slot_{index}_name"
+LEGACY_CONF_COVER_SLOT_ENTITY = "cover_slot_{index}_entity_id"
+LEGACY_CONF_COVER_SLOT_NAME = "cover_slot_{index}_name"
 
 DEFAULT_OWM_UNITS = "metric"
 DEFAULT_OWM_LANG = "de"
@@ -142,3 +157,24 @@ def light_entity_id(instance: str, index: int) -> str:
     if instance == LEGACY_INSTANCE:
         return f"light.fridolin_licht_{index}"
     return f"light.fridolin_licht_{instance}_{index}"
+
+
+def cover_slot_entity_key(instance: str, index: int) -> str:
+    """Config-Key fuer die Ziel-cover-Entity eines Rollladen-Slots."""
+    if instance == LEGACY_INSTANCE:
+        return LEGACY_CONF_COVER_SLOT_ENTITY.format(index=index)
+    return CONF_COVER_SLOT_ENTITY.format(instance=instance, index=index)
+
+
+def cover_slot_name_key(instance: str, index: int) -> str:
+    """Config-Key fuer den Anzeigenamen eines Rollladen-Slots."""
+    if instance == LEGACY_INSTANCE:
+        return LEGACY_CONF_COVER_SLOT_NAME.format(index=index)
+    return CONF_COVER_SLOT_NAME.format(instance=instance, index=index)
+
+
+def cover_entity_id(instance: str, index: int) -> str:
+    """Feste Display-Entity-ID eines Rollladen-Slots dieser Instanz."""
+    if instance == LEGACY_INSTANCE:
+        return f"cover.fridolin_rollladen_{index}"
+    return f"cover.fridolin_rollladen_{instance}_{index}"

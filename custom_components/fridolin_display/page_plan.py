@@ -108,3 +108,8 @@ def light_pages(config: dict[str, Any]) -> list[dict[str, str]]:
 def climate_pages(config: dict[str, Any]) -> list[dict[str, str]]:
     """Alle Klimaanlagen-Seiten im Plan (jede mit eigener 'instance')."""
     return [p for p in get_page_plan(config) if p["type"] == "climate"]
+
+
+def cover_pages(config: dict[str, Any]) -> list[dict[str, str]]:
+    """Alle Rollladen-Seiten im Plan (jede mit eigener 'instance')."""
+    return [p for p in get_page_plan(config) if p["type"] == "cover"]

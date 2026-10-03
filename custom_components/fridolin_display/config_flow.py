@@ -39,9 +39,12 @@ from .const import (
     DEFAULT_OWM_LANG,
     DEFAULT_OWM_UNITS,
     DOMAIN,
+    MAX_COVER_SLOTS,
     MAX_LIGHT_SLOTS,
     PAGE_TYPES,
     PAGE_TYPES_WITH_ENTITIES,
+    cover_slot_entity_key,
+    cover_slot_name_key,
     light_slot_entity_key,
     light_slot_name_key,
     climate_target_key,
@@ -55,6 +58,7 @@ PAGE_TYPE_LABELS = {
     "leveling": "Nivellierung",
     "fridge": "Kühlbox",
     "sensors": "Sensoren (generisch)",
+    "cover": "Rollläden",
 }
 
 
@@ -210,10 +214,27 @@ def _entity_mapping_schema(
                     entity_key,
                     description={"suggested_value": defaults.get(entity_key) or None},
                 )
-            ] = selector.EntitySelector(selector.EntitySelectorConfig(domain="light"))
+            ] = selector.EntitySelector(selector.EntitySelectorConfig(domain=["light", "switch"]))
             schema_dict[
                 vol.Optional(
                     name_key, default=defaults.get(name_key, f"Licht {index}")
+                )
+            ] = str
+
+    for page in [p for p in plan if p["type"] == "cover"]:
+        instance = page["instance"]
+        for index in range(1, MAX_COVER_SLOTS + 1):
+            entity_key = cover_slot_entity_key(instance, index)
+            name_key = cover_slot_name_key(instance, index)
+            schema_dict[
+                vol.Optional(
+                    entity_key,
+                    description={"suggested_value": defaults.get(entity_key) or None},
+                )
+            ] = selector.EntitySelector(selector.EntitySelectorConfig(domain="cover"))
+            schema_dict[
+                vol.Optional(
+                    name_key, default=defaults.get(name_key, f"Rollladen {index}")
                 )
             ] = str
 

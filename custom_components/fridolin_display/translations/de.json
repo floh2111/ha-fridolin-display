@@ -65,7 +65,7 @@
       },
       "edit_json": {
         "title": "Seitenplan als JSON",
-        "description": "Für Experten: der komplette Seitenplan als JSON-Liste von Objekten mit den Feldern 'type' und 'title' (und ggf. 'instance'/'entities'), z.B. zuerst Typ overview mit Titel Übersicht, danach Typ light mit Titel Licht, usw. Gültige Typen: overview, light, climate, leveling, fridge, sensors.",
+        "description": "Für Experten: der komplette Seitenplan als JSON-Liste von Objekten mit den Feldern 'type' und 'title' (und ggf. 'instance'/'entities'), z.B. zuerst Typ overview mit Titel Übersicht, danach Typ light mit Titel Licht, usw. Gültige Typen: overview, light, climate, leveling, fridge, sensors, cover.",
         "data": {
           "page_plan_json": "Seitenplan (JSON)"
         }
@@ -74,15 +74,31 @@
         "title": "Entity-Zuordnung",
         "description": "Welche echten Entities sollen hinter den Licht-/Klimaanlagen-Seiten aus deinem Seitenplan stecken? Ein leer gelassenes Licht wird auf dem Display nicht angezeigt. Feldnamen für zusätzliche (nicht die erste) Instanz einer Seite sind technisch (z.B. light_2_slot_1_entity_id für die zweite Licht-Seite, Slot 1).",
         "data": {
-          "light_slot_1_entity_id": "Licht 1: Ziel-Entity",
+          "light_slot_1_entity_id": "Licht 1: Ziel-Entity (Licht oder Schalter)",
           "light_slot_1_name": "Licht 1: Anzeigename",
-          "light_slot_2_entity_id": "Licht 2: Ziel-Entity",
+          "light_slot_2_entity_id": "Licht 2: Ziel-Entity (Licht oder Schalter)",
           "light_slot_2_name": "Licht 2: Anzeigename",
-          "light_slot_3_entity_id": "Licht 3: Ziel-Entity",
+          "light_slot_3_entity_id": "Licht 3: Ziel-Entity (Licht oder Schalter)",
           "light_slot_3_name": "Licht 3: Anzeigename",
-          "light_slot_4_entity_id": "Licht 4: Ziel-Entity",
+          "light_slot_4_entity_id": "Licht 4: Ziel-Entity (Licht oder Schalter)",
           "light_slot_4_name": "Licht 4: Anzeigename",
-          "climate_target_entity_id": "Klimaanlage: Ziel-Entity"
+          "climate_target_entity_id": "Klimaanlage: Ziel-Entity",
+          "light_slot_5_entity_id": "Licht 5: Ziel-Entity (Licht oder Schalter)",
+          "light_slot_5_name": "Licht 5: Anzeigename",
+          "light_slot_6_entity_id": "Licht 6: Ziel-Entity (Licht oder Schalter)",
+          "light_slot_6_name": "Licht 6: Anzeigename",
+          "light_slot_7_entity_id": "Licht 7: Ziel-Entity (Licht oder Schalter)",
+          "light_slot_7_name": "Licht 7: Anzeigename",
+          "light_slot_8_entity_id": "Licht 8: Ziel-Entity (Licht oder Schalter)",
+          "light_slot_8_name": "Licht 8: Anzeigename",
+          "cover_slot_1_entity_id": "Rollladen 1: Ziel-Entity",
+          "cover_slot_1_name": "Rollladen 1: Anzeigename",
+          "cover_slot_2_entity_id": "Rollladen 2: Ziel-Entity",
+          "cover_slot_2_name": "Rollladen 2: Anzeigename",
+          "cover_slot_3_entity_id": "Rollladen 3: Ziel-Entity",
+          "cover_slot_3_name": "Rollladen 3: Anzeigename",
+          "cover_slot_4_entity_id": "Rollladen 4: Ziel-Entity",
+          "cover_slot_4_name": "Rollladen 4: Anzeigename"
         }
       }
     },

@@ -26,6 +26,7 @@ from .coordinator import FridolinWeatherCoordinator
 
 PLATFORMS: list[Platform] = [
     Platform.LIGHT,
+    Platform.COVER,
     Platform.CLIMATE,
     Platform.SENSOR,
     Platform.BUTTON,

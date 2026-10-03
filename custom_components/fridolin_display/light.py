@@ -1,5 +1,8 @@
 """Licht-Slots: feste Display-Entities, die eine echte Licht-Entity spiegeln.
 
+Die Ziel-Entity darf auch ein Schalter (switch) sein: ein/aus laufen über
+homeassistant.turn_on/turn_off, das für beide Domains funktioniert.
+
 Jede FridolinDisplayLight hält Zustand und Helligkeit ihrer Ziel-Entity
 live nach (über einen State-Change-Listener) und reicht toggle/turn_on/
 turn_off einfach weiter. Das ESP32-Display spricht immer feste Entity-IDs
@@ -108,10 +111,10 @@ class FridolinDisplayLight(LightEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         await self.hass.services.async_call(
-            "light", "turn_on", {"entity_id": self._target_entity_id}, blocking=True
+            "homeassistant", "turn_on", {"entity_id": self._target_entity_id}, blocking=True
         )
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         await self.hass.services.async_call(
-            "light", "turn_off", {"entity_id": self._target_entity_id}, blocking=True
+            "homeassistant", "turn_off", {"entity_id": self._target_entity_id}, blocking=True
         )
