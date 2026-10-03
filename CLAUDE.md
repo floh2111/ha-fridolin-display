@@ -646,12 +646,25 @@ der Übersichtsseite erreichbar ist (LVGL `top_layer:`):
    Zahnrad-Icon-Button und `safe_mode:`.
 6. Ggf. Kleinigkeiten aus dem Livetest nachjustieren (Pinbelegung, Timing,
    Layout).
+7. Standby für das Display umsetzen (siehe "Neue Anforderung: Standby"),
+   inkl. Schieberegler in den Einstellungen: Aus / 1 Minute / 2 Minuten /
+   5 Minuten.
+8. Kühlbox-Karte für Home Assistant als eigenständige Lovelace-Karte
+   bauen (siehe "Neue Anforderung: Kühlbox-Karte").
 
 ## Neue Anforderung: Standby für das Display (noch nicht umgesetzt)
 
 Florian möchte einen Standby-Betrieb für das Fridolin-Display:
 
-- Nach **60 Sekunden ohne Berührung** geht das Display aus (Backlicht aus).
+- Nach einer einstellbaren Zeit **ohne Berührung** geht das Display aus
+  (Backlicht aus). Standard: **1 Minute**.
+- **Pflicht: Einstellung auf der Einstellungsseite** (Overlay) als
+  **Schieberegler mit vier Stufen: Aus, 1 Minute, 2 Minuten, 5 Minuten**
+  ("Aus" = Standby nie). Aktuelle Stufe als Text neben dem Regler
+  anzeigen. Wert wie `g_fahrzeugtyp_wohnmobil` im Flash persistieren
+  (`restore_value`), damit er einen Neustart überlebt. Prüfen, ob
+  `on_idle: timeout` zur Laufzeit per Lambda setzbar ist; sonst Wert in
+  einem Global halten und den Idle-Zeitpunkt selbst auswerten.
 - Bei **Berührung** geht es wieder an.
 - Die weckende Berührung soll **keinen Button auslösen**, der darunter liegt.
 - Datei: `esphome/wohnwagen-display.yaml`. Das Backlicht ist der Schalter
@@ -663,7 +676,6 @@ Florian möchte einen Standby-Betrieb für das Fridolin-Display:
   wird, ist auf echter Hardware zu prüfen.
 - Wichtig: API, Wetter, Kühlbox (BLE) und Neigungssensor laufen im
   Standby weiter.
-- Optional: Dauer in den Einstellungen wählbar machen.
 - Falls der YAML-Generator (`generate_display_yaml.py`) betroffen ist:
   `--check`-Selbsttest muss weiterhin Byte-für-Byte stimmen.
 
