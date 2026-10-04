@@ -792,7 +792,18 @@ Florian möchte einen Standby-Betrieb für das Fridolin-Display:
 - Falls der YAML-Generator (`generate_display_yaml.py`) betroffen ist:
   `--check`-Selbsttest muss weiterhin Byte-für-Byte stimmen.
 
-## Neue Anforderung: Kühlbox-Karte für Home Assistant (noch nicht umgesetzt)
+## Kühlbox-Karte für Home Assistant (gebaut 04.10.2026, noch nicht veröffentlicht)
+
+**Stand**: Die Karte `rv-fridge-card` existiert als lokales Git-Repo
+`/Users/florianschmitz/Documents/rv-fridge-card` (ein Commit, kein GitHub-Remote).
+Eine JS-Datei, Editor per `ha-form`, de/en, Vorschau `preview.html` mit
+simulierten HA-Daten. Layout: Titel + Verbindung, Ring mit Zieltemperatur und
+Ist-Wert, -/+ (mit Entprellung wie auf dem Display), Ein/Aus, Modus MAX/ECO,
+Batterieschutz L/M/H, Fusszeile Batterie/Spannung. Noch offen: GitHub-Repo
+`floh2111/rv-fridge-card` anlegen + pushen (nur auf Florians Freigabe), HACS-
+Installation, echte Entity-IDs im HA pruefen (die Beispiele in der README sind
+aus den ESPHome-Namen abgeleitet: z.B. `select.fridolin_display_kuhlbox_zieltemperatur`).
+Ursprüngliche Anforderung (zur Referenz):
 
 Florian möchte im Home-Assistant-Dashboard eine **Karte zur Bedienung der
 Kühlbox** mit **allen Bedienelementen, die auch auf dem Display
