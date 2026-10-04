@@ -872,15 +872,22 @@ geklaert); Integration 0.7.2 (Luftdruck) noch nicht released.
 - **Wischen**: `scroll_one: true` auf dem Tileview, `scroll_throw 1` /
   `scroll_limit 3` per Lambda beim Start, `compiler_optimization: PERF`,
   Snap-Animation per Build-Flag `-DSCROLL_ANIM_TIME_MIN=90/-MAX=160`,
-  `lvgl: buffer_size: 12.5%` (Puffer im internen RAM). Gemessen
+  `lvgl: buffer_size: 100%` (PSRAM). Gemessen
   (Benchmark mit `lv_refr_now`, inzwischen ausgebaut): voller Bildaufbau
-  ~110-135 ms, davon ~44 ms reine Uebertragung (mipi_rgb, nicht
+  ~110-160 ms, davon ~44 ms reine Uebertragung (mipi_rgb, nicht
   beeinflussbar) - mehr als ~10 Bilder/s sind beim Wischen nicht drin.
   Verworfen: 2 Draw-Units/FreeRTOS (langsamer, 136 ms), `bpp: 2` bei
   den Schriften (kein messbarer Gewinn). **Endlos-Karussell wurde
   versucht und auf Florians Wunsch entfernt** (on_gesture erreichte die
   Wischflaeche nicht, Touch-Auswertung per on_release funktionierte nicht
   sauber - LVGLs Schwung schob nach dem Sprung weiter).
+- **Interner RAM ist knapp (~107 KB frei bei 100%-Puffer im PSRAM)**: Ein
+  12.5%-Puffer (96 KB) im internen RAM schnitt WLAN/API den Speicher ab -
+  HA verband sich, abonnierte aber nie Werte (kein Wetter, keine Lichter,
+  nur Uhrzeit), Abbruch nach exakt 60 s, WLAN fiel aus. Fuer Diagnosen
+  `ESP_LOGW(... heap_caps_get_free_size(MALLOC_CAP_INTERNAL) ...)` im
+  1s-Interval nutzen (die `debug:`-Komponente scheitert in der lokalen
+  ESPHome-Installation an einem fehlenden Modul).
 - Einstellungen in zwei Spalten (Generator-Anker `_SETTINGS_WIDGET_INDENT = 24`).
 - Bei `git`: **kein `git stash`** in diesem Repo benutzen - hat einmal den
   Index zerstoert (mit `git reset` ohne `--hard` reparierbar).

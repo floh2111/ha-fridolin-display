@@ -1712,11 +1712,12 @@ lvgl:
   ### ueberholte Teil-Flushes). 100% (voller Bildschirmpuffer) behebt
   ### beides typischerweise bei RGB-Displays - PSRAM hat mit 8 MB reichlich
   ### Luft (ein voller 800x480-RGB565-Puffer sind nur ~750 KB).
-  ### 12.5% (1/8 Bildschirm): ESPHome legt Puffer bis zu dieser Groesse im schnellen
-  ### INTERNEN RAM an (alles darueber im langsameren PSRAM) - gemessen: voller
-  ### Bildaufbau ~110-135 ms statt ~160 ms bei 100%. Bei 20-25% landet der Puffer
-  ### wieder im PSRAM (185 ms, langsamer).
-  buffer_size: 12.5%
+  ### NICHT verkleinern! 12.5% (96 KB) landet im INTERNEN RAM und laesst nur ~10 KB
+  ### frei - dann bekommt WLAN/API keinen Speicher mehr: Verbindung zu Home
+  ### Assistant steht, aber es kommen keine Werte (Handshake scheitert, Abbruch
+  ### nach exakt 60 s), WLAN faellt immer wieder aus. Mit 100% (PSRAM) sind ~107 KB
+  ### intern frei. (Gemessen 03.10.2026: 100% ~161 ms/Frame, 12.5% ~136 ms.)
+  buffer_size: 100%
   default_font: fridolin_20
 
   theme:
