@@ -1,0 +1,147 @@
+# Kühlbox-Skripte für die Home-Assistant-App (CarPlay / Siri / Dashboard)
+#
+# Einbinden: Inhalt an die Datei scripts.yaml anhängen (Einstellungen ->
+# Automationen & Szenen -> Skripte -> Drei-Punkte-Menü -> "In YAML bearbeiten"
+# geht pro Skript) und danach "Skripte neu laden" ausführen.
+#
+# Die Entity-IDs unten sind aus den ESPHome-Namen abgeleitet. Falls deine
+# anders heißen, per Suchen/Ersetzen anpassen:
+#   switch.fridolin_display_kuhlbox_power
+#   select.fridolin_display_kuhlbox_zieltemperatur
+#   select.fridolin_display_kuhlbox_modus
+#
+# Die Skripte mit festen Temperaturen schalten die Kühlbox zusätzlich EIN
+# (Zeile "switch.turn_on" entfernen, wenn nur der Sollwert gesetzt werden soll).
+# Die Optionen der Zieltemperatur heißen "-20 °C" bis "20 °C".
+
+kuehlbox_2_grad:
+  alias: "Kühlbox 2 °C"
+  icon: mdi:fridge-outline
+  sequence:
+    - action: switch.turn_on
+      target:
+        entity_id: switch.fridolin_display_kuhlbox_power
+    - action: select.select_option
+      target:
+        entity_id: select.fridolin_display_kuhlbox_zieltemperatur
+      data:
+        option: "2 °C"
+  mode: single
+
+kuehlbox_4_grad:
+  alias: "Kühlbox 4 °C"
+  icon: mdi:fridge-outline
+  sequence:
+    - action: switch.turn_on
+      target:
+        entity_id: switch.fridolin_display_kuhlbox_power
+    - action: select.select_option
+      target:
+        entity_id: select.fridolin_display_kuhlbox_zieltemperatur
+      data:
+        option: "4 °C"
+  mode: single
+
+kuehlbox_5_grad:
+  alias: "Kühlbox 5 °C"
+  icon: mdi:fridge-outline
+  sequence:
+    - action: switch.turn_on
+      target:
+        entity_id: switch.fridolin_display_kuhlbox_power
+    - action: select.select_option
+      target:
+        entity_id: select.fridolin_display_kuhlbox_zieltemperatur
+      data:
+        option: "5 °C"
+  mode: single
+
+kuehlbox_6_grad:
+  alias: "Kühlbox 6 °C"
+  icon: mdi:fridge-outline
+  sequence:
+    - action: switch.turn_on
+      target:
+        entity_id: switch.fridolin_display_kuhlbox_power
+    - action: select.select_option
+      target:
+        entity_id: select.fridolin_display_kuhlbox_zieltemperatur
+      data:
+        option: "6 °C"
+  mode: single
+
+kuehlbox_7_grad:
+  alias: "Kühlbox 7 °C"
+  icon: mdi:fridge-outline
+  sequence:
+    - action: switch.turn_on
+      target:
+        entity_id: switch.fridolin_display_kuhlbox_power
+    - action: select.select_option
+      target:
+        entity_id: select.fridolin_display_kuhlbox_zieltemperatur
+      data:
+        option: "7 °C"
+  mode: single
+
+kuehlbox_minus_18_grad:
+  alias: "Kühlbox -18 °C"
+  icon: mdi:snowflake
+  sequence:
+    - action: switch.turn_on
+      target:
+        entity_id: switch.fridolin_display_kuhlbox_power
+    - action: select.select_option
+      target:
+        entity_id: select.fridolin_display_kuhlbox_zieltemperatur
+      data:
+        option: "-18 °C"
+  mode: single
+
+kuehlbox_waermer:
+  alias: "Kühlbox +1 °C"
+  icon: mdi:thermometer-plus
+  sequence:
+    - action: select.select_option
+      target:
+        entity_id: select.fridolin_display_kuhlbox_zieltemperatur
+      data:
+        option: >-
+          {% set aktuell = states('select.fridolin_display_kuhlbox_zieltemperatur') | regex_findall_index('-?\\d+') | int(5) %}
+          {{ [-20, [20, aktuell + 1] | min] | max }} °C
+  mode: single
+
+kuehlbox_kaelter:
+  alias: "Kühlbox −1 °C"
+  icon: mdi:thermometer-minus
+  sequence:
+    - action: select.select_option
+      target:
+        entity_id: select.fridolin_display_kuhlbox_zieltemperatur
+      data:
+        option: >-
+          {% set aktuell = states('select.fridolin_display_kuhlbox_zieltemperatur') | regex_findall_index('-?\\d+') | int(5) %}
+          {{ [-20, [20, aktuell - 1] | min] | max }} °C
+  mode: single
+
+kuehlbox_max:
+  alias: "Kühlbox MAX"
+  icon: mdi:rocket-launch-outline
+  sequence:
+    - action: select.select_option
+      target:
+        entity_id: select.fridolin_display_kuhlbox_modus
+      data:
+        option: "MAX"
+  mode: single
+
+kuehlbox_eco:
+  alias: "Kühlbox ECO"
+  icon: mdi:leaf
+  sequence:
+    - action: select.select_option
+      target:
+        entity_id: select.fridolin_display_kuhlbox_modus
+      data:
+        option: "ECO"
+  mode: single

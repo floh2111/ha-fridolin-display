@@ -921,6 +921,22 @@ Verbindung). Gotcha: `initial_value` bei `char[64]`-Globals NICHT setzen
 auf der Uebersicht brauchen ein eigenes `g_p_*`-Global + Eintrag in
 `restore_uebersicht`.
 
+## Kühlbox im Auto (CarPlay) - Stand 04.10.2026
+
+Recherche-Ergebnis: Lovelace-Karten gehen nicht ins Auto (Apple erlaubt nur feste
+App-Kategorien). Gangbar: Home-Assistant-Companion-App mit CarPlay (Schnellzugriff:
+switch/script/button/scene/cover/light/lock/input_boolean - **keine** select/number/
+climate; Sensoren nur auf Android Auto sichtbar; Assist ab iOS 26.4). Direkt per
+Auto-Bluetooth geht nicht (Kühlbox = Tuya-BLE, ESP32-S3 hat kein klassisches BT, der
+ESP haelt ausserdem die einzige BLE-Verbindung). Der Weg iPhone -> HA -> VPN ->
+Wohnwagen-Router -> ESP braucht beim Fahren Internet im Wohnwagen: Florians Router
+Cudy LT300 (4G, WireGuard/OpenVPN) mit SIM macht das moeglich. Dateien dazu:
+`home-assistant/kuehlbox_skripte.yaml` (10 Skripte: 2/4/5/6/7/-18 Grad, +-1, MAX/ECO) und
+`home-assistant/KUEHLBOX_CARPLAY.md` (Einrichtung). Noch nicht in Florians HA getestet.
+Offene Idee: ESP direkt in die Kühlbox (Tuya-BLE-Modul durch ESP32-C3 ersetzen, Tuya-
+MCU-Protokoll per UART, Datenpunkte 101/103/104/112/114/122/123) - erst Platine
+fotografieren/mithoeren.
+
 ## Ton/Stil-Hinweis
 
 Florian ist technisch versiert (kennt sich mit ESPHome, Home Assistant,
