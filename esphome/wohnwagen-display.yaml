@@ -39,6 +39,110 @@ preferences:
 ### Übersichts-Text unabhängig von der Update-Reihenfolge stimmt
 globals:
   ### Zeitpunkt (millis) der letzten Kühlbox-Messung, für die Anzeige Verbunden/Getrennt
+  ### Letzte Werte der Uebersicht (Wetter, Wind, Sonne, ...) - bleiben im Flash
+  ### erhalten und werden beim Start sofort angezeigt, auch ohne Home Assistant
+  - id: g_p_wetter_zustand
+    type: char[64]
+    restore_value: true
+  - id: g_p_wetter_ort
+    type: char[64]
+    restore_value: true
+  - id: g_p_wetter_icon
+    type: char[64]
+    restore_value: true
+  - id: g_p_h0_icon
+    type: char[64]
+    restore_value: true
+  - id: g_p_h1_icon
+    type: char[64]
+    restore_value: true
+  - id: g_p_h2_icon
+    type: char[64]
+    restore_value: true
+  - id: g_p_h3_icon
+    type: char[64]
+    restore_value: true
+  - id: g_p_morgen_icon
+    type: char[64]
+    restore_value: true
+  - id: g_p_h0_regen
+    type: char[64]
+    restore_value: true
+  - id: g_p_h1_regen
+    type: char[64]
+    restore_value: true
+  - id: g_p_h2_regen
+    type: char[64]
+    restore_value: true
+  - id: g_p_h3_regen
+    type: char[64]
+    restore_value: true
+  - id: g_p_wetter_regen
+    type: char[64]
+    restore_value: true
+  - id: g_p_wetter_wind
+    type: char[64]
+    restore_value: true
+  - id: g_p_wetter_feuchte
+    type: char[64]
+    restore_value: true
+  - id: g_p_wetter_druck
+    type: char[64]
+    restore_value: true
+  - id: g_p_wetter_sunrise
+    type: char[64]
+    restore_value: true
+  - id: g_p_wetter_sunset
+    type: char[64]
+    restore_value: true
+  - id: g_p_h0_zeit
+    type: char[64]
+    restore_value: true
+  - id: g_p_h1_zeit
+    type: char[64]
+    restore_value: true
+  - id: g_p_h2_zeit
+    type: char[64]
+    restore_value: true
+  - id: g_p_h3_zeit
+    type: char[64]
+    restore_value: true
+  - id: g_p_morgen_zustand
+    type: char[64]
+    restore_value: true
+  - id: g_p_wetter_temp_uebersicht
+    type: float
+    restore_value: true
+    initial_value: 'NAN'
+  - id: g_p_h0_temp
+    type: float
+    restore_value: true
+    initial_value: 'NAN'
+  - id: g_p_h1_temp
+    type: float
+    restore_value: true
+    initial_value: 'NAN'
+  - id: g_p_h2_temp
+    type: float
+    restore_value: true
+    initial_value: 'NAN'
+  - id: g_p_h3_temp
+    type: float
+    restore_value: true
+    initial_value: 'NAN'
+  - id: g_p_morgen_min
+    type: float
+    restore_value: true
+    initial_value: 'NAN'
+  - id: g_p_morgen_max
+    type: float
+    restore_value: true
+    initial_value: 'NAN'
+  ### Letzte lokale Zeit (Sekunden, als UTC gerechnet) - Uhr laeuft ohne Home Assistant weiter
+  - id: g_zeit_lokal
+    type: uint32_t
+    restore_value: true
+    initial_value: '0'
   ### Vom Display eingestellte, noch nicht bestaetigte Kuehlbox-Zieltemperatur
   ### (-999 = nichts ausstehend) - zeigt die Aenderung sofort an und lässt
   ### mehrere schnelle Klicks aufeinander aufbauen
@@ -448,6 +552,7 @@ interval:
           if (!id(g_standby_init)) {
             id(g_standby_init) = true;
             id(sync_standby).execute();
+            id(restore_uebersicht).execute();
             // Wisch-Physik: scroll_throw 1 (Standard 10) = Schwung laeuft laenger
             // nach, dadurch reicht ein kurzes Wischen fuer den Seitenwechsel;
             // scroll_limit 3 (Standard 10) = Wischen beginnt frueher
@@ -1013,6 +1118,7 @@ text_sensor:
     id: wetter_zustand
     entity_id: sensor.fridolin_wetter_zustand
     on_value:
+      - lambda: 'if (x != "unknown" && x != "unavailable") { strncpy(id(g_p_wetter_zustand), x.c_str(), 63); id(g_p_wetter_zustand)[63] = 0; }'
       - lvgl.label.update:
           id: lbl_wetter_zustand
           text: !lambda return x;
@@ -1022,6 +1128,7 @@ text_sensor:
     id: wetter_ort
     entity_id: sensor.fridolin_wetter_ort
     on_value:
+      - lambda: 'if (x != "unknown" && x != "unavailable") { strncpy(id(g_p_wetter_ort), x.c_str(), 63); id(g_p_wetter_ort)[63] = 0; }'
       - lvgl.label.update:
           id: lbl_wetter_ort
           text: !lambda return x;
@@ -1030,6 +1137,7 @@ text_sensor:
     id: wetter_icon
     entity_id: sensor.fridolin_wetter_icon
     on_value:
+      - lambda: 'if (x != "unknown" && x != "unavailable") { strncpy(id(g_p_wetter_icon), x.c_str(), 63); id(g_p_wetter_icon)[63] = 0; }'
       - lvgl.image.update:
           id: img_wetter_gross
           src:
@@ -1040,6 +1148,7 @@ text_sensor:
     id: h0_icon
     entity_id: sensor.fridolin_wetter_h0_icon
     on_value:
+      - lambda: 'if (x != "unknown" && x != "unavailable") { strncpy(id(g_p_h0_icon), x.c_str(), 63); id(g_p_h0_icon)[63] = 0; }'
       - lvgl.image.update:
           id: img_h0_icon
           src:
@@ -1050,6 +1159,7 @@ text_sensor:
     id: h1_icon
     entity_id: sensor.fridolin_wetter_h1_icon
     on_value:
+      - lambda: 'if (x != "unknown" && x != "unavailable") { strncpy(id(g_p_h1_icon), x.c_str(), 63); id(g_p_h1_icon)[63] = 0; }'
       - lvgl.image.update:
           id: img_h1_icon
           src:
@@ -1060,6 +1170,7 @@ text_sensor:
     id: h2_icon
     entity_id: sensor.fridolin_wetter_h2_icon
     on_value:
+      - lambda: 'if (x != "unknown" && x != "unavailable") { strncpy(id(g_p_h2_icon), x.c_str(), 63); id(g_p_h2_icon)[63] = 0; }'
       - lvgl.image.update:
           id: img_h2_icon
           src:
@@ -1070,6 +1181,7 @@ text_sensor:
     id: h3_icon
     entity_id: sensor.fridolin_wetter_h3_icon
     on_value:
+      - lambda: 'if (x != "unknown" && x != "unavailable") { strncpy(id(g_p_h3_icon), x.c_str(), 63); id(g_p_h3_icon)[63] = 0; }'
       - lvgl.image.update:
           id: img_h3_icon
           src:
@@ -1080,6 +1192,7 @@ text_sensor:
     id: morgen_icon
     entity_id: sensor.fridolin_wetter_morgen_icon
     on_value:
+      - lambda: 'if (x != "unknown" && x != "unavailable") { strncpy(id(g_p_morgen_icon), x.c_str(), 63); id(g_p_morgen_icon)[63] = 0; }'
       - lvgl.image.update:
           id: img_morgen_icon
           src:
@@ -1104,71 +1217,85 @@ text_sensor:
     id: h0_regen
     entity_id: sensor.fridolin_wetter_h0_regen
     on_value:
+      - lambda: 'if (x != "unknown" && x != "unavailable") { strncpy(id(g_p_h0_regen), x.c_str(), 63); id(g_p_h0_regen)[63] = 0; }'
       - lvgl.label.update: { id: lbl_h0_regen, text: !lambda 'return (x == "unknown" || x == "unavailable") ? std::string("") : x;' }
   - platform: homeassistant
     id: h1_regen
     entity_id: sensor.fridolin_wetter_h1_regen
     on_value:
+      - lambda: 'if (x != "unknown" && x != "unavailable") { strncpy(id(g_p_h1_regen), x.c_str(), 63); id(g_p_h1_regen)[63] = 0; }'
       - lvgl.label.update: { id: lbl_h1_regen, text: !lambda 'return (x == "unknown" || x == "unavailable") ? std::string("") : x;' }
   - platform: homeassistant
     id: h2_regen
     entity_id: sensor.fridolin_wetter_h2_regen
     on_value:
+      - lambda: 'if (x != "unknown" && x != "unavailable") { strncpy(id(g_p_h2_regen), x.c_str(), 63); id(g_p_h2_regen)[63] = 0; }'
       - lvgl.label.update: { id: lbl_h2_regen, text: !lambda 'return (x == "unknown" || x == "unavailable") ? std::string("") : x;' }
   - platform: homeassistant
     id: h3_regen
     entity_id: sensor.fridolin_wetter_h3_regen
     on_value:
+      - lambda: 'if (x != "unknown" && x != "unavailable") { strncpy(id(g_p_h3_regen), x.c_str(), 63); id(g_p_h3_regen)[63] = 0; }'
       - lvgl.label.update: { id: lbl_h3_regen, text: !lambda 'return (x == "unknown" || x == "unavailable") ? std::string("") : x;' }
   - platform: homeassistant
     id: wetter_regen
     entity_id: sensor.fridolin_wetter_regen
     on_value:
+      - lambda: 'if (x != "unknown" && x != "unavailable") { strncpy(id(g_p_wetter_regen), x.c_str(), 63); id(g_p_wetter_regen)[63] = 0; }'
       - lvgl.label.update: { id: lbl_wetter_regen, text: !lambda 'return (x == "unknown" || x == "unavailable") ? std::string("") : x;' }
   - platform: homeassistant
     id: wetter_wind
     entity_id: sensor.fridolin_wetter_wind
     on_value:
+      - lambda: 'if (x != "unknown" && x != "unavailable") { strncpy(id(g_p_wetter_wind), x.c_str(), 63); id(g_p_wetter_wind)[63] = 0; }'
       - lvgl.label.update: { id: lbl_wind, text: !lambda 'return (x == "unknown" || x == "unavailable") ? std::string("--") : x;' }
   - platform: homeassistant
     id: wetter_feuchte
     entity_id: sensor.fridolin_wetter_humidity
     on_value:
+      - lambda: 'if (x != "unknown" && x != "unavailable") { strncpy(id(g_p_wetter_feuchte), x.c_str(), 63); id(g_p_wetter_feuchte)[63] = 0; }'
       - lvgl.label.update: { id: lbl_feuchte, text: !lambda 'return (x == "unknown" || x == "unavailable") ? std::string("--") : x;' }
   - platform: homeassistant
     id: wetter_druck
     entity_id: sensor.fridolin_wetter_pressure
     on_value:
+      - lambda: 'if (x != "unknown" && x != "unavailable") { strncpy(id(g_p_wetter_druck), x.c_str(), 63); id(g_p_wetter_druck)[63] = 0; }'
       - lvgl.label.update: { id: lbl_druck, text: !lambda 'return (x == "unknown" || x == "unavailable") ? std::string("--") : x;' }
   - platform: homeassistant
     id: wetter_sunrise
     entity_id: sensor.fridolin_wetter_sunrise
     on_value:
+      - lambda: 'if (x != "unknown" && x != "unavailable") { strncpy(id(g_p_wetter_sunrise), x.c_str(), 63); id(g_p_wetter_sunrise)[63] = 0; }'
       - lvgl.label.update: { id: lbl_sunrise, text: !lambda 'return (x == "unknown" || x == "unavailable") ? std::string("--") : x;' }
   - platform: homeassistant
     id: wetter_sunset
     entity_id: sensor.fridolin_wetter_sunset
     on_value:
+      - lambda: 'if (x != "unknown" && x != "unavailable") { strncpy(id(g_p_wetter_sunset), x.c_str(), 63); id(g_p_wetter_sunset)[63] = 0; }'
       - lvgl.label.update: { id: lbl_sunset, text: !lambda 'return (x == "unknown" || x == "unavailable") ? std::string("--") : x;' }
   - platform: homeassistant
     id: h0_zeit
     entity_id: sensor.fridolin_wetter_h0_zeit
     on_value:
+      - lambda: 'if (x != "unknown" && x != "unavailable") { strncpy(id(g_p_h0_zeit), x.c_str(), 63); id(g_p_h0_zeit)[63] = 0; }'
       - lvgl.label.update: { id: lbl_h0_zeit, text: !lambda return x; }
   - platform: homeassistant
     id: h1_zeit
     entity_id: sensor.fridolin_wetter_h1_zeit
     on_value:
+      - lambda: 'if (x != "unknown" && x != "unavailable") { strncpy(id(g_p_h1_zeit), x.c_str(), 63); id(g_p_h1_zeit)[63] = 0; }'
       - lvgl.label.update: { id: lbl_h1_zeit, text: !lambda return x; }
   - platform: homeassistant
     id: h2_zeit
     entity_id: sensor.fridolin_wetter_h2_zeit
     on_value:
+      - lambda: 'if (x != "unknown" && x != "unavailable") { strncpy(id(g_p_h2_zeit), x.c_str(), 63); id(g_p_h2_zeit)[63] = 0; }'
       - lvgl.label.update: { id: lbl_h2_zeit, text: !lambda return x; }
   - platform: homeassistant
     id: h3_zeit
     entity_id: sensor.fridolin_wetter_h3_zeit
     on_value:
+      - lambda: 'if (x != "unknown" && x != "unavailable") { strncpy(id(g_p_h3_zeit), x.c_str(), 63); id(g_p_h3_zeit)[63] = 0; }'
       - lvgl.label.update: { id: lbl_h3_zeit, text: !lambda return x; }
 
   ### Ausblick auf morgen: Zustandstext (min/max-Temperatur kommen als
@@ -1177,6 +1304,7 @@ text_sensor:
     id: morgen_zustand
     entity_id: sensor.fridolin_wetter_morgen_zustand
     on_value:
+      - lambda: 'if (x != "unknown" && x != "unavailable") { strncpy(id(g_p_morgen_zustand), x.c_str(), 63); id(g_p_morgen_zustand)[63] = 0; }'
       - lvgl.label.update:
           id: lbl_morgen_zustand
           text: !lambda return x;
@@ -1281,6 +1409,7 @@ sensor:
     id: wetter_temp_uebersicht
     entity_id: sensor.fridolin_wetter_temperatur
     on_value:
+      - lambda: 'if (!std::isnan(x)) id(g_p_wetter_temp_uebersicht) = x;'
       - lvgl.label.update:
           id: lbl_wetter_temp
           ### Komma statt Punkt als Dezimaltrennzeichen (deutsche Schreibweise)
@@ -1294,21 +1423,25 @@ sensor:
     id: h0_temp
     entity_id: sensor.fridolin_wetter_h0_temp
     on_value:
+      - lambda: 'if (!std::isnan(x)) id(g_p_h0_temp) = x;'
       - lvgl.label.update: { id: lbl_h0_temp, text: { format: "%.0f°", args: ["x"] } }
   - platform: homeassistant
     id: h1_temp
     entity_id: sensor.fridolin_wetter_h1_temp
     on_value:
+      - lambda: 'if (!std::isnan(x)) id(g_p_h1_temp) = x;'
       - lvgl.label.update: { id: lbl_h1_temp, text: { format: "%.0f°", args: ["x"] } }
   - platform: homeassistant
     id: h2_temp
     entity_id: sensor.fridolin_wetter_h2_temp
     on_value:
+      - lambda: 'if (!std::isnan(x)) id(g_p_h2_temp) = x;'
       - lvgl.label.update: { id: lbl_h2_temp, text: { format: "%.0f°", args: ["x"] } }
   - platform: homeassistant
     id: h3_temp
     entity_id: sensor.fridolin_wetter_h3_temp
     on_value:
+      - lambda: 'if (!std::isnan(x)) id(g_p_h3_temp) = x;'
       - lvgl.label.update: { id: lbl_h3_temp, text: { format: "%.0f°", args: ["x"] } }
 
   ### Morgen: Minimal- und Maximaltemperatur. Beide Werte werden in den
@@ -1319,6 +1452,7 @@ sensor:
     id: morgen_min
     entity_id: sensor.fridolin_wetter_morgen_min
     on_value:
+      - lambda: 'if (!std::isnan(x)) id(g_p_morgen_min) = x;'
       - globals.set: { id: g_morgen_min, value: !lambda return x; }
       - lvgl.label.update:
           id: lbl_morgen_range
@@ -1329,6 +1463,7 @@ sensor:
     id: morgen_max
     entity_id: sensor.fridolin_wetter_morgen_max
     on_value:
+      - lambda: 'if (!std::isnan(x)) id(g_p_morgen_max) = x;'
       - globals.set: { id: g_morgen_max, value: !lambda return x; }
       - lvgl.label.update:
           id: lbl_morgen_range
@@ -1438,13 +1573,21 @@ script:
     then:
       - lambda: |-
           static const char *const wochentag[8] = {"", "So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"};
-          auto t = id(ha_time).now();
-          if (!t.is_valid()) return;
+          ESPTime t = id(ha_time).now();
+          if (t.is_valid()) {
+            // lokale Zeit als "UTC" merken, damit sie ohne Home Assistant weiterlaeuft
+            ESPTime l = t;
+            l.recalc_timestamp_utc();
+            id(g_zeit_lokal) = (uint32_t) l.timestamp;
+          } else if (id(g_zeit_lokal) > 0) {
+            // ohne Home Assistant: letzte bekannte Zeit + Laufzeit seit dem Start
+            t = ESPTime::from_epoch_utc(id(g_zeit_lokal) + millis() / 1000);
+          } else {
+            return;
+          }
           lv_label_set_text_fmt(id(lbl_uhrzeit), "%02u:%02u", t.hour, t.minute);
           lv_label_set_text_fmt(id(lbl_datum), "%s, %02u.%02u.", wochentag[t.day_of_week], t.day_of_month, t.month);
 
-  ### Zieltemperatur der Kuehlbox um delta aendern: Anzeige sofort, der
-  ### Bluetooth-Befehl geht erst nach kurzer Ruhe raus (mehrere Klicks = ein Befehl)
   - id: kb_ziel_aendern
     parameters:
       delta: int
@@ -1533,6 +1676,44 @@ script:
           };
           setzen(id(btn_fahrzeug_wohnwagen), !id(g_fahrzeugtyp_wohnmobil));
           setzen(id(btn_fahrzeug_wohnmobil), id(g_fahrzeugtyp_wohnmobil));
+
+  ### Beim Start die zuletzt gemerkten Werte der Uebersicht einspielen (laeuft ueber
+  ### dieselben on_value-Aktionen wie echte Werte aus Home Assistant)
+  - id: restore_uebersicht
+    then:
+      - lambda: |-
+          if (id(g_p_wetter_zustand)[0] != 0) id(wetter_zustand).publish_state(std::string(id(g_p_wetter_zustand)));
+          if (id(g_p_wetter_ort)[0] != 0) id(wetter_ort).publish_state(std::string(id(g_p_wetter_ort)));
+          if (id(g_p_wetter_icon)[0] != 0) id(wetter_icon).publish_state(std::string(id(g_p_wetter_icon)));
+          if (id(g_p_h0_icon)[0] != 0) id(h0_icon).publish_state(std::string(id(g_p_h0_icon)));
+          if (id(g_p_h1_icon)[0] != 0) id(h1_icon).publish_state(std::string(id(g_p_h1_icon)));
+          if (id(g_p_h2_icon)[0] != 0) id(h2_icon).publish_state(std::string(id(g_p_h2_icon)));
+          if (id(g_p_h3_icon)[0] != 0) id(h3_icon).publish_state(std::string(id(g_p_h3_icon)));
+          if (id(g_p_morgen_icon)[0] != 0) id(morgen_icon).publish_state(std::string(id(g_p_morgen_icon)));
+          if (id(g_p_h0_regen)[0] != 0) id(h0_regen).publish_state(std::string(id(g_p_h0_regen)));
+          if (id(g_p_h1_regen)[0] != 0) id(h1_regen).publish_state(std::string(id(g_p_h1_regen)));
+          if (id(g_p_h2_regen)[0] != 0) id(h2_regen).publish_state(std::string(id(g_p_h2_regen)));
+          if (id(g_p_h3_regen)[0] != 0) id(h3_regen).publish_state(std::string(id(g_p_h3_regen)));
+          if (id(g_p_wetter_regen)[0] != 0) id(wetter_regen).publish_state(std::string(id(g_p_wetter_regen)));
+          if (id(g_p_wetter_wind)[0] != 0) id(wetter_wind).publish_state(std::string(id(g_p_wetter_wind)));
+          if (id(g_p_wetter_feuchte)[0] != 0) id(wetter_feuchte).publish_state(std::string(id(g_p_wetter_feuchte)));
+          if (id(g_p_wetter_druck)[0] != 0) id(wetter_druck).publish_state(std::string(id(g_p_wetter_druck)));
+          if (id(g_p_wetter_sunrise)[0] != 0) id(wetter_sunrise).publish_state(std::string(id(g_p_wetter_sunrise)));
+          if (id(g_p_wetter_sunset)[0] != 0) id(wetter_sunset).publish_state(std::string(id(g_p_wetter_sunset)));
+          if (id(g_p_h0_zeit)[0] != 0) id(h0_zeit).publish_state(std::string(id(g_p_h0_zeit)));
+          if (id(g_p_h1_zeit)[0] != 0) id(h1_zeit).publish_state(std::string(id(g_p_h1_zeit)));
+          if (id(g_p_h2_zeit)[0] != 0) id(h2_zeit).publish_state(std::string(id(g_p_h2_zeit)));
+          if (id(g_p_h3_zeit)[0] != 0) id(h3_zeit).publish_state(std::string(id(g_p_h3_zeit)));
+          if (id(g_p_morgen_zustand)[0] != 0) id(morgen_zustand).publish_state(std::string(id(g_p_morgen_zustand)));
+          if (!std::isnan(id(g_p_wetter_temp_uebersicht))) id(wetter_temp_uebersicht).publish_state(id(g_p_wetter_temp_uebersicht));
+          if (!std::isnan(id(g_p_h0_temp))) id(h0_temp).publish_state(id(g_p_h0_temp));
+          if (!std::isnan(id(g_p_h1_temp))) id(h1_temp).publish_state(id(g_p_h1_temp));
+          if (!std::isnan(id(g_p_h2_temp))) id(h2_temp).publish_state(id(g_p_h2_temp));
+          if (!std::isnan(id(g_p_h3_temp))) id(h3_temp).publish_state(id(g_p_h3_temp));
+          if (!std::isnan(id(g_p_morgen_min))) id(morgen_min).publish_state(id(g_p_morgen_min));
+          if (!std::isnan(id(g_p_morgen_max))) id(morgen_max).publish_state(id(g_p_morgen_max));
+          ESP_LOGI("restore", "Uebersicht aus dem Flash: Zustand='%s' Wind='%s' Ort='%s' lokale Zeit=%u", id(g_p_wetter_zustand), id(g_p_wetter_wind), id(g_p_wetter_ort), (unsigned) id(g_zeit_lokal));
+      - script.execute: sync_uhrzeit
 
   - id: sync_standby
     then:

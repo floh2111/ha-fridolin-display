@@ -903,6 +903,24 @@ geklaert); Integration 0.7.2 (Luftdruck) noch nicht released.
 - Bei `git`: **kein `git stash`** in diesem Repo benutzen - hat einmal den
   Index zerstoert (mit `git reset` ohne `--hard` reparierbar).
 
+## Letzte Werte merken (Stand 04.10.2026)
+
+Alle 30 Werte der Uebersicht (Wetter, Stunden, Morgen, Wind, Sonne, Ort,
+Regen, Luftfeuchte/-druck) werden in `g_p_<sensor-id>`-Globals (`restore_value`,
+Textwerte als `char[64]`, Zahlen als `float` mit `NAN`) gemerkt, jedes
+`on_value` der `sensor.fridolin_wetter_*`-Sensoren speichert den neuen Wert
+(Flash wird gesammelt alle 5 min geschrieben). Beim Start spielt das Skript
+`restore_uebersicht` (aus dem `g_standby_init`-Zweig des 1s-Intervals, ~3 s
+nach dem Boot) sie per `publish_state()` ein - dieselben on_value-Aktionen wie
+bei echten HA-Werten, die spaeter einfach ueberschreiben. Uhrzeit/Datum:
+`g_zeit_lokal` (lokale Zeit als UTC-Epoch, jede Minute aktualisiert);
+`sync_uhrzeit` rechnet ohne gueltige HA-Zeit `g_zeit_lokal + Laufzeit` weiter
+(Ausfallzeit zwischen Abschalten und Start fehlt bis zur naechsten HA-
+Verbindung). Gotcha: `initial_value` bei `char[64]`-Globals NICHT setzen
+('{0}'/'{}' -> Compile-Fehler, Standard ist Nullen). Neue Wetter-Sensoren
+auf der Uebersicht brauchen ein eigenes `g_p_*`-Global + Eintrag in
+`restore_uebersicht`.
+
 ## Ton/Stil-Hinweis
 
 Florian ist technisch versiert (kennt sich mit ESPHome, Home Assistant,
